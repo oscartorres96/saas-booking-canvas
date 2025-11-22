@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2 } from "lucide-react";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 
 interface BookingFormProps {
   primaryColor?: string;
@@ -20,7 +22,7 @@ export const BookingForm = ({ primaryColor }: BookingFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Basic validation
     if (!formData.name || !formData.phone || !formData.email) {
       toast({
@@ -32,8 +34,8 @@ export const BookingForm = ({ primaryColor }: BookingFormProps) => {
     }
 
     toast({
-      title: "¡Reserva confirmada!",
-      description: "Recibirás un correo de confirmación en breve",
+      title: "Reserva confirmada",
+      description: "Recibiras un correo de confirmacion en breve",
     });
 
     // Reset form
@@ -46,12 +48,12 @@ export const BookingForm = ({ primaryColor }: BookingFormProps) => {
         <div className="max-w-2xl mx-auto">
           <Card className="shadow-elevated border-2">
             <CardHeader className="text-center pb-8">
-              <div 
+              <div
                 className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center"
                 style={primaryColor ? { backgroundColor: `${primaryColor}20` } : {}}
               >
-                <CheckCircle2 
-                  className="h-8 w-8 text-primary" 
+                <CheckCircle2
+                  className="h-8 w-8 text-primary"
                   style={primaryColor ? { color: primaryColor } : {}}
                 />
               </div>
@@ -67,7 +69,7 @@ export const BookingForm = ({ primaryColor }: BookingFormProps) => {
                   <Input
                     id="name"
                     type="text"
-                    placeholder="Juan Pérez"
+                    placeholder="Juan Perez"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="h-12 text-base"
@@ -76,15 +78,25 @@ export const BookingForm = ({ primaryColor }: BookingFormProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-base">Teléfono</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+52 123 456 7890"
+                  <Label htmlFor="phone" className="text-base">Telefono</Label>
+                  <PhoneInput
+                    country="mx"
+                    enableSearch
+                    countryCodeEditable={false}
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="h-12 text-base"
-                    required
+                    onChange={(_, __, ___, formattedValue) =>
+                      setFormData({ ...formData, phone: formattedValue || "" })
+                    }
+                    placeholder="+52 55 1234 5678"
+                    inputProps={{
+                      id: "phone",
+                      name: "phone",
+                      required: true,
+                    }}
+                    containerClass="w-full"
+                    inputClass="!w-full !h-12 !text-base !bg-background !border !border-input !rounded-r-md !rounded-l-none !pl-14 !placeholder:text-muted-foreground focus:!border-ring focus:!shadow-[0_0_0_1px] focus:!shadow-ring focus:!outline-none"
+                    buttonClass="!h-12 !bg-muted/40 !border !border-input !border-r-0 !rounded-l-md !rounded-r-none !px-3 focus:!border-ring focus:!shadow-[0_0_0_1px] focus:!shadow-ring"
+                    dropdownClass="!bg-popover !text-foreground !shadow-lg !border"
                   />
                 </div>
 
@@ -101,9 +113,9 @@ export const BookingForm = ({ primaryColor }: BookingFormProps) => {
                   />
                 </div>
 
-                <Button 
-                  type="submit" 
-                  size="lg" 
+                <Button
+                  type="submit"
+                  size="lg"
                   className="w-full h-14 text-base font-semibold shadow-elevated"
                   style={primaryColor ? { backgroundColor: primaryColor } : {}}
                 >
