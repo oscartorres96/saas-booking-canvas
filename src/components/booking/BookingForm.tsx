@@ -70,42 +70,41 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
   };
 
   return (
-    <section className="py-20 md:py-28">
+    <section className="py-16 md:py-24">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl mx-auto">
-          <Card className="shadow-elevated border-2">
-            <CardHeader className="text-center pb-8">
+          <Card className="shadow-lg">
+            <CardHeader className="text-center pb-6">
               <div
-                className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center"
-                style={primaryColor ? { backgroundColor: `${primaryColor}20` } : {}}
+                className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center"
+                style={primaryColor ? { backgroundColor: `${primaryColor}15` } : {}}
               >
                 <CheckCircle2
-                  className="h-8 w-8 text-primary"
+                  className="h-7 w-7 text-primary"
                   style={primaryColor ? { color: primaryColor } : {}}
                 />
               </div>
-              <CardTitle className="text-3xl">Confirma tu reserva</CardTitle>
+              <CardTitle className="text-2xl">Confirma tu reserva</CardTitle>
               <CardDescription className="text-base">
                 Completa tus datos para confirmar la cita
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-base">Nombre completo</Label>
+                  <Label htmlFor="name" className="text-sm font-medium">Nombre completo</Label>
                   <Input
                     id="name"
                     type="text"
                     placeholder="Juan Perez"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="h-12 text-base"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-base">Telefono</Label>
+                  <Label htmlFor="phone" className="text-sm font-medium">Telefono</Label>
                   <PhoneInput
                     country="mx"
                     enableSearch
@@ -121,21 +120,20 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
                       required: true,
                     }}
                     containerClass="w-full"
-                    inputClass="!w-full !h-12 !text-base !bg-background !border !border-input !rounded-r-md !rounded-l-none !pl-14 !placeholder:text-muted-foreground focus:!border-ring focus:!shadow-[0_0_0_1px] focus:!shadow-ring focus:!outline-none"
-                    buttonClass="!h-12 !bg-muted/40 !border !border-input !border-r-0 !rounded-l-md !rounded-r-none !px-3 focus:!border-ring focus:!shadow-[0_0_0_1px] focus:!shadow-ring"
-                    dropdownClass="!bg-popover !text-foreground !shadow-lg !border"
+                    inputClass="!w-full !h-11 !text-base !bg-gray-100 dark:!bg-zinc-800 !border-0 !rounded-r-xl !rounded-l-none !pl-14 !placeholder:text-muted-foreground focus:!ring-2 focus:!ring-primary/50 focus:!outline-none focus:!bg-white dark:focus:!bg-zinc-900"
+                    buttonClass="!h-11 !bg-gray-100 dark:!bg-zinc-800 !border-0 !rounded-l-xl !rounded-r-none !px-3"
+                    dropdownClass="!bg-popover !text-foreground !shadow-lg !border !rounded-xl"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-base">Email</Label>
+                  <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                   <Input
                     id="email"
                     type="email"
                     placeholder="juan@ejemplo.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="h-12 text-base"
                     required
                   />
                 </div>
@@ -143,13 +141,13 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
                 <Button
                   type="submit"
                   size="lg"
-                  className="w-full h-14 text-base font-semibold shadow-elevated"
+                  className="w-full font-semibold shadow-md mt-6"
                   style={primaryColor ? { backgroundColor: primaryColor } : {}}
                 >
                   Confirmar reserva
                 </Button>
 
-                <p className="text-xs text-muted-foreground text-center pt-2">
+                <p className="text-xs text-muted-foreground text-center pt-1">
                   Al confirmar, aceptas recibir notificaciones sobre tu reserva
                 </p>
               </form>

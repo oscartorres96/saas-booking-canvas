@@ -51,19 +51,19 @@ export const BookingCalendar = ({
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div className="grid lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
           {/* Date Selection */}
-          <Card className="shadow-elevated">
+          <Card className="shadow-md">
             <CardHeader>
               <div className="flex items-center justify-between mb-2">
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-9 w-9">
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <CardTitle className="text-xl flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
                   Selecciona un día
                 </CardTitle>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-9 w-9">
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -72,25 +72,25 @@ export const BookingCalendar = ({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-7 gap-1 sm:gap-2">
+              <div className="grid grid-cols-7 gap-2">
                 {mockDates.map((day) => (
                   <button
                     key={day.fullDate}
                     onClick={() => setSelectedDate(day.fullDate)}
                     className={`
-                      flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl border-2 transition-all
+                      flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-200 active:scale-95
                       ${selectedDate === day.fullDate
-                        ? 'border-primary bg-primary text-primary-foreground shadow-md scale-105'
-                        : 'border-border hover:border-primary/50 hover:bg-accent'
+                        ? 'bg-primary text-primary-foreground shadow-md scale-105'
+                        : 'bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700'
                       }
                     `}
                     style={selectedDate === day.fullDate && primaryColor
-                      ? { backgroundColor: primaryColor, borderColor: primaryColor }
+                      ? { backgroundColor: primaryColor }
                       : {}
                     }
                   >
-                    <span className="text-[10px] sm:text-xs font-medium opacity-70">{day.day}</span>
-                    <span className="text-base sm:text-lg font-bold">{day.date}</span>
+                    <span className="text-xs font-medium opacity-80">{day.day}</span>
+                    <span className="text-lg font-semibold">{day.date}</span>
                   </button>
                 ))}
               </div>
@@ -98,7 +98,7 @@ export const BookingCalendar = ({
           </Card>
 
           {/* Time Selection */}
-          <Card className="shadow-elevated">
+          <Card className="shadow-md">
             <CardHeader>
               <CardTitle className="text-xl">Horarios disponibles</CardTitle>
               <CardDescription>
@@ -110,20 +110,20 @@ export const BookingCalendar = ({
             </CardHeader>
             <CardContent>
               {selectedDate ? (
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2.5">
                   {mockHours.map((hour) => (
                     <button
                       key={hour}
                       onClick={() => setSelectedTime(hour)}
                       className={`
-                        py-3 px-4 rounded-lg border-2 font-medium transition-all text-sm
+                        py-3 px-4 rounded-2xl font-semibold transition-all duration-200 text-sm active:scale-95
                         ${selectedTime === hour
-                          ? 'border-primary bg-primary text-primary-foreground shadow-md'
-                          : 'border-border hover:border-primary/50 hover:bg-accent'
+                          ? 'bg-primary text-primary-foreground shadow-md'
+                          : 'bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700'
                         }
                       `}
                       style={selectedTime === hour && primaryColor
-                        ? { backgroundColor: primaryColor, borderColor: primaryColor }
+                        ? { backgroundColor: primaryColor }
                         : {}
                       }
                     >
@@ -133,7 +133,7 @@ export const BookingCalendar = ({
                 </div>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-40" />
                   <p>Selecciona una fecha para ver los horarios disponibles</p>
                 </div>
               )}

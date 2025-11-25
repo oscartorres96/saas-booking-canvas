@@ -10,6 +10,7 @@ const ServiceSchema = new mongoose.Schema({
 
 const BusinessSchema = new mongoose.Schema({
     businessName: { type: String, required: true },
+    slug: { type: String, required: true, unique: true }, // URL-friendly identifier
     type: { type: String, enum: ['dentist', 'barber', 'nutritionist', 'other'], default: 'other' },
     ownerName: String,
     logoUrl: String,

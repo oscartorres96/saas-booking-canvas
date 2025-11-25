@@ -2,111 +2,93 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Apple Human Interface Guidelines Design System */
 
 @layer base {
   :root {
-    --background: 0 0% 99%;
-    --foreground: 240 10% 15%;
+    /* iOS System Colors (Light Mode) */
+    --background: 0 0% 98%;
+    /* System Grouped Background */
+    --foreground: 0 0% 0%;
+    /* Label */
 
     --card: 0 0% 100%;
-    --card-foreground: 240 10% 15%;
+    /* Secondary System Grouped Background / White */
+    --card-foreground: 0 0% 0%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 15%;
+    --popover-foreground: 0 0% 0%;
 
-    /* Dynamic primary - default teal/cyan */
-    --primary: 189 94% 43%;
+    /* System Blue */
+    --primary: 211 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 189 94% 93%;
-    
+
+    /* System Gray 6 (Light) */
     --secondary: 240 5% 96%;
-    --secondary-foreground: 240 10% 15%;
+    --secondary-foreground: 211 100% 50%;
+    /* Blue text on gray buttons often */
 
     --muted: 240 5% 96%;
     --muted-foreground: 240 4% 46%;
+    /* Secondary Label */
 
-    --accent: 189 94% 93%;
-    --accent-foreground: 189 94% 43%;
+    --accent: 211 100% 50%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 100% 50%;
+    /* System Red */
     --destructive-foreground: 0 0% 100%;
 
     --border: 240 6% 90%;
+    /* Separator */
     --input: 240 6% 90%;
-    --ring: 189 94% 43%;
+    --ring: 211 100% 50%;
 
-    --radius: 1rem;
-    
-    /* Custom design tokens */
-    --gradient-hero: linear-gradient(135deg, hsl(189 94% 43% / 0.05) 0%, hsl(189 94% 93%) 100%);
+    --radius: 0.75rem;
+    /* 12px default radius */
+
+    /* Custom Apple-style tokens */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.05);
-    
-    --transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.04), 0 2px 4px -2px rgb(0 0 0 / 0.02);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.02);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.02);
 
-    --radius: 1rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
   }
 
   .dark {
-    --background: 240 10% 8%;
-    --foreground: 0 0% 98%;
+    /* iOS System Colors (Dark Mode) */
+    --background: 0 0% 0%;
+    /* System Background */
+    --foreground: 0 0% 100%;
 
-    --card: 240 10% 10%;
-    --card-foreground: 0 0% 98%;
+    --card: 240 4% 11%;
+    /* Secondary System Grouped Background */
+    --card-foreground: 0 0% 100%;
 
-    --popover: 240 10% 10%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 240 4% 11%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 189 94% 43%;
+    /* System Blue Dark */
+    --primary: 211 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 189 94% 20%;
 
-    --secondary: 240 8% 14%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 240 4% 16%;
+    /* System Gray 5 (Dark) */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 240 8% 14%;
+    --muted: 240 4% 16%;
     --muted-foreground: 240 5% 65%;
 
-    --accent: 189 94% 20%;
-    --accent-foreground: 189 94% 43%;
+    --accent: 211 100% 50%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62% 50%;
+    --destructive: 0 100% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 8% 18%;
-    --input: 240 8% 18%;
-    --ring: 189 94% 43%;
-    
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 189 94% 43%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 189 94% 43%;
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 211 100% 50%;
   }
 }
 
@@ -117,31 +99,33 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    font-family: var(--font-sans);
   }
-  
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-bold tracking-tight;
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-semibold tracking-tight;
   }
 }
 
 @layer utilities {
-  .gradient-hero {
-    background: var(--gradient-hero);
+  .glass {
+    @apply bg-white/70 dark:bg-black/70 backdrop-blur-xl border border-white/20;
   }
-  
-  .shadow-subtle {
-    box-shadow: var(--shadow-md);
+
+  .glass-card {
+    @apply bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg border border-white/20 shadow-sm;
   }
-  
-  .shadow-elevated {
-    box-shadow: var(--shadow-lg);
+
+  .ios-btn {
+    @apply active:scale-95 transition-transform duration-200 ease-out;
   }
-  
-  .transition-base {
-    transition: var(--transition-base);
-  }
-  
-  .transition-smooth {
-    transition: var(--transition-smooth);
+
+  .ios-input {
+    @apply bg-gray-100 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/50 transition-all;
   }
 }

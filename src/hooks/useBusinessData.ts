@@ -83,9 +83,11 @@ const defaultBusinessData: BusinessData = {
 };
 
 // Función para obtener datos de la API
-const fetchBusinessData = async (): Promise<BusinessData> => {
+const fetchBusinessData = async (businessSlug?: string): Promise<BusinessData> => {
     try {
-        const response = await api.get('/business');
+        // Si hay un slug, lo usamos en la URL, sino usamos el endpoint genérico
+        const endpoint = businessSlug ? `/business/${businessSlug}` : '/business';
+        const response = await api.get(endpoint);
         return response.data;
     } catch (error) {
         console.error("Error fetching business data:", error);
@@ -94,10 +96,10 @@ const fetchBusinessData = async (): Promise<BusinessData> => {
     }
 };
 
-export const useBusinessData = () => {
+export const useBusinessData = (businessSlug?: string) => {
     return useQuery({
-        queryKey: ["businessData"],
-        queryFn: fetchBusinessData,
+        queryKey: ["businessData", businessSlug],
+        queryFn: () => fetchBusinessData(businessSlug),
         staleTime: 1000 * 60 * 5, // 5 minutos
     });
 };

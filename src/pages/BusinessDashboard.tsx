@@ -210,16 +210,16 @@ const BusinessDashboard = () => {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50/50 p-4 md:p-8">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-gray-50/50 dark:bg-black p-4 md:p-6">
+            <div className="max-w-7xl mx-auto space-y-6">
 
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Panel de Negocio</h1>
-                        <p className="text-muted-foreground">Bienvenido, aquí puedes gestionar tus citas y clientes.</p>
+                        <h1 className="text-2xl font-semibold tracking-tight">Panel de Negocio</h1>
+                        <p className="text-muted-foreground text-sm">Bienvenido, aquí puedes gestionar tus citas y clientes.</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         <Button variant="outline" onClick={() => window.location.href = '/login'}>
                             Cerrar Sesión
                         </Button>
@@ -385,52 +385,60 @@ const BusinessDashboard = () => {
 
                 {/* Stats Cards */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Citas Hoy</CardTitle>
-                            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                    <Card className="shadow-sm">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">Citas Hoy</CardTitle>
+                            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                                <CalendarIcon className="h-4 w-4 text-primary" />
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">
+                            <div className="text-2xl font-semibold">
                                 {clients.filter(c => new Date(c.date).getDate() === new Date().getDate()).length}
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground mt-1">
                                 {clients.filter(c => new Date(c.date).getDate() === new Date().getDate() && c.status === 'pending').length} pendientes de confirmar
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Ingresos (Mes)</CardTitle>
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <Card className="shadow-sm">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">Ingresos (Mes)</CardTitle>
+                            <div className="h-8 w-8 rounded-xl bg-green-500/10 flex items-center justify-center">
+                                <DollarSign className="h-4 w-4 text-green-600 dark:text-green-500" />
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">
+                            <div className="text-2xl font-semibold">
                                 ${clients.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()}
                             </div>
-                            <p className="text-xs text-muted-foreground">+15% vs mes anterior</p>
+                            <p className="text-xs text-muted-foreground mt-1">+15% vs mes anterior</p>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Clientes</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
+                    <Card className="shadow-sm">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">Total Clientes</CardTitle>
+                            <div className="h-8 w-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                                <Users className="h-4 w-4 text-blue-600 dark:text-blue-500" />
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{clients.length}</div>
-                            <p className="text-xs text-muted-foreground">+8 nuevos esta semana</p>
+                            <div className="text-2xl font-semibold">{clients.length}</div>
+                            <p className="text-xs text-muted-foreground mt-1">+8 nuevos esta semana</p>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Próximas Citas</CardTitle>
-                            <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Card className="shadow-sm">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">Próximas Citas</CardTitle>
+                            <div className="h-8 w-8 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                                <Clock className="h-4 w-4 text-orange-600 dark:text-orange-500" />
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">
+                            <div className="text-2xl font-semibold">
                                 {clients.filter(c => c.date > new Date()).length}
                             </div>
-                            <p className="text-xs text-muted-foreground">Agendadas a futuro</p>
+                            <p className="text-xs text-muted-foreground mt-1">Agendadas a futuro</p>
                         </CardContent>
                     </Card>
                 </div>

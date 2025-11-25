@@ -21,7 +21,22 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // Routes
 
-// Get business profile
+// Get business profile by slug
+app.get('/api/business/:slug', async (req, res) => {
+    try {
+        const business = await Business.findOne({ slug: req.params.slug });
+
+        if (!business) {
+            return res.status(404).json({ message: 'Business not found' });
+        }
+
+        res.json(business);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// Get business profile (default/first business)
 app.get('/api/business', async (req, res) => {
     try {
         // For simplicity, we'll fetch the first document or a specific one
