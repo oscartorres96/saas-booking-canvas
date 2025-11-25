@@ -5,20 +5,31 @@ import { useState } from "react";
 
 interface BookingCalendarProps {
   primaryColor?: string;
+  selectedDate: string | null;
+  setSelectedDate: (date: string | null) => void;
+  selectedTime: string | null;
+  setSelectedTime: (time: string | null) => void;
 }
 
-export const BookingCalendar = ({ primaryColor }: BookingCalendarProps) => {
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+export const BookingCalendar = ({
+  primaryColor,
+  selectedDate,
+  setSelectedDate,
+  selectedTime,
+  setSelectedTime
+}: BookingCalendarProps) => {
 
   // Mock dates for the next 7 days
   const mockDates = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() + i);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const dayStr = String(date.getDate()).padStart(2, '0');
     return {
       day: date.toLocaleDateString('es-ES', { weekday: 'short' }),
       date: date.getDate(),
-      fullDate: date.toISOString().split('T')[0]
+      fullDate: `${year}-${month}-${dayStr}`
     };
   });
 
@@ -61,25 +72,25 @@ export const BookingCalendar = ({ primaryColor }: BookingCalendarProps) => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2">
                 {mockDates.map((day) => (
                   <button
                     key={day.fullDate}
                     onClick={() => setSelectedDate(day.fullDate)}
                     className={`
-                      flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all
+                      flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl border-2 transition-all
                       ${selectedDate === day.fullDate
                         ? 'border-primary bg-primary text-primary-foreground shadow-md scale-105'
                         : 'border-border hover:border-primary/50 hover:bg-accent'
                       }
                     `}
-                    style={selectedDate === day.fullDate && primaryColor 
-                      ? { backgroundColor: primaryColor, borderColor: primaryColor } 
+                    style={selectedDate === day.fullDate && primaryColor
+                      ? { backgroundColor: primaryColor, borderColor: primaryColor }
                       : {}
                     }
                   >
-                    <span className="text-xs font-medium opacity-70">{day.day}</span>
-                    <span className="text-lg font-bold">{day.date}</span>
+                    <span className="text-[10px] sm:text-xs font-medium opacity-70">{day.day}</span>
+                    <span className="text-base sm:text-lg font-bold">{day.date}</span>
                   </button>
                 ))}
               </div>
@@ -91,7 +102,7 @@ export const BookingCalendar = ({ primaryColor }: BookingCalendarProps) => {
             <CardHeader>
               <CardTitle className="text-xl">Horarios disponibles</CardTitle>
               <CardDescription>
-                {selectedDate 
+                {selectedDate
                   ? `Horarios para el ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`
                   : 'Selecciona primero una fecha'
                 }
@@ -111,8 +122,8 @@ export const BookingCalendar = ({ primaryColor }: BookingCalendarProps) => {
                           : 'border-border hover:border-primary/50 hover:bg-accent'
                         }
                       `}
-                      style={selectedTime === hour && primaryColor 
-                        ? { backgroundColor: primaryColor, borderColor: primaryColor } 
+                      style={selectedTime === hour && primaryColor
+                        ? { backgroundColor: primaryColor, borderColor: primaryColor }
                         : {}
                       }
                     >

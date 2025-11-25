@@ -10,9 +10,12 @@ import "react-phone-input-2/lib/style.css";
 
 interface BookingFormProps {
   primaryColor?: string;
+  selectedDate: string | null;
+  selectedTime: string | null;
+  businessName: string;
 }
 
-export const BookingForm = ({ primaryColor }: BookingFormProps) => {
+export const BookingForm = ({ primaryColor, selectedDate, selectedTime, businessName }: BookingFormProps) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
@@ -22,6 +25,15 @@ export const BookingForm = ({ primaryColor }: BookingFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!selectedDate || !selectedTime) {
+      toast({
+        title: "Selecciona fecha y hora",
+        description: "Por favor selecciona una fecha y hora en el calendario antes de continuar",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Basic validation
     if (!formData.name || !formData.phone || !formData.email) {
@@ -33,9 +45,24 @@ export const BookingForm = ({ primaryColor }: BookingFormProps) => {
       return;
     }
 
+    // Create Google Calendar Event URL
+    const startTime = new Date(`${selectedDate}T${selectedTime}`);
+    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour duration
+
+    const formatGoogleDate = (date: Date) => {
+      return date.toISOString().replace(/-|:|\.\d\d\d/g, "");
+    };
+
+    const eventTitle = `Cita en ${businessName}`;
+    const eventDetails = `Cita reservada con ${formData.name}. Tel: ${formData.phone}, Email: ${formData.email}`;
+    const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(eventTitle)}&dates=${formatGoogleDate(startTime)}/${formatGoogleDate(endTime)}&details=${encodeURIComponent(eventDetails)}`;
+
+    // Open Google Calendar in new tab
+    window.open(googleCalendarUrl, '_blank');
+
     toast({
       title: "Reserva confirmada",
-      description: "Recibiras un correo de confirmacion en breve",
+      description: "Se ha abierto tu calendario para agendar la cita. Recibirás un correo de confirmación en breve.",
     });
 
     // Reset form
