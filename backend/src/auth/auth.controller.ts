@@ -5,17 +5,17 @@ import { AuthService } from './auth.service';
 
 class LoginDto {
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsString()
   @MinLength(6)
-  password: string;
+  password!: string;
 }
 
 class RegisterDto extends LoginDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 }
 
 @Controller('auth')

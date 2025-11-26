@@ -3,7 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
-import { User, UserDocument } from '../users/schemas/user.schema';
+import { User, UserDocument, UserRole } from '../users/schemas/user.schema';
+import { JwtPayload } from './types';
 
 export interface AuthResponse {
   accessToken: string;
@@ -30,7 +31,7 @@ export class AuthService {
       email,
       password_hash,
       name,
-      role: 'user',
+      role: UserRole.Client,
     });
 
     return this.buildAuthResponse(user as UserDocument);
@@ -51,15 +52,25 @@ export class AuthService {
   }
 
   private buildAuthResponse(user: UserDocument): AuthResponse {
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      businessId: user.businessId,
+    };
+
+    const secret = this.configService.get<string>('jwtSecret') ?? 'change-me';
+
     const accessToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('jwtSecret'),
-      expiresIn: this.configService.get<string>('jwtExpiresIn'),
+      secret,
+      expiresIn: this.configService.get<string>('jwtExpiresIn') ?? '15m',
     });
+
     const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('jwtSecret'),
-      expiresIn: this.configService.get<string>('jwtRefreshExpiresIn'),
+      secret,
+      expiresIn: this.configService.get<string>('jwtRefreshExpiresIn') ?? '7d',
     });
+
     const safeUser = user.toObject();
     delete (safeUser as Record<string, unknown>).password_hash;
 

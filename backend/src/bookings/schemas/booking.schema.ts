@@ -13,7 +13,7 @@ export enum BookingStatus {
 @Schema({ timestamps: true })
 export class Booking {
   @Prop({ required: true })
-  clientName: string;
+  clientName!: string;
 
   @Prop()
   clientEmail?: string;
@@ -25,16 +25,16 @@ export class Booking {
   businessId?: string;
 
   @Prop({ required: true })
-  serviceId: string;
+  serviceId!: string;
 
   @Prop()
   serviceName?: string;
 
   @Prop({ required: true })
-  scheduledAt: Date;
+  scheduledAt!: Date;
 
   @Prop({ enum: BookingStatus, default: BookingStatus.Pending })
-  status: BookingStatus;
+  status!: BookingStatus;
 
   @Prop()
   notes?: string;

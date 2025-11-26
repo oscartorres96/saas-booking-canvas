@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { UserRole } from '../users/schemas/user.schema';
 import { Booking, BookingDocument } from './schemas/booking.schema';
 
 export interface CreateBookingPayload {
@@ -18,30 +19,68 @@ export interface CreateBookingPayload {
 
 export type UpdateBookingPayload = Partial<CreateBookingPayload>;
 
+interface AuthUser {
+  userId: string;
+  role: string;
+  businessId?: string;
+}
+
 @Injectable()
 export class BookingsService {
   constructor(@InjectModel(Booking.name) private readonly bookingModel: Model<BookingDocument>) {}
 
-  async create(payload: CreateBookingPayload): Promise<Booking> {
+  private buildFilter(authUser: AuthUser) {
+    if (authUser.role === UserRole.Owner) return {};
+    if (authUser.role === UserRole.Business) {
+      if (!authUser.businessId) throw new ForbiddenException('Business context missing');
+      return { businessId: authUser.businessId };
+    }
+    if (authUser.role === UserRole.Client) return { userId: authUser.userId };
+    return {};
+  }
+
+  async create(payload: CreateBookingPayload, authUser: AuthUser): Promise<Booking> {
+    if (authUser.role === UserRole.Business) {
+      if (!authUser.businessId) throw new ForbiddenException('Business context missing');
+      payload.businessId = authUser.businessId;
+    }
+    if (authUser.role === UserRole.Client) {
+      payload.userId = authUser.userId;
+      if (!authUser.businessId) throw new ForbiddenException('Business context missing');
+      if (!payload.businessId) {
+        payload.businessId = authUser.businessId;
+      }
+    }
     const booking = new this.bookingModel(payload);
     return booking.save();
   }
 
-  async findAll(): Promise<Booking[]> {
-    return this.bookingModel.find().lean();
+  async findAll(authUser: AuthUser): Promise<Booking[]> {
+    return this.bookingModel.find(this.buildFilter(authUser)).lean();
   }
 
-  async findOne(id: string): Promise<Booking> {
+  async findOne(id: string, authUser: AuthUser): Promise<Booking> {
     const booking = await this.bookingModel.findById(id).lean();
     if (!booking) {
       throw new NotFoundException('Booking not found');
     }
+    const filter = this.buildFilter(authUser);
+    if (
+      (filter.businessId && booking.businessId !== filter.businessId) ||
+      (filter.userId && booking.userId !== filter.userId)
+    ) {
+      throw new ForbiddenException('Not allowed');
+    }
     return booking;
   }
 
-  async update(id: string, payload: UpdateBookingPayload): Promise<Booking> {
+  async update(id: string, payload: UpdateBookingPayload, authUser: AuthUser): Promise<Booking> {
     const updated = await this.bookingModel
-      .findByIdAndUpdate(new Types.ObjectId(id), payload, { new: true })
+      .findOneAndUpdate(
+        { _id: new Types.ObjectId(id), ...this.buildFilter(authUser) },
+        payload,
+        { new: true },
+      )
       .lean();
     if (!updated) {
       throw new NotFoundException('Booking not found');
@@ -49,8 +88,8 @@ export class BookingsService {
     return updated;
   }
 
-  async remove(id: string): Promise<void> {
-    const result = await this.bookingModel.findByIdAndDelete(id);
+  async remove(id: string, authUser: AuthUser): Promise<void> {
+    const result = await this.bookingModel.findOneAndDelete({ _id: new Types.ObjectId(id), ...this.buildFilter(authUser) });
     if (!result) {
       throw new NotFoundException('Booking not found');
     }

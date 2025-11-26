@@ -1,11 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { IsBoolean, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { ServicesService } from './services.service';
 
 class CreateServiceDto {
   @IsString()
-  name: string;
+  name!: string;
 
   @IsOptional()
   @IsString()
@@ -13,11 +13,11 @@ class CreateServiceDto {
 
   @IsNumber()
   @Min(0)
-  durationMinutes: number;
+  durationMinutes!: number;
 
   @IsNumber()
   @Min(0)
-  price: number;
+  price!: number;
 
   @IsOptional()
   @IsBoolean()
@@ -54,27 +54,27 @@ export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
   @Get()
-  findAll() {
-    return this.servicesService.findAll();
+  findAll(@Req() req: any) {
+    return this.servicesService.findAll(req.user);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.servicesService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: any) {
+    return this.servicesService.findOne(id, req.user);
   }
 
   @Post()
-  create(@Body() body: CreateServiceDto) {
-    return this.servicesService.create(body);
+  create(@Body() body: CreateServiceDto, @Req() req: any) {
+    return this.servicesService.create(body, req.user);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: UpdateServiceDto) {
-    return this.servicesService.update(id, body);
+  update(@Param('id') id: string, @Body() body: UpdateServiceDto, @Req() req: any) {
+    return this.servicesService.update(id, body, req.user);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.servicesService.remove(id);
+  remove(@Param('id') id: string, @Req() req: any) {
+    return this.servicesService.remove(id, req.user);
   }
 }
