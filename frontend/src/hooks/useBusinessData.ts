@@ -11,6 +11,7 @@ export interface Service {
 }
 
 export interface BusinessData {
+    _id?: string;
     businessName: string;
     logoUrl: string;
     primaryColor: string;

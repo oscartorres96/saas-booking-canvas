@@ -2,31 +2,35 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } fro
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { BusinessesService } from './businesses.service';
 
-@UseGuards(JwtAuthGuard)
 @Controller('businesses')
 export class BusinessesController {
-  constructor(private readonly businessesService: BusinessesService) {}
+  constructor(private readonly businessesService: BusinessesService) { }
 
+  @UseGuards(JwtAuthGuard)
   @Get()
   findAll(@Req() req: any) {
-    return this.businessesService.findAll(req.user);
+    return this.businessesService.findAll(req.user ?? { role: 'public' });
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string, @Req() req: any) {
-    return this.businessesService.findOne(id, req.user);
+    return this.businessesService.findOne(id, req.user ?? { role: 'public' });
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post()
   create(@Body() body: any, @Req() req: any) {
     return this.businessesService.create(body, req.user);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
   update(@Param('id') id: string, @Body() body: any, @Req() req: any) {
     return this.businessesService.update(id, body, req.user);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string, @Req() req: any) {
     return this.businessesService.remove(id, req.user);

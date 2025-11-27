@@ -10,6 +10,7 @@ export interface CreateServicePayload {
   durationMinutes: number;
   price: number;
   active?: boolean;
+  businessId?: string;
 }
 
 export type UpdateServicePayload = Partial<CreateServicePayload>;
@@ -22,9 +23,12 @@ interface AuthUser {
 
 @Injectable()
 export class ServicesService {
-  constructor(@InjectModel(Service.name) private readonly serviceModel: Model<ServiceDocument>) {}
+  constructor(@InjectModel(Service.name) private readonly serviceModel: Model<ServiceDocument>) { }
 
-  private buildFilter(authUser: AuthUser) {
+  private buildFilter(authUser: AuthUser, requestedBusinessId?: string) {
+    // If a businessId was explicitly requested, prioritize it for public/owner queries
+    if (requestedBusinessId) return { businessId: requestedBusinessId };
+
     if (authUser.role === UserRole.Owner) return {};
     if (authUser.role === UserRole.Business) {
       if (!authUser.businessId) throw new ForbiddenException('Business context missing');
@@ -42,12 +46,15 @@ export class ServicesService {
       if (!authUser.businessId) throw new ForbiddenException('Business context missing');
       payload.businessId = authUser.businessId;
     }
+    if (authUser.role === UserRole.Owner && !payload.businessId) {
+      throw new ForbiddenException('BusinessId is required for owner when creating a service');
+    }
     const service = new this.serviceModel(payload);
     return service.save();
   }
 
-  async findAll(authUser: AuthUser): Promise<Service[]> {
-    return this.serviceModel.find(this.buildFilter(authUser)).lean();
+  async findAll(authUser: AuthUser, businessId?: string): Promise<Service[]> {
+    return this.serviceModel.find(this.buildFilter(authUser, businessId)).lean();
   }
 
   async findOne(id: string, authUser: AuthUser): Promise<Service> {

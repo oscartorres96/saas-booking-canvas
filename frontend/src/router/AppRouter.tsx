@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Admin from '../pages/Admin';
+import AdminDashboard from '../pages/admin/AdminDashboard';
 import BookingPage from '../pages/BookingPage';
-import BusinessDashboard from '../pages/BusinessDashboard';
+import BusinessDashboard from '../pages/business/BusinessDashboard';
+import BusinessBookingPage from '../pages/business/BusinessBookingPage';
 import Home from '../pages/Home';
+import MyBookings from '../pages/MyBookings';
 import Login from '../pages/Login';
 import NotFound from '../pages/NotFound';
 import PrivateRoute from '../auth/PrivateRoute';
@@ -14,27 +16,37 @@ const AppRouter = () => (
       <Route path="/:businessSlug" element={<BookingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Login />} />
+      <Route path="/my-bookings" element={<MyBookings />} />
+
+      {/* Admin Dashboard - Owner only */}
+      <Route
+        path="/admin"
+        element={
+          <PrivateRoute roles={['owner']}>
+            <AdminDashboard />
+          </PrivateRoute>
+        }
+      />
+
+      {/* Business Dashboard - Owner or matching Business */}
+      <Route
+        path="/business/:businessId/dashboard"
+        element={
+          <PrivateRoute roles={['owner', 'business']} requireBusinessMatch={true}>
+            <BusinessDashboard />
+          </PrivateRoute>
+        }
+      />
+
+      {/* Business Booking Page - Any authenticated user */}
+      <Route path="/business/:businessId/booking" element={<BusinessBookingPage />} />
+
+      {/* Legacy routes for backward compatibility */}
       <Route
         path="/dashboard"
         element={
           <PrivateRoute>
             <BusinessDashboard />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/business/:businessId/dashboard"
-        element={
-          <PrivateRoute roles={['owner', 'business']}>
-            <BusinessDashboard />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/business/:businessId/booking"
-        element={
-          <PrivateRoute roles={['owner', 'business', 'client']}>
-            <BookingPage />
           </PrivateRoute>
         }
       />
@@ -54,14 +66,7 @@ const AppRouter = () => (
           </PrivateRoute>
         }
       />
-      <Route
-        path="/admin"
-        element={
-          <PrivateRoute roles={['owner']}>
-            <Admin />
-          </PrivateRoute>
-        }
-      />
+
       <Route path="*" element={<NotFound />} />
     </Routes>
   </BrowserRouter>

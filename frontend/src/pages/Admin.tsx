@@ -123,7 +123,7 @@ const Admin = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50/50 p-8">
+        <div className="min-h-screen bg-slate-50/50 p-4 sm:p-8">
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* Header */}
@@ -191,13 +191,13 @@ const Admin = () => {
                 {/* Main Content - Table */}
                 <Card className="border-none shadow-md">
                     <CardHeader>
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div>
                                 <CardTitle>Negocios Registrados</CardTitle>
                                 <CardDescription>Lista de todos los clientes y sus detalles.</CardDescription>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <div className="relative w-64">
+                            <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+                                <div className="relative w-full sm:w-64">
                                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input
                                         placeholder="Buscar negocio..."
@@ -206,14 +206,18 @@ const Admin = () => {
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
                                 </div>
-                                <Button variant="outline" size="icon">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="self-start sm:self-auto"
+                                >
                                     <Filter className="h-4 w-4" />
                                 </Button>
                             </div>
                         </div>
                     </CardHeader>
-                    <CardContent>
-                        <Table>
+                    <CardContent className="overflow-x-auto">
+                        <Table className="min-w-[640px]">
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Negocio</TableHead>

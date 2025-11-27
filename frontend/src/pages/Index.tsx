@@ -59,6 +59,8 @@ const Index = () => {
           selectedDate={selectedDate}
           selectedTime={selectedTime}
           businessName={businessData.businessName}
+          businessId={businessData._id || "default-business-id"}
+          services={businessData.services}
         />
       </main>
 

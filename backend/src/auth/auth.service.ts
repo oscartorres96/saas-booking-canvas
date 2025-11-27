@@ -18,7 +18,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async register(email: string, password: string, name: string): Promise<AuthResponse> {
     const existing = await this.usersService.findByEmail(email);
@@ -61,14 +61,14 @@ export class AuthService {
 
     const secret = this.configService.get<string>('jwtSecret') ?? 'change-me';
 
-    const accessToken = this.jwtService.sign(payload, {
+    const accessToken = this.jwtService.sign({ ...payload }, {
       secret,
-      expiresIn: this.configService.get<string>('jwtExpiresIn') ?? '15m',
+      expiresIn: (this.configService.get<string>('jwtExpiresIn') ?? '15m') as any,
     });
 
     const refreshToken = this.jwtService.sign(payload, {
       secret,
-      expiresIn: this.configService.get<string>('jwtRefreshExpiresIn') ?? '7d',
+      expiresIn: (this.configService.get<string>('jwtRefreshExpiresIn') ?? '7d') as any,
     });
 
     const safeUser = user.toObject();

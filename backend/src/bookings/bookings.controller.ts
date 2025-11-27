@@ -76,16 +76,40 @@ class UpdateBookingDto {
   notes?: string;
 }
 
-@UseGuards(JwtAuthGuard)
+class LookupBookingDto {
+  @IsString()
+  clientEmail!: string;
+
+  @IsString()
+  accessCode!: string;
+
+  @IsOptional()
+  @IsString()
+  businessId?: string;
+}
+
+class CancelBookingDto {
+  @IsString()
+  bookingId!: string;
+
+  @IsString()
+  clientEmail!: string;
+
+  @IsString()
+  accessCode!: string;
+}
+
 @Controller('bookings')
 export class BookingsController {
-  constructor(private readonly bookingsService: BookingsService) {}
+  constructor(private readonly bookingsService: BookingsService) { }
 
+  @UseGuards(JwtAuthGuard)
   @Get()
   findAll(@Req() req: any) {
     return this.bookingsService.findAll(req.user);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string, @Req() req: any) {
     return this.bookingsService.findOne(id, req.user);
@@ -96,9 +120,10 @@ export class BookingsController {
     return this.bookingsService.create({
       ...body,
       scheduledAt: new Date(body.scheduledAt),
-    }, req.user);
+    }, req.user ?? { role: 'public' });
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
   update(@Param('id') id: string, @Body() body: UpdateBookingDto, @Req() req: any) {
     return this.bookingsService.update(id, {
@@ -107,8 +132,19 @@ export class BookingsController {
     }, req.user);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string, @Req() req: any) {
     return this.bookingsService.remove(id, req.user);
+  }
+
+  @Post('lookup')
+  lookup(@Body() body: LookupBookingDto) {
+    return this.bookingsService.findByEmailAndCode(body.clientEmail, body.accessCode, body.businessId);
+  }
+
+  @Post('cancel-public')
+  cancelPublic(@Body() body: CancelBookingDto) {
+    return this.bookingsService.cancelPublic(body.bookingId, body.clientEmail, body.accessCode);
   }
 }

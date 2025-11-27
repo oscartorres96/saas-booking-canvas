@@ -8,12 +8,14 @@ export interface CreateUserPayload {
   password_hash: string;
   name: string;
   role?: string;
+  businessId?: string;
 }
 
 export interface UpdateUserPayload {
   name?: string;
   role?: string;
   password_hash?: string;
+  businessId?: string;
 }
 
 @Injectable()

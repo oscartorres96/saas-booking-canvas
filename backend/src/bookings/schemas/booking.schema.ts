@@ -41,6 +41,9 @@ export class Booking {
 
   @Prop()
   userId?: string;
+
+  @Prop()
+  accessCode?: string;
 }
 
 export const BookingSchema = SchemaFactory.createForClass(Booking);

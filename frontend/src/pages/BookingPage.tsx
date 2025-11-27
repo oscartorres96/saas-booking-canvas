@@ -57,6 +57,8 @@ const BookingPage = () => {
                     selectedDate={selectedDate}
                     selectedTime={selectedTime}
                     businessName={businessData.businessName}
+                    businessId={businessData._id || businessSlug}
+                    services={businessData.services}
                 />
             </main>
 

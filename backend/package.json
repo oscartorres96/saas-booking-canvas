@@ -6,9 +6,11 @@
   "scripts": {
     "start": "nest start",
     "start:dev": "nest start --watch",
+    "dev": "nest start --watch",
     "start:prod": "node dist/main.js",
     "build": "nest build",
-    "lint": "eslint \"src/**/*.ts\" --max-warnings=0"
+    "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
+    "seed": "ts-node src/seeds/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

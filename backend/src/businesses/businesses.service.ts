@@ -12,24 +12,31 @@ interface AuthUser {
 
 interface CreateBusinessDto {
   name: string;
+  businessName?: string;
   address?: string;
   logoUrl?: string;
   ownerUserId: string;
+  ownerName?: string;
+  email?: string;
+  phone?: string;
+  type?: string;
+  subscriptionStatus?: string;
+  metadata?: Record<string, unknown>;
 }
 
-interface UpdateBusinessDto {
-  name?: string;
-  address?: string;
-  logoUrl?: string;
-}
+interface UpdateBusinessDto extends Partial<CreateBusinessDto> {}
 
 @Injectable()
 export class BusinessesService {
   constructor(@InjectModel(Business.name) private readonly businessModel: Model<BusinessDocument>) {}
 
   private assertAccess(authUser: AuthUser, business: BusinessDocument) {
+    if (!authUser?.role || authUser.role === 'public') return;
     if (authUser.role === UserRole.Owner) return;
-    if (authUser.role === UserRole.Business && authUser.userId === business.ownerUserId) return;
+    if (authUser.role === UserRole.Business) {
+      if (authUser.userId === business.ownerUserId) return;
+      if (authUser.businessId && authUser.businessId.toString() === business.id.toString()) return;
+    }
     throw new ForbiddenException('Not allowed');
   }
 
@@ -37,7 +44,10 @@ export class BusinessesService {
     if (authUser.role !== UserRole.Owner) {
       throw new ForbiddenException('Only owners can create businesses');
     }
-    const business = new this.businessModel(payload);
+    const business = new this.businessModel({
+      ...payload,
+      businessName: payload.businessName ?? payload.name,
+    });
     return business.save();
   }
 
@@ -66,7 +76,11 @@ export class BusinessesService {
       throw new NotFoundException('Business not found');
     }
     this.assertAccess(authUser, business);
-    Object.assign(business, payload);
+    Object.assign(business, {
+      ...payload,
+      businessName: payload.businessName ?? payload.name ?? business.businessName ?? business.name,
+      name: payload.name ?? payload.businessName ?? business.name ?? business.businessName,
+    });
     return business.save();
   }
 
