@@ -47,6 +47,7 @@ import { getBusinessById, type Business } from "@/api/businessesApi";
 import { getServicesByBusiness, type Service } from "@/api/servicesApi";
 import { createBooking, getBookingsByClient, type Booking } from "@/api/bookingsApi";
 import { Badge } from "@/components/ui/badge";
+import { useSlots } from "@/hooks/useSlots";
 
 const bookingFormSchema = z.object({
     serviceId: z.string().min(1, { message: "Selecciona un servicio" }),
@@ -75,13 +76,22 @@ const BusinessBookingPage = () => {
         defaultValues: {
             serviceId: "",
             date: undefined,
-            time: "09:00",
+            time: "",
             clientName: user?.name || "",
             clientEmail: user?.email || "",
             clientPhone: "",
             notes: "",
         },
     });
+
+    const selectedDate = form.watch("date");
+    const selectedServiceId = form.watch("serviceId");
+
+    const { data: slots, isLoading: isLoadingSlots } = useSlots(
+        businessId,
+        selectedDate,
+        selectedServiceId
+    );
 
     useEffect(() => {
         if (businessId) {
@@ -165,6 +175,35 @@ const BusinessBookingPage = () => {
         const service = services.find(s => s._id === serviceId);
         setSelectedService(service || null);
         form.setValue("serviceId", serviceId);
+    };
+
+    const isDateDisabled = (date: Date) => {
+        // Disable past dates
+        if (date < new Date(new Date().setHours(0, 0, 0, 0))) {
+            return true;
+        }
+
+        // Disable days that are closed according to business hours
+        if (business?.settings?.businessHours) {
+            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const dayOfWeek = dayNames[date.getDay()];
+
+            const dayConfig = business.settings.businessHours.find(
+                (bh: any) => bh.day.toLowerCase() === dayOfWeek
+            );
+
+            // If day is explicitly set as closed or not configured
+            if (!dayConfig || dayConfig.isOpen === false) {
+                return true;
+            }
+
+            // If day has no intervals and no legacy times, it's closed
+            if (!dayConfig.intervals?.length && !dayConfig.startTime) {
+                return true;
+            }
+        }
+
+        return false;
     };
 
     if (loading) {
@@ -329,8 +368,11 @@ const BusinessBookingPage = () => {
                                                         <Calendar
                                                             mode="single"
                                                             selected={field.value}
-                                                            onSelect={field.onChange}
-                                                            disabled={(date) => date < new Date()}
+                                                            onSelect={(date) => {
+                                                                field.onChange(date);
+                                                                form.setValue("time", ""); // Reset time when date changes
+                                                            }}
+                                                            disabled={isDateDisabled}
                                                             initialFocus
                                                         />
                                                     </PopoverContent>
@@ -346,7 +388,41 @@ const BusinessBookingPage = () => {
                                             <FormItem>
                                                 <FormLabel>Hora</FormLabel>
                                                 <FormControl>
-                                                    <Input type="time" {...field} />
+                                                    <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto pr-2">
+                                                        {!selectedServiceId ? (
+                                                            <div className="col-span-full text-center text-sm text-muted-foreground py-4 border-2 border-dashed rounded-md">
+                                                                ⬆️ Primero selecciona un servicio
+                                                            </div>
+                                                        ) : !selectedDate ? (
+                                                            <div className="col-span-full text-center text-sm text-muted-foreground py-4 border-2 border-dashed rounded-md">
+                                                                ⬅️ Selecciona una fecha
+                                                            </div>
+                                                        ) : isLoadingSlots ? (
+                                                            <div className="col-span-full text-center text-sm text-muted-foreground py-4">
+                                                                ⏳ Cargando horarios...
+                                                            </div>
+                                                        ) : slots?.length === 0 ? (
+                                                            <div className="col-span-full text-center text-sm text-muted-foreground py-4 border-2 border-dashed rounded-md border-orange-300 bg-orange-50">
+                                                                ❌ No hay horarios disponibles para esta fecha
+                                                            </div>
+                                                        ) : (
+                                                            slots?.map((slot) => (
+                                                                <Button
+                                                                    key={slot}
+                                                                    type="button"
+                                                                    variant={field.value === slot ? "default" : "outline"}
+                                                                    size="sm"
+                                                                    className={cn(
+                                                                        "w-full",
+                                                                        field.value === slot && "bg-primary text-primary-foreground"
+                                                                    )}
+                                                                    onClick={() => field.onChange(slot)}
+                                                                >
+                                                                    {slot}
+                                                                </Button>
+                                                            ))
+                                                        )}
+                                                    </div>
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>

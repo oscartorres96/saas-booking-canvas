@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { BusinessesService, CreateBusinessResult } from './businesses.service';
 
@@ -26,6 +26,21 @@ export class BusinessesController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() body: any, @Req() req: any) {
     return this.businessesService.update(id, body, req.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put(':id/settings')
+  async updateSettings(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+    return this.businessesService.updateSettings(id, body, req.user);
+  }
+
+  @Get(':id/slots')
+  async getSlots(
+    @Param('id') id: string,
+    @Query('date') date: string,
+    @Query('service') serviceId: string,
+  ) {
+    return this.businessesService.getSlots(id, date, serviceId);
   }
 
   @UseGuards(JwtAuthGuard)

@@ -127,4 +127,12 @@ export class BookingsService {
       throw new NotFoundException('Booking not found');
     }
   }
+
+  async findByDateRange(businessId: string, start: Date, end: Date) {
+    return this.bookingModel.find({
+      businessId,
+      scheduledAt: { $gte: start, $lte: end },
+      status: { $ne: BookingStatus.Cancelled },
+    }).lean();
+  }
 }

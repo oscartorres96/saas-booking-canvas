@@ -8,12 +8,25 @@ export interface Business {
   ownerUserId?: string;
   ownerName?: string;
   ownerPassword?: string;
+  logoUrl?: string;
   email?: string;
   phone?: string;
   address?: string;
   subscriptionStatus?: string;
   createdAt?: string;
   metadata?: Record<string, unknown>;
+  settings?: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    description?: string;
+    businessHours?: Array<{
+      day: string;
+      isOpen: boolean;
+      startTime?: string;
+      endTime?: string;
+      intervals?: Array<{ startTime: string; endTime: string }>;
+    }>;
+  };
 }
 
 export interface CreateBusinessResponse {
@@ -50,4 +63,23 @@ export const updateBusiness = async (
 
 export const deleteBusiness = async (businessId: string): Promise<void> => {
   await apiClient.delete(`/businesses/${businessId}`);
+};
+
+export const updateBusinessSettings = async (
+  businessId: string,
+  settings: any,
+): Promise<Business> => {
+  const { data } = await apiClient.put<Business>(`/businesses/${businessId}/settings`, settings);
+  return data;
+};
+
+export const getBusinessSlots = async (
+  businessId: string,
+  date: string,
+  serviceId: string,
+): Promise<string[]> => {
+  const { data } = await apiClient.get<string[]>(`/businesses/${businessId}/slots`, {
+    params: { date, service: serviceId },
+  });
+  return data;
 };
