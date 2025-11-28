@@ -1,0 +1,27 @@
+version: '3.9'
+
+services:
+  backend:
+    build: ./backend
+    container_name: bookpro-backend
+    environment:
+      MONGODB_URI: ${MONGODB_URI}
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      PORT: 3000
+    ports:
+      - '3000:3000'
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
+    container_name: bookpro-frontend
+    environment:
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:3000/api}
+    ports:
+      - '5173:80'
+    depends_on:
+      - backend
+    restart: unless-stopped
