@@ -136,7 +136,7 @@ export class BusinessesService {
     if (authUser.role === UserRole.Business) {
       return this.businessModel.find({ ownerUserId: authUser.userId }).lean();
     }
-    throw new ForbiddenException('Not allowed');
+    return this.businessModel.find({ subscriptionStatus: { $ne: 'inactive' } }).lean();
   }
 
   async findOne(id: string, authUser: AuthUser) {
@@ -144,7 +144,14 @@ export class BusinessesService {
     if (!business) {
       throw new NotFoundException('Business not found');
     }
-    this.assertAccess(authUser, business);
+    const isPublicLike = authUser.role === 'public' || authUser.role === UserRole.Client;
+    if (isPublicLike) {
+      if (business.subscriptionStatus === 'inactive') {
+        throw new ForbiddenException('Not allowed');
+      }
+    } else {
+      this.assertAccess(authUser, business);
+    }
     return business.toObject();
   }
 
@@ -168,8 +175,6 @@ export class BusinessesService {
     }
     if (typeof payload.ownerEmail === 'string') {
       userUpdate.email = payload.ownerEmail;
-    } else if (typeof payload.email === 'string') {
-      userUpdate.email = payload.email;
     }
     if (payload.ownerPassword) {
       userUpdate.password = payload.ownerPassword;

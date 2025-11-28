@@ -27,7 +27,7 @@ export const createService = async (serviceData: Partial<Service>): Promise<Serv
 };
 
 export const updateService = async (serviceId: string, serviceData: Partial<Service>): Promise<Service> => {
-    const { data } = await apiClient.put<Service>(`/services/${serviceId}`, serviceData);
+    const { data } = await apiClient.patch<Service>(`/services/${serviceId}`, serviceData);
     return data;
 };
 

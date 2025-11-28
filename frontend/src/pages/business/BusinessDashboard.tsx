@@ -72,7 +72,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import useAuth from "@/auth/useAuth";
 import { getBusinessById, type Business } from "@/api/businessesApi";
-import { getServicesByBusiness, createService, type Service } from "@/api/servicesApi";
+import { getServicesByBusiness, createService, updateService, deleteService, type Service } from "@/api/servicesApi";
 import { getBookingsByBusiness, type Booking } from "@/api/bookingsApi";
 
 const serviceFormSchema = z.object({
@@ -94,8 +94,23 @@ const BusinessDashboard = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
     const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
+    const [isEditServiceDialogOpen, setIsEditServiceDialogOpen] = useState(false);
+    const [isDeleteServiceDialogOpen, setIsDeleteServiceDialogOpen] = useState(false);
+    const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null);
+    const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
 
     const serviceForm = useForm<z.infer<typeof serviceFormSchema>>({
+        resolver: zodResolver(serviceFormSchema),
+        defaultValues: {
+            name: "",
+            description: "",
+            durationMinutes: 30,
+            price: 0,
+            active: true,
+        },
+    });
+
+    const editServiceForm = useForm<z.infer<typeof serviceFormSchema>>({
         resolver: zodResolver(serviceFormSchema),
         defaultValues: {
             name: "",
@@ -170,6 +185,49 @@ const BusinessDashboard = () => {
             toast.success("Servicio creado exitosamente");
         } catch (error: any) {
             toast.error(error?.response?.data?.message || "Error al crear servicio");
+        }
+    };
+
+    const openEditService = (service: Service) => {
+        setServiceToEdit(service);
+        editServiceForm.reset({
+            name: service.name,
+            description: service.description ?? "",
+            durationMinutes: service.durationMinutes,
+            price: service.price,
+            active: service.active ?? true,
+        });
+        setIsEditServiceDialogOpen(true);
+    };
+
+    const onUpdateService = async (values: z.infer<typeof serviceFormSchema>) => {
+        if (!serviceToEdit) return;
+        try {
+            const updated = await updateService(serviceToEdit._id, values);
+            setServices(prev => prev.map(s => (s._id === updated._id ? updated : s)));
+            setIsEditServiceDialogOpen(false);
+            toast.success("Servicio actualizado");
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Error al actualizar servicio");
+        }
+    };
+
+    const openDeleteService = (service: Service) => {
+        setServiceToDelete(service);
+        setIsDeleteServiceDialogOpen(true);
+    };
+
+    const onDeleteService = async () => {
+        if (!serviceToDelete) return;
+        try {
+            await deleteService(serviceToDelete._id);
+            setServices(prev => prev.filter(s => s._id !== serviceToDelete._id));
+            toast.success("Servicio eliminado");
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Error al eliminar servicio");
+        } finally {
+            setIsDeleteServiceDialogOpen(false);
+            setServiceToDelete(null);
         }
     };
 
@@ -396,6 +454,7 @@ const BusinessDashboard = () => {
                                         <TableHead>Duración</TableHead>
                                         <TableHead>Precio</TableHead>
                                         <TableHead>Estado</TableHead>
+                                        <TableHead className="text-right">Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -416,6 +475,29 @@ const BusinessDashboard = () => {
                                                     {service.active ? "Activo" : "Inactivo"}
                                                 </Badge>
                                             </TableCell>
+                                            <TableCell className="text-right">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                                            <span className="sr-only">Abrir menú</span>
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                                        <DropdownMenuItem onClick={() => openEditService(service)}>
+                                                            Editar
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            className="text-red-600"
+                                                            onClick={() => openDeleteService(service)}
+                                                        >
+                                                            Eliminar
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -423,6 +505,119 @@ const BusinessDashboard = () => {
                         )}
                     </CardContent>
                 </Card>
+
+                {/* Edit Service Modal */}
+                <Dialog open={isEditServiceDialogOpen} onOpenChange={setIsEditServiceDialogOpen}>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Editar Servicio</DialogTitle>
+                            <DialogDescription>Modifica los datos del servicio.</DialogDescription>
+                        </DialogHeader>
+                        <Form {...editServiceForm}>
+                            <form onSubmit={editServiceForm.handleSubmit(onUpdateService)} className="space-y-4">
+                                <FormField
+                                    control={editServiceForm.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Nombre del Servicio</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Ej. Corte de cabello" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={editServiceForm.control}
+                                    name="description"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Descripción (opcional)</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Descripción del servicio" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                        control={editServiceForm.control}
+                                        name="durationMinutes"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Duración (min)</FormLabel>
+                                                <FormControl>
+                                                    <Input type="number" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={editServiceForm.control}
+                                        name="price"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Precio ($)</FormLabel>
+                                                <FormControl>
+                                                    <Input type="number" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <FormField
+                                    control={editServiceForm.control}
+                                    name="active"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Estado</FormLabel>
+                                            <Select
+                                                value={field.value ? "active" : "inactive"}
+                                                onValueChange={(val) => field.onChange(val === "active")}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="active">Activo</SelectItem>
+                                                    <SelectItem value="inactive">Inactivo</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <DialogFooter>
+                                    <Button type="submit">Guardar cambios</Button>
+                                </DialogFooter>
+                            </form>
+                        </Form>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Delete Service Modal */}
+                <Dialog open={isDeleteServiceDialogOpen} onOpenChange={setIsDeleteServiceDialogOpen}>
+                    <DialogContent className="sm:max-w-[400px]">
+                        <DialogHeader>
+                            <DialogTitle>Eliminar servicio</DialogTitle>
+                            <DialogDescription>
+                                Esta acción no se puede deshacer. ¿Deseas eliminar "{serviceToDelete?.name}"?
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="flex flex-row justify-end gap-2">
+                            <Button variant="ghost" onClick={() => setIsDeleteServiceDialogOpen(false)}>
+                                Cancelar
+                            </Button>
+                            <Button variant="destructive" onClick={onDeleteService}>
+                                Eliminar
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
                 {/* Upcoming Bookings Section */}
                 <Card className="border-none shadow-md">

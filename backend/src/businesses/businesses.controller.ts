@@ -6,13 +6,11 @@ import { BusinessesService, CreateBusinessResult } from './businesses.service';
 export class BusinessesController {
   constructor(private readonly businessesService: BusinessesService) { }
 
-  @UseGuards(JwtAuthGuard)
   @Get()
   findAll(@Req() req: any) {
     return this.businessesService.findAll(req.user ?? { role: 'public' });
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string, @Req() req: any) {
     return this.businessesService.findOne(id, req.user ?? { role: 'public' });
