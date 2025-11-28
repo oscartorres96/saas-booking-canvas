@@ -1,8 +1,10 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import { UserRole } from '../users/schemas/user.schema';
+import { Model } from 'mongoose';
+import { UserDocument, UserRole } from '../users/schemas/user.schema';
+import { UpdateUserPayload, UsersService } from '../users/users.service';
 import { Business, BusinessDocument } from './schemas/business.schema';
+import * as bcrypt from 'bcrypt';
 
 interface AuthUser {
   userId: string;
@@ -15,8 +17,10 @@ interface CreateBusinessDto {
   businessName?: string;
   address?: string;
   logoUrl?: string;
-  ownerUserId: string;
+  ownerUserId?: string; // <-- hacerlo opcional
   ownerName?: string;
+  ownerEmail?: string;
+  ownerPassword?: string; // <-- agregar este
   email?: string;
   phone?: string;
   type?: string;
@@ -26,9 +30,21 @@ interface CreateBusinessDto {
 
 interface UpdateBusinessDto extends Partial<CreateBusinessDto> {}
 
+export interface CreateBusinessResult {
+  business: BusinessDocument;
+  credentials: {
+    email: string;
+    password: string | null;
+    note?: string;
+  };
+}
+
 @Injectable()
 export class BusinessesService {
-  constructor(@InjectModel(Business.name) private readonly businessModel: Model<BusinessDocument>) {}
+  constructor(
+    @InjectModel(Business.name) private readonly businessModel: Model<BusinessDocument>,
+    private readonly usersService: UsersService,
+  ) {}
 
   private assertAccess(authUser: AuthUser, business: BusinessDocument) {
     if (!authUser?.role || authUser.role === 'public') return;
@@ -40,15 +56,77 @@ export class BusinessesService {
     throw new ForbiddenException('Not allowed');
   }
 
-  async create(payload: CreateBusinessDto, authUser: AuthUser) {
+  private slugify(value: string) {
+    return value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+  }
+
+  private generateTempPassword() {
+    return Math.random().toString(36).slice(2, 10);
+  }
+
+  async create(
+    payload: CreateBusinessDto & { ownerPassword?: string },
+    authUser: AuthUser,
+  ): Promise<CreateBusinessResult> {
     if (authUser.role !== UserRole.Owner) {
       throw new ForbiddenException('Only owners can create businesses');
     }
+
+    // 1. Email del administrador
+    const businessEmail = payload.email ?? `${this.slugify(payload.name)}@example.com`;
+
+    // 2. Contraseña (si viene del frontend, úsala)
+    const plainPassword = payload.ownerPassword || this.generateTempPassword();
+
+    // 3. Ver si el usuario admin ya existe
+    const existingUser = (await this.usersService.findByEmail(businessEmail)) as UserDocument | null;
+
+    let createdUser: UserDocument | null = existingUser ?? null;
+
+    if (!existingUser) {
+      const password_hash = await bcrypt.hash(plainPassword, 10);
+      createdUser = (await this.usersService.create({
+        email: businessEmail,
+        name: payload.ownerName ?? `${payload.name} Admin`,
+        password_hash,
+        role: UserRole.Business,
+      })) as UserDocument;
+    }
+
+    if (!createdUser) {
+      throw new Error('Error creating admin user');
+    }
+
+    const ownerUserId = createdUser._id.toString();
+
+    // 4. Crear negocio asignando ownerUserId
     const business = new this.businessModel({
       ...payload,
       businessName: payload.businessName ?? payload.name,
-    });
-    return business.save();
+      ownerUserId,
+    }) as BusinessDocument;
+
+    const savedBusiness = (await business.save()) as BusinessDocument;
+    const businessId = savedBusiness._id.toString();
+
+    // 5. Actualizar usuario asignándole el businessId
+    if (!existingUser) {
+      await this.usersService.update(ownerUserId, {
+        businessId, // <-- FIX
+      });
+    }
+
+    return {
+      business: savedBusiness,
+      credentials: existingUser
+        ? { email: businessEmail, password: null, note: 'Usuario ya existia' }
+        : { email: businessEmail, password: plainPassword },
+    };
   }
 
   async findAll(authUser: AuthUser) {
@@ -81,7 +159,26 @@ export class BusinessesService {
       businessName: payload.businessName ?? payload.name ?? business.businessName ?? business.name,
       name: payload.name ?? payload.businessName ?? business.name ?? business.businessName,
     });
-    return business.save();
+
+    const savedBusiness = await business.save();
+
+    const userUpdate: UpdateUserPayload = {};
+    if (typeof payload.ownerName === 'string') {
+      userUpdate.name = payload.ownerName;
+    }
+    if (typeof payload.ownerEmail === 'string') {
+      userUpdate.email = payload.ownerEmail;
+    } else if (typeof payload.email === 'string') {
+      userUpdate.email = payload.email;
+    }
+    if (payload.ownerPassword) {
+      userUpdate.password = payload.ownerPassword;
+    }
+    if (Object.keys(userUpdate).length > 0 && business.ownerUserId) {
+      await this.usersService.update(business.ownerUserId, userUpdate);
+    }
+
+    return savedBusiness;
   }
 
   async remove(id: string, authUser: AuthUser) {

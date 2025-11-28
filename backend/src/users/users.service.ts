@@ -12,17 +12,19 @@ export interface CreateUserPayload {
 }
 
 export interface UpdateUserPayload {
+  email?: string;
   name?: string;
   role?: string;
   password_hash?: string;
   businessId?: string;
+  password?: string;
 }
 
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private readonly userModel: Model<UserDocument>) {}
 
-  async create(payload: CreateUserPayload): Promise<User> {
+  async create(payload: CreateUserPayload): Promise<UserDocument> {
     const user = new this.userModel(payload);
     return user.save();
   }
@@ -31,7 +33,7 @@ export class UsersService {
     return this.userModel.find().select('-password_hash').lean();
   }
 
-  async findByEmail(email: string): Promise<User | null> {
+  async findByEmail(email: string): Promise<UserDocument | null> {
     return this.userModel.findOne({ email }).exec();
   }
 
@@ -44,6 +46,10 @@ export class UsersService {
   }
 
   async update(id: string, payload: UpdateUserPayload): Promise<User> {
+    if (payload.password) {
+      payload.password_hash = await (await import('bcrypt')).hash(payload.password, 10);
+      delete payload.password;
+    }
     const updated = await this.userModel
       .findByIdAndUpdate(new Types.ObjectId(id), payload, { new: true })
       .select('-password_hash')

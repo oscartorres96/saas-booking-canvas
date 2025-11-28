@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
-export type BusinessDocument = Business & Document;
+export type BusinessDocument = Business & Document & { _id: Types.ObjectId };
 
 @Schema({ timestamps: { createdAt: true, updatedAt: true } })
 export class Business {

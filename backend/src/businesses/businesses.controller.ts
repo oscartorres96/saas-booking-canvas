@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt.guard';
-import { BusinessesService } from './businesses.service';
+import { BusinessesService, CreateBusinessResult } from './businesses.service';
 
 @Controller('businesses')
 export class BusinessesController {
@@ -20,7 +20,7 @@ export class BusinessesController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() body: any, @Req() req: any) {
+  create(@Body() body: any, @Req() req: any): Promise<CreateBusinessResult> {
     return this.businessesService.create(body, req.user);
   }
 
