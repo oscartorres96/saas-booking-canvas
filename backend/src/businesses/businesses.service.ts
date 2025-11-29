@@ -250,7 +250,10 @@ export class BusinessesService {
     const service = await this.servicesService.findOne(serviceId, { role: 'public', userId: 'system' });
     if (!service) throw new NotFoundException('Service not found');
 
-    const queryDate = new Date(date);
+    // Parse date in local timezone to avoid UTC conversion issues
+    // Input format: "YYYY-MM-DD"
+    const [year, month, day] = date.split('-').map(Number);
+    const queryDate = new Date(year, month - 1, day); // month is 0-indexed in JS Date
     // Adjust to local or UTC? Usually dates are passed as YYYY-MM-DD.
     // We need to query bookings for that day.
     // Assuming bookings are stored with full Date objects.
@@ -273,6 +276,12 @@ export class BusinessesService {
     const allServices = await this.servicesService.findAll({ role: 'public', userId: 'system' }, businessId);
     const serviceDurationMap = new Map(allServices.map(s => [s._id.toString(), s.durationMinutes]));
 
+    console.log('===== SLOT GENERATION DEBUG =====');
+    console.log('Date:', date);
+    console.log('Service Duration:', service.durationMinutes);
+    console.log('Business Hours:', JSON.stringify(business.settings?.businessHours, null, 2));
+    console.log('Existing Bookings Count:', bookings.length);
+
     const slots = generateSlots(
       queryDate,
       service.durationMinutes,
@@ -282,6 +291,9 @@ export class BusinessesService {
         durationMinutes: serviceDurationMap.get(b.serviceId) || service.durationMinutes // Fallback to current service duration if not found
       }))
     );
+
+    console.log('Generated Slots:', slots);
+    console.log('=================================');
 
     return slots;
   }
