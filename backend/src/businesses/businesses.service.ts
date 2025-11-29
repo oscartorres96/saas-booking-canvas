@@ -5,6 +5,10 @@ import { UserDocument, UserRole } from '../users/schemas/user.schema';
 import { UpdateUserPayload, UsersService } from '../users/users.service';
 import { Business, BusinessDocument } from './schemas/business.schema';
 import * as bcrypt from 'bcrypt';
+import { ServicesService } from '../services/services.service';
+import { BookingsService } from '../bookings/bookings.service';
+import { generateSlots } from '../utils/generateSlots';
+import { startOfDay, endOfDay } from 'date-fns';
 
 interface AuthUser {
   userId: string;
@@ -28,7 +32,7 @@ interface CreateBusinessDto {
   metadata?: Record<string, unknown>;
 }
 
-interface UpdateBusinessDto extends Partial<CreateBusinessDto> {}
+interface UpdateBusinessDto extends Partial<CreateBusinessDto> { }
 
 export interface CreateBusinessResult {
   business: BusinessDocument;
@@ -44,7 +48,9 @@ export class BusinessesService {
   constructor(
     @InjectModel(Business.name) private readonly businessModel: Model<BusinessDocument>,
     private readonly usersService: UsersService,
-  ) {}
+    private readonly servicesService: ServicesService,
+    private readonly bookingsService: BookingsService,
+  ) { }
 
   private assertAccess(authUser: AuthUser, business: BusinessDocument) {
     if (!authUser?.role || authUser.role === 'public') return;
@@ -186,6 +192,47 @@ export class BusinessesService {
     return savedBusiness;
   }
 
+  async updateSettings(id: string, settings: any, authUser: AuthUser) {
+    const business = await this.businessModel.findById(id);
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
+    this.assertAccess(authUser, business);
+
+    // Update root level fields if present in settings payload
+    if (settings.businessName) business.businessName = settings.businessName;
+    if (settings.logoUrl) business.logoUrl = settings.logoUrl;
+
+    // Update nested settings
+    if (!business.settings) {
+      business.settings = {};
+    }
+
+    const mergedSettings = {
+      ...business.settings,
+      ...settings,
+    };
+
+    if (settings.businessHours) {
+      mergedSettings.businessHours = settings.businessHours.map((hour: any) => {
+        const intervals = Array.isArray(hour.intervals) && hour.intervals.length > 0
+          ? hour.intervals
+          : [{
+            startTime: hour.startTime || '09:00',
+            endTime: hour.endTime || '18:00',
+          }];
+        return {
+          ...hour,
+          intervals,
+        };
+      });
+    }
+
+    business.settings = mergedSettings;
+
+    return business.save();
+  }
+
   async remove(id: string, authUser: AuthUser) {
     const business = await this.businessModel.findById(id);
     if (!business) {
@@ -194,5 +241,60 @@ export class BusinessesService {
     this.assertAccess(authUser, business);
     await business.deleteOne();
     return { success: true };
+  }
+
+  async getSlots(businessId: string, date: string, serviceId: string) {
+    const business = await this.businessModel.findById(businessId);
+    if (!business) throw new NotFoundException('Business not found');
+
+    const service = await this.servicesService.findOne(serviceId, { role: 'public', userId: 'system' });
+    if (!service) throw new NotFoundException('Service not found');
+
+    // Parse date in local timezone to avoid UTC conversion issues
+    // Input format: "YYYY-MM-DD"
+    const [year, month, day] = date.split('-').map(Number);
+    const queryDate = new Date(year, month - 1, day); // month is 0-indexed in JS Date
+    // Adjust to local or UTC? Usually dates are passed as YYYY-MM-DD.
+    // We need to query bookings for that day.
+    // Assuming bookings are stored with full Date objects.
+
+    // We need to find bookings that overlap with the day.
+    // But BookingsService.findAll takes AuthUser.
+    // We need a method in BookingsService to find by range or date, without auth check (or with system auth).
+    // Or we can just use the model if we injected it, but we injected the service.
+    // Let's add a method to BookingsService to find by criteria, or cast to any to access model if needed (bad practice).
+    // Better: Add findByBusinessAndDate to BookingsService.
+
+    // For now, I'll use a workaround or assume I can filter the results of findAll if I impersonate owner? No.
+    // I need to add `findByBusinessAndDate` to `BookingsService`.
+    // I will do that in a separate step or just use `findAll` with a special internal role if possible.
+    // But `findAll` filters by role.
+
+    // Let's assume I'll add `findByDateRange` to `BookingsService` next.
+    // I'll write the call here assuming it exists.
+    const bookings = await this.bookingsService.findByDateRange(businessId, startOfDay(queryDate), endOfDay(queryDate));
+    const allServices = await this.servicesService.findAll({ role: 'public', userId: 'system' }, businessId);
+    const serviceDurationMap = new Map(allServices.map(s => [s._id.toString(), s.durationMinutes]));
+
+    console.log('===== SLOT GENERATION DEBUG =====');
+    console.log('Date:', date);
+    console.log('Service Duration:', service.durationMinutes);
+    console.log('Business Hours:', JSON.stringify(business.settings?.businessHours, null, 2));
+    console.log('Existing Bookings Count:', bookings.length);
+
+    const slots = generateSlots(
+      queryDate,
+      service.durationMinutes,
+      business.settings?.businessHours || [],
+      bookings.map(b => ({
+        scheduledAt: b.scheduledAt,
+        durationMinutes: serviceDurationMap.get(b.serviceId) || service.durationMinutes // Fallback to current service duration if not found
+      }))
+    );
+
+    console.log('Generated Slots:', slots);
+    console.log('=================================');
+
+    return slots;
   }
 }

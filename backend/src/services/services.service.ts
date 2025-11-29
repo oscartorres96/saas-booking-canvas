@@ -38,7 +38,7 @@ export class ServicesService {
     return {};
   }
 
-  async create(payload: CreateServicePayload, authUser: AuthUser): Promise<Service> {
+  async create(payload: CreateServicePayload, authUser: AuthUser): Promise<ServiceDocument> {
     if (authUser.role === UserRole.Client) {
       throw new ForbiddenException('Not allowed');
     }
@@ -53,19 +53,19 @@ export class ServicesService {
     return service.save();
   }
 
-  async findAll(authUser: AuthUser, businessId?: string): Promise<Service[]> {
-    return this.serviceModel.find(this.buildFilter(authUser, businessId)).lean();
+  async findAll(authUser: AuthUser, businessId?: string): Promise<ServiceDocument[]> {
+    return this.serviceModel.find(this.buildFilter(authUser, businessId)).exec();
   }
 
-  async findOne(id: string, authUser: AuthUser): Promise<Service> {
-    const service = await this.serviceModel.findOne({ _id: new Types.ObjectId(id), ...this.buildFilter(authUser) }).lean();
+  async findOne(id: string, authUser: AuthUser): Promise<ServiceDocument> {
+    const service = await this.serviceModel.findOne({ _id: new Types.ObjectId(id), ...this.buildFilter(authUser) });
     if (!service) {
       throw new NotFoundException('Service not found');
     }
     return service;
   }
 
-  async update(id: string, payload: UpdateServicePayload, authUser: AuthUser): Promise<Service> {
+  async update(id: string, payload: UpdateServicePayload, authUser: AuthUser): Promise<ServiceDocument> {
     if (authUser.role === UserRole.Client) {
       throw new ForbiddenException('Not allowed');
     }
@@ -73,7 +73,7 @@ export class ServicesService {
       { _id: new Types.ObjectId(id), ...this.buildFilter(authUser) },
       payload,
       { new: true },
-    ).lean();
+    );
     if (!updated) {
       throw new NotFoundException('Service not found');
     }

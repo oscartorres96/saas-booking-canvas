@@ -4,6 +4,7 @@ import path from 'path';
 import { componentTagger } from 'lovable-tagger';
 
 export default defineConfig(({ mode }) => ({
+  root: __dirname,
   server: {
     host: '0.0.0.0',
     port: 5173,
@@ -12,6 +13,7 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@/': path.resolve(__dirname, './src/'),
     },
   },
 }));

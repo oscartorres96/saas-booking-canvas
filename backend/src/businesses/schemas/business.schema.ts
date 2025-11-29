@@ -37,6 +37,36 @@ export class Business {
 
   @Prop({ type: Object })
   metadata?: Record<string, unknown>;
+
+  @Prop({
+    type: {
+      primaryColor: String,
+      secondaryColor: String,
+      description: String,
+      businessHours: [{
+        day: String,
+        startTime: String,
+        endTime: String,
+        isOpen: Boolean,
+        intervals: [{
+          startTime: String,
+          endTime: String,
+        }],
+      }]
+    }
+  })
+  settings?: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    description?: string;
+    businessHours?: {
+      day: string;
+      startTime?: string;
+      endTime?: string;
+      isOpen: boolean;
+      intervals?: { startTime: string; endTime: string; }[];
+    }[];
+  };
 }
 
 export const BusinessSchema = SchemaFactory.createForClass(Business);

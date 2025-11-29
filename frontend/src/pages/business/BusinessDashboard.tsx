@@ -70,6 +70,8 @@ import { toast } from "sonner";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BusinessSettings } from "@/components/business/BusinessSettings";
 import useAuth from "@/auth/useAuth";
 import { getBusinessById, type Business } from "@/api/businessesApi";
 import { getServicesByBusiness, createService, updateService, deleteService, type Service } from "@/api/servicesApi";
@@ -98,6 +100,7 @@ const BusinessDashboard = () => {
     const [isDeleteServiceDialogOpen, setIsDeleteServiceDialogOpen] = useState(false);
     const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null);
     const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
+    const [activeTab, setActiveTab] = useState("dashboard");
 
     const serviceForm = useForm<z.infer<typeof serviceFormSchema>>({
         resolver: zodResolver(serviceFormSchema),
@@ -284,407 +287,202 @@ const BusinessDashboard = () => {
         <div className="min-h-screen bg-gray-50/50 dark:bg-black p-4 md:p-6">
             <div className="max-w-7xl mx-auto space-y-6">
 
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">{business.businessName}</h1>
-                        <p className="text-muted-foreground text-sm">
-                            Panel de gestión de tu negocio
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <Button variant="outline" onClick={logout}>
-                            Cerrar Sesión
-                        </Button>
-                    </div>
-                </div>
-
-                {/* Stats Cards */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card className="shadow-sm">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">Servicios</CardTitle>
-                            <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                                <Package className="h-4 w-4 text-primary" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-semibold">{services.length}</div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                {services.filter(s => s.active).length} activos
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h1 className="text-2xl font-semibold tracking-tight">{business.businessName}</h1>
+                            <p className="text-muted-foreground text-sm">
+                                Panel de gestión de tu negocio
                             </p>
-                        </CardContent>
-                    </Card>
-                    <Card className="shadow-sm">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">Próximas Citas</CardTitle>
-                            <div className="h-8 w-8 rounded-xl bg-orange-500/10 flex items-center justify-center">
-                                <Clock className="h-4 w-4 text-orange-600 dark:text-orange-500" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-semibold">{upcomingBookings.length}</div>
-                            <p className="text-xs text-muted-foreground mt-1">Agendadas a futuro</p>
-                        </CardContent>
-                    </Card>
-                    <Card className="shadow-sm">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">Total Reservas</CardTitle>
-                            <div className="h-8 w-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                                <CalendarIcon className="h-4 w-4 text-blue-600 dark:text-blue-500" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-semibold">{bookings.length}</div>
-                            <p className="text-xs text-muted-foreground mt-1">Todas las citas</p>
-                        </CardContent>
-                    </Card>
-                    <Card className="shadow-sm">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">Pendientes</CardTitle>
-                            <div className="h-8 w-8 rounded-xl bg-yellow-500/10 flex items-center justify-center">
-                                <Users className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-semibold">
-                                {bookings.filter(b => b.status === 'pending').length}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">Por confirmar</p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Services Section */}
-                <Card className="border-none shadow-md">
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle>Servicios</CardTitle>
-                                <CardDescription>Gestiona los servicios que ofreces.</CardDescription>
-                            </div>
-                            <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button>
-                                        <Plus className="mr-2 h-4 w-4" /> Crear Servicio
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-[425px]">
-                                    <DialogHeader>
-                                        <DialogTitle>Nuevo Servicio</DialogTitle>
-                                        <DialogDescription>
-                                            Crea un nuevo servicio para tu negocio.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <Form {...serviceForm}>
-                                        <form onSubmit={serviceForm.handleSubmit(onCreateService)} className="space-y-4">
-                                            <FormField
-                                                control={serviceForm.control}
-                                                name="name"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Nombre del Servicio</FormLabel>
-                                                        <FormControl>
-                                                            <Input placeholder="Ej. Corte de cabello" {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={serviceForm.control}
-                                                name="description"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Descripción (opcional)</FormLabel>
-                                                        <FormControl>
-                                                            <Input placeholder="Descripción del servicio" {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <FormField
-                                                    control={serviceForm.control}
-                                                    name="durationMinutes"
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel>Duración (min)</FormLabel>
-                                                            <FormControl>
-                                                                <Input type="number" {...field} />
-                                                            </FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                                <FormField
-                                                    control={serviceForm.control}
-                                                    name="price"
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel>Precio ($)</FormLabel>
-                                                            <FormControl>
-                                                                <Input type="number" {...field} />
-                                                            </FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                            </div>
-                                            <DialogFooter>
-                                                <Button type="submit">Crear Servicio</Button>
-                                            </DialogFooter>
-                                        </form>
-                                    </Form>
-                                </DialogContent>
-                            </Dialog>
                         </div>
-                    </CardHeader>
-                    <CardContent>
-                        {services.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                                No hay servicios creados. Crea tu primer servicio.
-                            </div>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Nombre</TableHead>
-                                        <TableHead>Duración</TableHead>
-                                        <TableHead>Precio</TableHead>
-                                        <TableHead>Estado</TableHead>
-                                        <TableHead className="text-right">Acciones</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {services.map((service) => (
-                                        <TableRow key={service._id}>
-                                            <TableCell className="font-medium">
-                                                <div className="flex flex-col">
-                                                    <span className="font-semibold">{service.name}</span>
-                                                    {service.description && (
-                                                        <span className="text-xs text-muted-foreground">{service.description}</span>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>{service.durationMinutes} min</TableCell>
-                                            <TableCell>${service.price}</TableCell>
-                                            <TableCell>
-                                                <Badge variant={service.active ? "default" : "secondary"}>
-                                                    {service.active ? "Activo" : "Inactivo"}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                                            <span className="sr-only">Abrir menú</span>
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                                        <DropdownMenuItem onClick={() => openEditService(service)}>
-                                                            Editar
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem
-                                                            className="text-red-600"
-                                                            onClick={() => openDeleteService(service)}
-                                                        >
-                                                            Eliminar
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Edit Service Modal */}
-                <Dialog open={isEditServiceDialogOpen} onOpenChange={setIsEditServiceDialogOpen}>
-                    <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                            <DialogTitle>Editar Servicio</DialogTitle>
-                            <DialogDescription>Modifica los datos del servicio.</DialogDescription>
-                        </DialogHeader>
-                        <Form {...editServiceForm}>
-                            <form onSubmit={editServiceForm.handleSubmit(onUpdateService)} className="space-y-4">
-                                <FormField
-                                    control={editServiceForm.control}
-                                    name="name"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Nombre del Servicio</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Ej. Corte de cabello" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={editServiceForm.control}
-                                    name="description"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Descripción (opcional)</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="Descripción del servicio" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField
-                                        control={editServiceForm.control}
-                                        name="durationMinutes"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Duración (min)</FormLabel>
-                                                <FormControl>
-                                                    <Input type="number" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={editServiceForm.control}
-                                        name="price"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Precio ($)</FormLabel>
-                                                <FormControl>
-                                                    <Input type="number" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                                <FormField
-                                    control={editServiceForm.control}
-                                    name="active"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Estado</FormLabel>
-                                            <Select
-                                                value={field.value ? "active" : "inactive"}
-                                                onValueChange={(val) => field.onChange(val === "active")}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="active">Activo</SelectItem>
-                                                    <SelectItem value="inactive">Inactivo</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <DialogFooter>
-                                    <Button type="submit">Guardar cambios</Button>
-                                </DialogFooter>
-                            </form>
-                        </Form>
-                    </DialogContent>
-                </Dialog>
-
-                {/* Delete Service Modal */}
-                <Dialog open={isDeleteServiceDialogOpen} onOpenChange={setIsDeleteServiceDialogOpen}>
-                    <DialogContent className="sm:max-w-[400px]">
-                        <DialogHeader>
-                            <DialogTitle>Eliminar servicio</DialogTitle>
-                            <DialogDescription>
-                                Esta acción no se puede deshacer. ¿Deseas eliminar "{serviceToDelete?.name}"?
-                            </DialogDescription>
-                        </DialogHeader>
-                        <DialogFooter className="flex flex-row justify-end gap-2">
-                            <Button variant="ghost" onClick={() => setIsDeleteServiceDialogOpen(false)}>
-                                Cancelar
+                        <div className="flex items-center gap-3">
+                            <TabsList>
+                                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                                <TabsTrigger value="settings">Configuración</TabsTrigger>
+                            </TabsList>
+                            <Button variant="outline" onClick={logout}>
+                                Cerrar Sesión
                             </Button>
-                            <Button variant="destructive" onClick={onDeleteService}>
-                                Eliminar
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-
-                {/* Upcoming Bookings Section */}
-                <Card className="border-none shadow-md">
-                    <CardHeader>
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
-                                <CardTitle>Próximas Citas</CardTitle>
-                                <CardDescription>Gestiona las reservas de tus clientes.</CardDescription>
-                            </div>
-                            <div className="flex items-center gap-2 w-full md:w-auto">
-                                <div className="relative w-full md:w-64">
-                                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        placeholder="Buscar cliente..."
-                                        className="pl-8 w-full"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
-                                </div>
-                                <Button variant="outline" size="icon">
-                                    <Filter className="h-4 w-4" />
-                                </Button>
-                            </div>
                         </div>
-                    </CardHeader>
-                    <CardContent>
-                        {upcomingBookings.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                                No hay citas próximas.
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Cliente</TableHead>
-                                            <TableHead>Servicio</TableHead>
-                                            <TableHead>Fecha y Hora</TableHead>
-                                            <TableHead>Estado</TableHead>
-                                            <TableHead className="text-right">Acciones</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {upcomingBookings.map((booking) => {
-                                            const service = services.find(s => s._id === booking.serviceId);
-                                            return (
-                                                <TableRow key={booking._id}>
+                    </div>
+
+                    <TabsContent value="dashboard" className="space-y-6">
+
+                        {/* Stats Cards */}
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                            <Card className="shadow-sm">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">Servicios</CardTitle>
+                                    <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                                        <Package className="h-4 w-4 text-primary" />
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-semibold">{services.length}</div>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        {services.filter(s => s.active).length} activos
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card className="shadow-sm">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">Próximas Citas</CardTitle>
+                                    <div className="h-8 w-8 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                                        <Clock className="h-4 w-4 text-orange-600 dark:text-orange-500" />
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-semibold">{upcomingBookings.length}</div>
+                                    <p className="text-xs text-muted-foreground mt-1">Agendadas a futuro</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="shadow-sm">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Reservas</CardTitle>
+                                    <div className="h-8 w-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                                        <CalendarIcon className="h-4 w-4 text-blue-600 dark:text-blue-500" />
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-semibold">{bookings.length}</div>
+                                    <p className="text-xs text-muted-foreground mt-1">Todas las citas</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="shadow-sm">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">Pendientes</CardTitle>
+                                    <div className="h-8 w-8 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+                                        <Users className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-semibold">
+                                        {bookings.filter(b => b.status === 'pending').length}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1">Por confirmar</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Services Section */}
+                        <Card className="border-none shadow-md">
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle>Servicios</CardTitle>
+                                        <CardDescription>Gestiona los servicios que ofreces.</CardDescription>
+                                    </div>
+                                    <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button>
+                                                <Plus className="mr-2 h-4 w-4" /> Crear Servicio
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-[425px]">
+                                            <DialogHeader>
+                                                <DialogTitle>Nuevo Servicio</DialogTitle>
+                                                <DialogDescription>
+                                                    Crea un nuevo servicio para tu negocio.
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <Form {...serviceForm}>
+                                                <form onSubmit={serviceForm.handleSubmit(onCreateService)} className="space-y-4">
+                                                    <FormField
+                                                        control={serviceForm.control}
+                                                        name="name"
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel>Nombre del Servicio</FormLabel>
+                                                                <FormControl>
+                                                                    <Input placeholder="Ej. Corte de cabello" {...field} />
+                                                                </FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                    <FormField
+                                                        control={serviceForm.control}
+                                                        name="description"
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel>Descripción (opcional)</FormLabel>
+                                                                <FormControl>
+                                                                    <Input placeholder="Descripción del servicio" {...field} />
+                                                                </FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <FormField
+                                                            control={serviceForm.control}
+                                                            name="durationMinutes"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Duración (min)</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="number" {...field} />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <FormField
+                                                            control={serviceForm.control}
+                                                            name="price"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Precio ($)</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="number" {...field} />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                    </div>
+                                                    <DialogFooter>
+                                                        <Button type="submit">Crear Servicio</Button>
+                                                    </DialogFooter>
+                                                </form>
+                                            </Form>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                {services.length === 0 ? (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                        No hay servicios creados. Crea tu primer servicio.
+                                    </div>
+                                ) : (
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Nombre</TableHead>
+                                                <TableHead>Duración</TableHead>
+                                                <TableHead>Precio</TableHead>
+                                                <TableHead>Estado</TableHead>
+                                                <TableHead className="text-right">Acciones</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {services.map((service) => (
+                                                <TableRow key={service._id}>
                                                     <TableCell className="font-medium">
                                                         <div className="flex flex-col">
-                                                            <span className="font-semibold">{booking.clientName}</span>
-                                                            <span className="text-xs text-muted-foreground">
-                                                                {booking.clientEmail || booking.clientPhone || "N/A"}
-                                                            </span>
+                                                            <span className="font-semibold">{service.name}</span>
+                                                            {service.description && (
+                                                                <span className="text-xs text-muted-foreground">{service.description}</span>
+                                                            )}
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell>{service?.name || booking.serviceId}</TableCell>
+                                                    <TableCell>{service.durationMinutes} min</TableCell>
+                                                    <TableCell>${service.price}</TableCell>
                                                     <TableCell>
-                                                        <div className="flex flex-col">
-                                                            <span>{format(new Date(booking.scheduledAt), "PPP", { locale: es })}</span>
-                                                            <span className="text-xs text-muted-foreground">
-                                                                {format(new Date(booking.scheduledAt), "p", { locale: es })}
-                                                            </span>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge className={getStatusColor(booking.status)} variant="secondary">
-                                                            {getStatusLabel(booking.status)}
+                                                        <Badge variant={service.active ? "default" : "secondary"}>
+                                                            {service.active ? "Activo" : "Inactivo"}
                                                         </Badge>
                                                     </TableCell>
                                                     <TableCell className="text-right">
@@ -697,23 +495,241 @@ const BusinessDashboard = () => {
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end">
                                                                 <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                                                <DropdownMenuItem>Ver detalles</DropdownMenuItem>
-                                                                <DropdownMenuItem>Editar cita</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => openEditService(service)}>
+                                                                    Editar
+                                                                </DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
-                                                                <DropdownMenuItem className="text-green-600">Confirmar</DropdownMenuItem>
-                                                                <DropdownMenuItem className="text-red-600">Cancelar</DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    className="text-red-600"
+                                                                    onClick={() => openDeleteService(service)}
+                                                                >
+                                                                    Eliminar
+                                                                </DropdownMenuItem>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
                                                     </TableCell>
                                                 </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Edit Service Modal */}
+                        <Dialog open={isEditServiceDialogOpen} onOpenChange={setIsEditServiceDialogOpen}>
+                            <DialogContent className="sm:max-w-[425px]">
+                                <DialogHeader>
+                                    <DialogTitle>Editar Servicio</DialogTitle>
+                                    <DialogDescription>Modifica los datos del servicio.</DialogDescription>
+                                </DialogHeader>
+                                <Form {...editServiceForm}>
+                                    <form onSubmit={editServiceForm.handleSubmit(onUpdateService)} className="space-y-4">
+                                        <FormField
+                                            control={editServiceForm.control}
+                                            name="name"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Nombre del Servicio</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Ej. Corte de cabello" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={editServiceForm.control}
+                                            name="description"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Descripción (opcional)</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Descripción del servicio" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <FormField
+                                                control={editServiceForm.control}
+                                                name="durationMinutes"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Duración (min)</FormLabel>
+                                                        <FormControl>
+                                                            <Input type="number" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={editServiceForm.control}
+                                                name="price"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Precio ($)</FormLabel>
+                                                        <FormControl>
+                                                            <Input type="number" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                        <FormField
+                                            control={editServiceForm.control}
+                                            name="active"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Estado</FormLabel>
+                                                    <Select
+                                                        value={field.value ? "active" : "inactive"}
+                                                        onValueChange={(val) => field.onChange(val === "active")}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="active">Activo</SelectItem>
+                                                            <SelectItem value="inactive">Inactivo</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <DialogFooter>
+                                            <Button type="submit">Guardar cambios</Button>
+                                        </DialogFooter>
+                                    </form>
+                                </Form>
+                            </DialogContent>
+                        </Dialog>
+
+                        {/* Delete Service Modal */}
+                        <Dialog open={isDeleteServiceDialogOpen} onOpenChange={setIsDeleteServiceDialogOpen}>
+                            <DialogContent className="sm:max-w-[400px]">
+                                <DialogHeader>
+                                    <DialogTitle>Eliminar servicio</DialogTitle>
+                                    <DialogDescription>
+                                        Esta acción no se puede deshacer. ¿Deseas eliminar "{serviceToDelete?.name}"?
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter className="flex flex-row justify-end gap-2">
+                                    <Button variant="ghost" onClick={() => setIsDeleteServiceDialogOpen(false)}>
+                                        Cancelar
+                                    </Button>
+                                    <Button variant="destructive" onClick={onDeleteService}>
+                                        Eliminar
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+
+                        {/* Upcoming Bookings Section */}
+                        <Card className="border-none shadow-md">
+                            <CardHeader>
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div>
+                                        <CardTitle>Próximas Citas</CardTitle>
+                                        <CardDescription>Gestiona las reservas de tus clientes.</CardDescription>
+                                    </div>
+                                    <div className="flex items-center gap-2 w-full md:w-auto">
+                                        <div className="relative w-full md:w-64">
+                                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                placeholder="Buscar cliente..."
+                                                className="pl-8 w-full"
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                            />
+                                        </div>
+                                        <Button variant="outline" size="icon">
+                                            <Filter className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                {upcomingBookings.length === 0 ? (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                        No hay citas próximas.
+                                    </div>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Cliente</TableHead>
+                                                    <TableHead>Servicio</TableHead>
+                                                    <TableHead>Fecha y Hora</TableHead>
+                                                    <TableHead>Estado</TableHead>
+                                                    <TableHead className="text-right">Acciones</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {upcomingBookings.map((booking) => {
+                                                    const service = services.find(s => s._id === booking.serviceId);
+                                                    return (
+                                                        <TableRow key={booking._id}>
+                                                            <TableCell className="font-medium">
+                                                                <div className="flex flex-col">
+                                                                    <span className="font-semibold">{booking.clientName}</span>
+                                                                    <span className="text-xs text-muted-foreground">
+                                                                        {booking.clientEmail || booking.clientPhone || "N/A"}
+                                                                    </span>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>{service?.name || booking.serviceId}</TableCell>
+                                                            <TableCell>
+                                                                <div className="flex flex-col">
+                                                                    <span>{format(new Date(booking.scheduledAt), "PPP", { locale: es })}</span>
+                                                                    <span className="text-xs text-muted-foreground">
+                                                                        {format(new Date(booking.scheduledAt), "p", { locale: es })}
+                                                                    </span>
+                                                                </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Badge className={getStatusColor(booking.status)} variant="secondary">
+                                                                    {getStatusLabel(booking.status)}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="text-right">
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger asChild>
+                                                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                            <span className="sr-only">Abrir menú</span>
+                                                                            <MoreHorizontal className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent align="end">
+                                                                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                                                        <DropdownMenuItem>Ver detalles</DropdownMenuItem>
+                                                                        <DropdownMenuItem>Editar cita</DropdownMenuItem>
+                                                                        <DropdownMenuSeparator />
+                                                                        <DropdownMenuItem className="text-green-600">Confirmar</DropdownMenuItem>
+                                                                        <DropdownMenuItem className="text-red-600">Cancelar</DropdownMenuItem>
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="settings">
+                        <BusinessSettings />
+                    </TabsContent>
+                </Tabs>
             </div>
         </div>
     );

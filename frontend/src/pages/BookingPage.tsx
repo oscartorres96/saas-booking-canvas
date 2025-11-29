@@ -1,12 +1,12 @@
-import { Header } from "@/components/booking/Header";
-import { HeroSection } from "@/components/booking/HeroSection";
-import { ServicesSection } from "@/components/booking/ServicesSection";
-import { BookingCalendar } from "@/components/booking/BookingCalendar";
-import { BookingForm } from "@/components/booking/BookingForm";
-import { Footer } from "@/components/booking/Footer";
+import { Header } from "../components/booking/Header";
+import { HeroSection } from "../components/booking/HeroSection";
+import { ServicesSection } from "../components/booking/ServicesSection";
+import { BookingCalendar } from "../components/booking/BookingCalendar";
+import { BookingForm } from "../components/booking/BookingForm";
+import { Footer } from "../components/booking/Footer";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { useBusinessData } from "@/hooks/useBusinessData";
+import { useBusinessData } from "../hooks/useBusinessData";
 
 const BookingPage = () => {
     const { businessSlug } = useParams<{ businessSlug: string }>();
