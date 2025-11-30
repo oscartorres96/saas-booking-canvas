@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { UserRole } from '../users/schemas/user.schema';
 import { Booking, BookingDocument, BookingStatus } from './schemas/booking.schema';
+import { NotificationService } from '../services/notification.service';
 
 export interface CreateBookingPayload {
   clientName: string;
@@ -30,7 +31,10 @@ const generateAccessCode = () => Math.random().toString().slice(2, 8);
 
 @Injectable()
 export class BookingsService {
-  constructor(@InjectModel(Booking.name) private readonly bookingModel: Model<BookingDocument>) { }
+  constructor(
+    @InjectModel(Booking.name) private readonly bookingModel: Model<BookingDocument>,
+    private readonly notificationService: NotificationService
+  ) { }
 
   private buildFilter(authUser: AuthUser) {
     if (authUser.role === UserRole.Owner) return {};
@@ -61,7 +65,12 @@ export class BookingsService {
       payload.accessCode = generateAccessCode();
     }
     const booking = new this.bookingModel(payload);
-    return booking.save();
+    const savedBooking = await booking.save();
+
+    // Enviar notificaciones por email
+    await this.notificationService.sendBookingConfirmation(savedBooking);
+
+    return savedBooking;
   }
 
   async findAll(authUser: AuthUser): Promise<Booking[]> {
@@ -118,7 +127,12 @@ export class BookingsService {
     }
 
     booking.status = BookingStatus.Cancelled;
-    return booking.save();
+    const cancelledBooking = await booking.save();
+
+    // Enviar notificación de cancelación
+    await this.notificationService.sendCancellationNotification(cancelledBooking);
+
+    return cancelledBooking;
   }
 
   async remove(id: string, authUser: AuthUser): Promise<void> {
