@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { UserRole } from '../users/schemas/user.schema';
 import { Booking, BookingDocument, BookingStatus } from './schemas/booking.schema';
+import { NotificationService } from '../services/notification.service';
 
 export interface CreateBookingPayload {
   clientName: string;
@@ -30,7 +31,10 @@ const generateAccessCode = () => Math.random().toString().slice(2, 8);
 
 @Injectable()
 export class BookingsService {
-  constructor(@InjectModel(Booking.name) private readonly bookingModel: Model<BookingDocument>) { }
+  constructor(
+    @InjectModel(Booking.name) private readonly bookingModel: Model<BookingDocument>,
+    private readonly notificationService: NotificationService
+  ) { }
 
   private buildFilter(authUser: AuthUser) {
     if (authUser.role === UserRole.Owner) return {};
@@ -61,7 +65,12 @@ export class BookingsService {
       payload.accessCode = generateAccessCode();
     }
     const booking = new this.bookingModel(payload);
-    return booking.save();
+    const savedBooking = await booking.save();
+
+    // Enviar notificaciones por email
+    await this.notificationService.sendBookingConfirmation(savedBooking);
+
+    return savedBooking;
   }
 
   async findAll(authUser: AuthUser): Promise<Booking[]> {
@@ -84,16 +93,25 @@ export class BookingsService {
   }
 
   async update(id: string, payload: UpdateBookingPayload, authUser: AuthUser): Promise<Booking> {
-    const updated = await this.bookingModel
-      .findOneAndUpdate(
-        { _id: new Types.ObjectId(id), ...this.buildFilter(authUser) },
-        payload,
-        { new: true },
-      )
-      .lean();
-    if (!updated) {
-      throw new NotFoundException('Booking not found');
+    const filter = { _id: new Types.ObjectId(id), ...this.buildFilter(authUser) };
+    const existing = await this.bookingModel.findOne(filter).lean();
+    if (!existing) throw new NotFoundException('Booking not found');
+
+    const updated = await this.bookingModel.findOneAndUpdate(
+      filter,
+      payload,
+      { new: true },
+    ).lean();
+
+    if (!updated) throw new NotFoundException('Booking not found');
+
+    if (
+      payload.status === BookingStatus.Cancelled &&
+      existing.status !== BookingStatus.Cancelled
+    ) {
+      await this.notificationService.sendCancellationNotification(updated as Booking);
     }
+
     return updated;
   }
 
@@ -118,7 +136,12 @@ export class BookingsService {
     }
 
     booking.status = BookingStatus.Cancelled;
-    return booking.save();
+    const cancelledBooking = await booking.save();
+
+    // Enviar notificación de cancelación
+    await this.notificationService.sendCancellationNotification(cancelledBooking);
+
+    return cancelledBooking;
   }
 
   async remove(id: string, authUser: AuthUser): Promise<void> {
