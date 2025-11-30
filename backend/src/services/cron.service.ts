@@ -7,82 +7,67 @@ import { NotificationService } from './notification.service';
 
 @Injectable()
 export class CronService implements OnModuleInit {
-    constructor(
-        @InjectModel(Booking.name) private readonly bookingModel: Model<BookingDocument>,
-        private readonly notificationService: NotificationService
-    ) { }
+  constructor(
+    @InjectModel(Booking.name) private readonly bookingModel: Model<BookingDocument>,
+    private readonly notificationService: NotificationService,
+  ) { }
 
-    onModuleInit() {
-        // Verifica si el servicio de email está configurado
-        const emailConfigured = process.env.SMTP_USER && process.env.SMTP_PASS;
+  onModuleInit() {
+    const emailConfigured = process.env.SMTP_USER && process.env.SMTP_PASS;
 
-        if (!emailConfigured) {
-            console.warn('⚠️  Servicio de email no configurado. Los recordatorios automáticos están deshabilitados.');
-            return;
+    if (!emailConfigured) {
+      console.warn('[cron] Servicio de email no configurado. Recordatorios deshabilitados.');
+      return;
+    }
+
+    this.scheduleReminders();
+    console.log('[cron] Tarea de recordatorios iniciada');
+  }
+
+  /**
+   * Programa el envio de recordatorios.
+   * Ejecuta cada hora para buscar citas que ocurran en ~24 horas.
+   */
+  private scheduleReminders() {
+    cron.schedule('0 * * * *', async () => {
+      console.log('[cron] Ejecutando tarea de recordatorios');
+      await this.sendUpcomingReminders();
+    });
+  }
+
+  /**
+   * Busca y envia recordatorios para citas en las proximas 23-24 horas.
+   */
+  private async sendUpcomingReminders(): Promise<void> {
+    try {
+      const now = new Date();
+      const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const twentyThreeHoursFromNow = new Date(now.getTime() + 23 * 60 * 60 * 1000);
+
+      const upcomingBookings = await this.bookingModel.find({
+        scheduledAt: {
+          $gte: twentyThreeHoursFromNow,
+          $lte: twentyFourHoursFromNow,
+        },
+        status: { $ne: BookingStatus.Cancelled },
+      }).lean();
+
+      console.log(`[cron] ${upcomingBookings.length} citas para recordar`);
+
+      for (const booking of upcomingBookings) {
+        if (booking.clientEmail) {
+          await this.notificationService.sendAppointmentReminder(booking);
+          console.log(`[cron] Recordatorio enviado a ${booking.clientEmail}`);
         }
-
-        // Ejecutar cada hora para enviar recordatorios
-        // En producción, podrías querer ajustar la frecuencia
-        this.scheduleReminders();
-        console.log('✅ Cron job de recordatorios iniciado');
+      }
+    } catch (error) {
+      console.error('[cron] Error al enviar recordatorios:', error);
     }
+  }
 
-    /**
-     * Programa el envío de recordatorios
-     * Se ejecuta cada hora para buscar citas que sean en 24 horas
-     */
-    private scheduleReminders() {
-        // Ejecutar cada hora: '0 * * * *'
-        // Para testing, puedes usar '* * * * *' (cada minuto)
-        cron.schedule('0 * * * *', async () => {
-            console.log('🔔 Ejecutando tarea de recordatorios...');
-            await this.sendUpcomingReminders();
-        });
-    }
-
-    /**
-     * Busca y envía recordatorios para citas en las próximas 24 horas
-     */
-    private async sendUpcomingReminders(): Promise<void> {
-        try {
-            const now = new Date();
-            const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-            const twentyThreeHoursFromNow = new Date(now.getTime() + 23 * 60 * 60 * 1000);
-
-            // Buscar reservas que sean entre 23 y 24 horas desde ahora
-            // y que no estén canceladas
-            const upcomingBookings = await this.bookingModel.find({
-                scheduledAt: {
-                    $gte: twentyThreeHoursFromNow,
-                    $lte: twentyFourHoursFromNow,
-                },
-                status: { $ne: BookingStatus.Cancelled },
-            }).lean();
-
-            console.log(`📋 Encontradas ${upcomingBookings.length} citas para recordar`);
-
-            // Enviar recordatorios
-            for (const booking of upcomingBookings) {
-                if (booking.clientEmail) {
-                    await this.notificationService.sendAppointmentReminder(booking);
-                    console.log(`📧 Recordatorio enviado a ${booking.clientEmail}`);
-                }
-            }
-
-            if (upcomingBookings.length > 0) {
-                console.log(`✅ Se enviaron ${upcomingBookings.length} recordatorios`);
-            }
-        } catch (error) {
-            console.error('❌ Error al enviar recordatorios:', error);
-        }
-    }
-
-    /**
-     * Método para ejecutar manualmente el envío de recordatorios
-     * Útil para testing
-     */
-    async triggerRemindersManually(): Promise<void> {
-        console.log('🔧 Ejecución manual de recordatorios');
-        await this.sendUpcomingReminders();
-    }
+  /** Metodo manual para testing */
+  async triggerRemindersManually(): Promise<void> {
+    console.log('[cron] Ejecucion manual de recordatorios');
+    await this.sendUpcomingReminders();
+  }
 }

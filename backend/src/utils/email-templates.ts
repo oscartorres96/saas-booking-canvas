@@ -1,6 +1,6 @@
 /**
- * Plantillas HTML para correos electrónicos.
- * Estilo moderno y limpio inspirado en shadcn/ui
+ * Clean HTML templates (shadcn-like) for transactional emails.
+ * Keep text in plain ASCII to avoid encoding issues.
  */
 
 const baseStyles = `
@@ -9,141 +9,143 @@ const baseStyles = `
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     line-height: 1.6;
-    color: #1f2937;
+    color: #111827;
     background-color: #f9fafb;
   }
   .email-container {
-    max-width: 600px;
+    max-width: 640px;
     margin: 0 auto;
     background-color: #ffffff;
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
   }
   .email-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #111827 0%, #4338ca 100%);
     color: #ffffff;
-    padding: 32px 24px;
-    text-align: center;
+    padding: 32px 28px;
+    text-align: left;
   }
   .email-header h1 {
     margin: 0;
     font-size: 24px;
     font-weight: 700;
+    letter-spacing: -0.02em;
   }
   .email-body {
-    padding: 32px 24px;
+    padding: 32px 28px;
   }
   .email-body h2 {
-    margin: 0 0 16px 0;
+    margin: 0 0 12px 0;
     font-size: 20px;
-    font-weight: 600;
-    color: #111827;
+    font-weight: 700;
+    color: #0f172a;
   }
   .email-body p {
-    margin: 0 0 16px 0;
-    color: #4b5563;
+    margin: 0 0 14px 0;
+    color: #374151;
   }
   .booking-details {
     background-color: #f3f4f6;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 24px 0;
+    border-radius: 10px;
+    padding: 18px;
+    margin: 22px 0;
+    border: 1px solid #e5e7eb;
   }
   .detail-row {
     display: flex;
     justify-content: space-between;
     padding: 8px 0;
     border-bottom: 1px solid #e5e7eb;
+    font-size: 15px;
   }
   .detail-row:last-child {
     border-bottom: none;
   }
   .detail-label {
     font-weight: 600;
-    color: #374151;
+    color: #111827;
   }
   .detail-value {
-    color: #6b7280;
+    color: #4b5563;
+    text-align: right;
   }
   .button {
     display: inline-block;
-    padding: 12px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #4338ca 0%, #111827 100%);
     color: #ffffff;
     text-decoration: none;
-    border-radius: 6px;
-    font-weight: 600;
-    text-align: center;
+    border-radius: 8px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
     margin: 16px 0;
-  }
-  .button:hover {
-    opacity: 0.9;
   }
   .email-footer {
     background-color: #f9fafb;
-    padding: 24px;
+    padding: 20px 28px;
     text-align: center;
     color: #6b7280;
-    font-size: 14px;
+    font-size: 13px;
     border-top: 1px solid #e5e7eb;
   }
   .access-code {
-    background-color: #dbeafe;
-    border: 2px dashed #3b82f6;
-    border-radius: 8px;
+    background-color: #eef2ff;
+    border: 1px dashed #4338ca;
+    border-radius: 10px;
     padding: 16px;
     text-align: center;
-    margin: 24px 0;
+    margin: 20px 0;
   }
   .access-code-label {
-    font-size: 14px;
-    color: #1e40af;
-    font-weight: 600;
-    margin-bottom: 8px;
+    font-size: 13px;
+    color: #4338ca;
+    font-weight: 700;
+    margin-bottom: 6px;
   }
   .access-code-value {
-    font-size: 28px;
-    font-weight: 700;
-    color: #1e3a8a;
+    font-size: 26px;
+    font-weight: 800;
+    color: #111827;
     letter-spacing: 4px;
-    font-family: 'Courier New', monospace;
+    font-family: 'SFMono-Regular', 'Consolas', monospace;
   }
   .alert {
     background-color: #fef2f2;
     border-left: 4px solid #ef4444;
-    padding: 16px;
-    margin: 24px 0;
-    border-radius: 4px;
+    padding: 12px 14px;
+    margin: 20px 0;
+    border-radius: 8px;
+    color: #991b1b;
+    font-weight: 600;
   }
   .alert-warning {
     background-color: #fffbeb;
     border-left-color: #f59e0b;
+    color: #92400e;
   }
   .alert-info {
     background-color: #eff6ff;
     border-left-color: #3b82f6;
+    color: #1e3a8a;
   }
 `;
 
 interface BookingEmailData {
-    businessName: string;
-    clientName: string;
-    serviceName: string;
-    scheduledAt: string;
-    accessCode?: string;
-    notes?: string;
-    businessEmail?: string;
-    businessPhone?: string;
-    clientEmail?: string;
-    clientPhone?: string;
+  businessName: string;
+  clientName: string;
+  serviceName: string;
+  scheduledAt: string;
+  accessCode?: string;
+  notes?: string;
+  businessEmail?: string;
+  businessPhone?: string;
+  clientEmail?: string;
+  clientPhone?: string;
 }
 
-/**
- * Plantilla para confirmación de reserva al cliente
- */
 export const clientBookingConfirmationTemplate = (data: BookingEmailData): string => {
-    return `
+  return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -154,28 +156,28 @@ export const clientBookingConfirmationTemplate = (data: BookingEmailData): strin
 <body>
   <div class="email-container">
     <div class="email-header">
-      <h1>✅ Reserva Confirmada</h1>
+      <h1>Reserva confirmada</h1>
     </div>
     <div class="email-body">
-      <h2>¡Hola ${data.clientName}! 👋</h2>
-      <p>Tu reserva ha sido confirmada exitosamente. A continuación encontrarás los detalles:</p>
+      <h2>Hola ${data.clientName}!</h2>
+      <p>Tu reserva se guardo correctamente. Aqui estan los detalles:</p>
       
       <div class="booking-details">
         <div class="detail-row">
-          <span class="detail-label">Servicio:</span>
+          <span class="detail-label">Servicio</span>
           <span class="detail-value">${data.serviceName}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Fecha y Hora:</span>
+          <span class="detail-label">Fecha y hora</span>
           <span class="detail-value">${data.scheduledAt}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Negocio:</span>
+          <span class="detail-label">Negocio</span>
           <span class="detail-value">${data.businessName}</span>
         </div>
         ${data.notes ? `
         <div class="detail-row">
-          <span class="detail-label">Notas:</span>
+          <span class="detail-label">Notas</span>
           <span class="detail-value">${data.notes}</span>
         </div>
         ` : ''}
@@ -183,30 +185,30 @@ export const clientBookingConfirmationTemplate = (data: BookingEmailData): strin
 
       ${data.accessCode ? `
       <div class="access-code">
-        <div class="access-code-label">Código de Acceso</div>
+        <div class="access-code-label">Codigo de acceso</div>
         <div class="access-code-value">${data.accessCode}</div>
-        <p style="margin-top: 12px; font-size: 14px; color: #1e40af;">
-          Guarda este código para consultar o cancelar tu reserva
+        <p style="margin-top: 10px; font-size: 13px; color: #4338ca;">
+          Guarda este codigo para consultar o cancelar tu reserva.
         </p>
       </div>
       ` : ''}
 
       <div class="alert alert-info">
-        <strong>📌 Importante:</strong> Te enviaremos un recordatorio 24 horas antes de tu cita.
+        Te enviaremos un recordatorio 24 horas antes de tu cita.
       </div>
 
-      ${data.businessPhone ? `
-      <p style="margin-top: 24px;">
+      ${(data.businessPhone || data.businessEmail) ? `
+      <p style="margin-top: 18px;">
         <strong>Contacto del negocio:</strong><br>
-        ${data.businessEmail ? `📧 ${data.businessEmail}<br>` : ''}
-        📞 ${data.businessPhone}
+        ${data.businessEmail ? `${data.businessEmail}<br>` : ''}
+        ${data.businessPhone ? `${data.businessPhone}` : ''}
       </p>
       ` : ''}
     </div>
     <div class="email-footer">
-      <p>Gracias por confiar en ${data.businessName}</p>
-      <p style="font-size: 12px; color: #9ca3af; margin-top: 8px;">
-        Este es un correo automático, por favor no responder.
+      <p>Gracias por reservar en ${data.businessName}</p>
+      <p style="font-size: 12px; color: #9ca3af; margin-top: 6px;">
+        Este es un correo automatico, por favor no responder.
       </p>
     </div>
   </div>
@@ -215,11 +217,8 @@ export const clientBookingConfirmationTemplate = (data: BookingEmailData): strin
   `;
 };
 
-/**
- * Plantilla para notificación al dueño del negocio sobre nueva reserva
- */
 export const businessNewBookingTemplate = (data: BookingEmailData): string => {
-    return `
+  return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -230,51 +229,51 @@ export const businessNewBookingTemplate = (data: BookingEmailData): string => {
 <body>
   <div class="email-container">
     <div class="email-header">
-      <h1>🎉 Nueva Reserva Recibida</h1>
+      <h1>Nueva reserva recibida</h1>
     </div>
     <div class="email-body">
-      <h2>¡Tienes una nueva reserva!</h2>
-      <p>Se ha registrado una nueva reserva en tu negocio <strong>${data.businessName}</strong>.</p>
+      <h2>Tienes una nueva reserva</h2>
+      <p>Se registro una nueva cita en <strong>${data.businessName}</strong>.</p>
       
       <div class="booking-details">
         <div class="detail-row">
-          <span class="detail-label">Cliente:</span>
+          <span class="detail-label">Cliente</span>
           <span class="detail-value">${data.clientName}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Servicio:</span>
+          <span class="detail-label">Servicio</span>
           <span class="detail-value">${data.serviceName}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Fecha y Hora:</span>
+          <span class="detail-label">Fecha y hora</span>
           <span class="detail-value">${data.scheduledAt}</span>
         </div>
         ${data.clientEmail ? `
         <div class="detail-row">
-          <span class="detail-label">Email:</span>
+          <span class="detail-label">Email</span>
           <span class="detail-value">${data.clientEmail}</span>
         </div>
         ` : ''}
         ${data.clientPhone ? `
         <div class="detail-row">
-          <span class="detail-label">Teléfono:</span>
+          <span class="detail-label">Telefono</span>
           <span class="detail-value">${data.clientPhone}</span>
         </div>
         ` : ''}
         ${data.notes ? `
         <div class="detail-row">
-          <span class="detail-label">Notas:</span>
+          <span class="detail-label">Notas</span>
           <span class="detail-value">${data.notes}</span>
         </div>
         ` : ''}
       </div>
 
-      <p style="margin-top: 24px;">
-        Puedes gestionar esta reserva desde tu panel de administración.
+      <p style="margin-top: 18px;">
+        Gestiona la reserva desde tu panel de administracion.
       </p>
     </div>
     <div class="email-footer">
-      <p>Sistema de Reservas - ${data.businessName}</p>
+      <p>Sistema de reservas - ${data.businessName}</p>
     </div>
   </div>
 </body>
@@ -282,11 +281,8 @@ export const businessNewBookingTemplate = (data: BookingEmailData): string => {
   `;
 };
 
-/**
- * Plantilla para notificación de cancelación al cliente
- */
 export const clientCancellationTemplate = (data: BookingEmailData): string => {
-    return `
+  return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -297,43 +293,43 @@ export const clientCancellationTemplate = (data: BookingEmailData): string => {
 <body>
   <div class="email-container">
     <div class="email-header">
-      <h1>❌ Reserva Cancelada</h1>
+      <h1>Reserva cancelada</h1>
     </div>
     <div class="email-body">
       <h2>Hola ${data.clientName},</h2>
-      <p>Te informamos que tu reserva ha sido <strong>cancelada</strong>.</p>
+      <p>Tu reserva fue cancelada.</p>
       
       <div class="booking-details">
         <div class="detail-row">
-          <span class="detail-label">Servicio:</span>
+          <span class="detail-label">Servicio</span>
           <span class="detail-value">${data.serviceName}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Fecha y Hora:</span>
+          <span class="detail-label">Fecha y hora</span>
           <span class="detail-value">${data.scheduledAt}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Negocio:</span>
+          <span class="detail-label">Negocio</span>
           <span class="detail-value">${data.businessName}</span>
         </div>
       </div>
 
       <div class="alert alert-warning">
-        <strong>⚠️ Atención:</strong> Si tienes alguna pregunta sobre esta cancelación, por favor contacta directamente con el negocio.
+        Si tienes dudas sobre la cancelacion, contacta directamente con el negocio.
       </div>
 
-      ${data.businessPhone ? `
-      <p style="margin-top: 24px;">
+      ${(data.businessPhone || data.businessEmail) ? `
+      <p style="margin-top: 18px;">
         <strong>Contacto del negocio:</strong><br>
-        ${data.businessEmail ? `📧 ${data.businessEmail}<br>` : ''}
-        📞 ${data.businessPhone}
+        ${data.businessEmail ? `${data.businessEmail}<br>` : ''}
+        ${data.businessPhone ? `${data.businessPhone}` : ''}
       </p>
       ` : ''}
     </div>
     <div class="email-footer">
       <p>${data.businessName}</p>
-      <p style="font-size: 12px; color: #9ca3af; margin-top: 8px;">
-        Este es un correo automático, por favor no responder.
+      <p style="font-size: 12px; color: #9ca3af; margin-top: 6px;">
+        Este es un correo automatico, por favor no responder.
       </p>
     </div>
   </div>
@@ -342,11 +338,8 @@ export const clientCancellationTemplate = (data: BookingEmailData): string => {
   `;
 };
 
-/**
- * Plantilla para recordatorio de cita (24 horas antes)
- */
 export const appointmentReminderTemplate = (data: BookingEmailData): string => {
-    return `
+  return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -357,59 +350,55 @@ export const appointmentReminderTemplate = (data: BookingEmailData): string => {
 <body>
   <div class="email-container">
     <div class="email-header">
-      <h1>⏰ Recordatorio de Cita</h1>
+      <h1>Recordatorio de cita</h1>
     </div>
     <div class="email-body">
-      <h2>¡Hola ${data.clientName}! 👋</h2>
-      <p>Te recordamos que tienes una cita programada para <strong>mañana</strong>.</p>
+      <h2>Hola ${data.clientName}!</h2>
+      <p>Te recordamos que tienes una cita en 24 horas.</p>
       
       <div class="booking-details">
         <div class="detail-row">
-          <span class="detail-label">Servicio:</span>
+          <span class="detail-label">Servicio</span>
           <span class="detail-value">${data.serviceName}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Fecha y Hora:</span>
+          <span class="detail-label">Fecha y hora</span>
           <span class="detail-value">${data.scheduledAt}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Negocio:</span>
+          <span class="detail-label">Negocio</span>
           <span class="detail-value">${data.businessName}</span>
         </div>
         ${data.notes ? `
         <div class="detail-row">
-          <span class="detail-label">Notas:</span>
+          <span class="detail-label">Notas</span>
           <span class="detail-value">${data.notes}</span>
         </div>
         ` : ''}
       </div>
 
-      <div class="alert alert-info">
-        <strong>💡 Consejo:</strong> Te recomendamos llegar 10 minutos antes de tu cita.
-      </div>
-
       ${data.accessCode ? `
       <div class="access-code">
-        <div class="access-code-label">Código de Acceso</div>
+        <div class="access-code-label">Codigo de acceso</div>
         <div class="access-code-value">${data.accessCode}</div>
-        <p style="margin-top: 12px; font-size: 14px; color: #1e40af;">
-          Usa este código si necesitas consultar o cancelar tu reserva
+        <p style="margin-top: 10px; font-size: 13px; color: #4338ca;">
+          Usa este codigo si necesitas consultar o cancelar tu reserva.
         </p>
       </div>
       ` : ''}
 
-      ${data.businessPhone ? `
-      <p style="margin-top: 24px;">
+      ${(data.businessPhone || data.businessEmail) ? `
+      <p style="margin-top: 18px;">
         <strong>Contacto del negocio:</strong><br>
-        ${data.businessEmail ? `📧 ${data.businessEmail}<br>` : ''}
-        📞 ${data.businessPhone}
+        ${data.businessEmail ? `${data.businessEmail}<br>` : ''}
+        ${data.businessPhone ? `${data.businessPhone}` : ''}
       </p>
       ` : ''}
     </div>
     <div class="email-footer">
-      <p>¡Nos vemos pronto en ${data.businessName}!</p>
-      <p style="font-size: 12px; color: #9ca3af; margin-top: 8px;">
-        Este es un correo automático, por favor no responder.
+      <p>Nos vemos pronto en ${data.businessName}</p>
+      <p style="font-size: 12px; color: #9ca3af; margin-top: 6px;">
+        Este es un correo automatico, por favor no responder.
       </p>
     </div>
   </div>

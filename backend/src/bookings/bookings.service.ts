@@ -93,16 +93,25 @@ export class BookingsService {
   }
 
   async update(id: string, payload: UpdateBookingPayload, authUser: AuthUser): Promise<Booking> {
-    const updated = await this.bookingModel
-      .findOneAndUpdate(
-        { _id: new Types.ObjectId(id), ...this.buildFilter(authUser) },
-        payload,
-        { new: true },
-      )
-      .lean();
-    if (!updated) {
-      throw new NotFoundException('Booking not found');
+    const filter = { _id: new Types.ObjectId(id), ...this.buildFilter(authUser) };
+    const existing = await this.bookingModel.findOne(filter).lean();
+    if (!existing) throw new NotFoundException('Booking not found');
+
+    const updated = await this.bookingModel.findOneAndUpdate(
+      filter,
+      payload,
+      { new: true },
+    ).lean();
+
+    if (!updated) throw new NotFoundException('Booking not found');
+
+    if (
+      payload.status === BookingStatus.Cancelled &&
+      existing.status !== BookingStatus.Cancelled
+    ) {
+      await this.notificationService.sendCancellationNotification(updated as Booking);
     }
+
     return updated;
   }
 
