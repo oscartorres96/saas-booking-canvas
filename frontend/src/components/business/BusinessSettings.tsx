@@ -10,19 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, Plus, X } from "lucide-react";
-
-const daysOfWeek = [
-    { key: "monday", label: "Lunes" },
-    { key: "tuesday", label: "Martes" },
-    { key: "wednesday", label: "Miércoles" },
-    { key: "thursday", label: "Jueves" },
-    { key: "friday", label: "Viernes" },
-    { key: "saturday", label: "Sábado" },
-    { key: "sunday", label: "Domingo" },
-];
+import { Loader2 } from "lucide-react";
+import { BusinessHoursForm, daysOfWeek } from "./BusinessHoursForm";
 
 const intervalSchema = z.object({
     startTime: z.string(),
@@ -255,94 +245,8 @@ export function BusinessSettings() {
                                 <CardTitle>Horarios de Atención</CardTitle>
                                 <CardDescription>Define los días y horas en que tu negocio está abierto.</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-4">
-                                {daysOfWeek.map((day, index) => {
-                                    const intervals = form.watch(`businessHours.${index}.intervals`);
-                                    const isOpen = form.watch(`businessHours.${index}.isOpen`);
-                                    return (
-                                        <div key={day.key} className="flex flex-col gap-3 p-3 border rounded-md bg-card">
-                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                                                <FormField
-                                                    control={form.control}
-                                                    name={`businessHours.${index}.isOpen`}
-                                                    render={({ field }) => (
-                                                        <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                                                            <FormControl>
-                                                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                                            </FormControl>
-                                                            <FormLabel className="w-24">{day.label}</FormLabel>
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                                {!isOpen && (
-                                                    <span className="text-muted-foreground text-sm italic">Cerrado</span>
-                                                )}
-                                            </div>
-                                            {isOpen && (
-                                                <div className="space-y-3">
-                                                    {intervals?.map((interval, intervalIndex) => (
-                                                        <div key={intervalIndex} className="flex flex-col sm:flex-row sm:items-center gap-2">
-                                                            <FormField
-                                                                control={form.control}
-                                                                name={`businessHours.${index}.intervals.${intervalIndex}.startTime`}
-                                                                render={({ field }) => (
-                                                                    <FormItem className="flex-1">
-                                                                        <FormControl>
-                                                                            <Input type="time" {...field} className="w-full" />
-                                                                        </FormControl>
-                                                                    </FormItem>
-                                                                )}
-                                                            />
-                                                            <span className="text-center sm:w-auto">a</span>
-                                                            <FormField
-                                                                control={form.control}
-                                                                name={`businessHours.${index}.intervals.${intervalIndex}.endTime`}
-                                                                render={({ field }) => (
-                                                                    <FormItem className="flex-1">
-                                                                        <FormControl>
-                                                                            <Input type="time" {...field} className="w-full" />
-                                                                        </FormControl>
-                                                                    </FormItem>
-                                                                )}
-                                                            />
-                                                            {intervals.length > 1 && (
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="self-start"
-                                                                    onClick={() => {
-                                                                        const next = intervals.filter((_, i) => i !== intervalIndex);
-                                                                        form.setValue(`businessHours.${index}.intervals`, next, { shouldDirty: true });
-                                                                    }}
-                                                                >
-                                                                    <X className="h-4 w-4" />
-                                                                </Button>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                    {(intervals?.length ?? 0) < 2 && (
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="w-full sm:w-auto"
-                                                            onClick={() => {
-                                                                const next = [
-                                                                    ...(intervals || []),
-                                                                    { startTime: "09:00", endTime: "18:00" },
-                                                                ];
-                                                                form.setValue(`businessHours.${index}.intervals`, next, { shouldDirty: true });
-                                                            }}
-                                                        >
-                                                            <Plus className="h-4 w-4 mr-2" /> Agregar intervalo
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                            <CardContent>
+                                <BusinessHoursForm form={form} />
                             </CardContent>
                         </Card>
                     </TabsContent>

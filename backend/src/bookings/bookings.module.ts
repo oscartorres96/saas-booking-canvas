@@ -4,11 +4,15 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 import { BookingsController } from './bookings.controller';
 import { BookingsService } from './bookings.service';
 import { Booking, BookingSchema } from './schemas/booking.schema';
+import { Service, ServiceSchema } from '../services/schemas/service.schema';
 import { ServicesModule } from '../services/services.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Booking.name, schema: BookingSchema }]),
+    MongooseModule.forFeature([
+      { name: Booking.name, schema: BookingSchema },
+      { name: Service.name, schema: ServiceSchema },
+    ]),
     ServicesModule,
   ],
   controllers: [BookingsController],

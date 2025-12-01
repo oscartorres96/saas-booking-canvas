@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { UserRole } from '../users/schemas/user.schema';
 import { Booking, BookingDocument, BookingStatus } from './schemas/booking.schema';
 import { NotificationService } from '../services/notification.service';
+import { Service, ServiceDocument } from '../services/schemas/service.schema';
 
 export interface CreateBookingPayload {
   clientName: string;
@@ -33,6 +34,7 @@ const generateAccessCode = () => Math.random().toString().slice(2, 8);
 export class BookingsService {
   constructor(
     @InjectModel(Booking.name) private readonly bookingModel: Model<BookingDocument>,
+    @InjectModel(Service.name) private readonly serviceModel: Model<ServiceDocument>,
     private readonly notificationService: NotificationService
   ) { }
 
@@ -64,6 +66,22 @@ export class BookingsService {
     if (!payload.accessCode) {
       payload.accessCode = generateAccessCode();
     }
+
+    // Validar servicio: debe existir, pertenecer al negocio y no ser solo en línea
+    const service = await this.serviceModel.findById(payload.serviceId).lean();
+    if (!service) {
+      throw new NotFoundException('Service not found');
+    }
+    if (service.businessId && payload.businessId && service.businessId !== payload.businessId) {
+      throw new ForbiddenException('Service does not belong to this business');
+    }
+    if (service.isOnline) {
+      throw new ForbiddenException('Este servicio solo admite reservas en línea. Usa otro servicio presencial.');
+    }
+    if (service.active === false) {
+      throw new ForbiddenException('Service is inactive');
+    }
+
     const booking = new this.bookingModel(payload);
     const savedBooking = await booking.save();
 

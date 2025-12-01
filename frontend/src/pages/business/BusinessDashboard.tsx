@@ -72,6 +72,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BusinessSettings } from "@/components/business/BusinessSettings";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import useAuth from "@/auth/useAuth";
 import { getBusinessById, type Business } from "@/api/businessesApi";
 import { getServicesByBusiness, createService, updateService, deleteService, type Service } from "@/api/servicesApi";
@@ -83,6 +84,7 @@ const serviceFormSchema = z.object({
     durationMinutes: z.coerce.number().min(1, { message: "Duración inválida" }),
     price: z.coerce.number().min(0, { message: "Precio inválido" }),
     active: z.boolean().default(true),
+    isOnline: z.boolean().default(false),
 });
 
 const BusinessDashboard = () => {
@@ -110,6 +112,7 @@ const BusinessDashboard = () => {
             durationMinutes: 30,
             price: 0,
             active: true,
+            isOnline: false,
         },
     });
 
@@ -121,6 +124,7 @@ const BusinessDashboard = () => {
             durationMinutes: 30,
             price: 0,
             active: true,
+            isOnline: false,
         },
     });
 
@@ -199,6 +203,7 @@ const BusinessDashboard = () => {
             durationMinutes: service.durationMinutes,
             price: service.price,
             active: service.active ?? true,
+            isOnline: service.isOnline ?? false,
         });
         setIsEditServiceDialogOpen(true);
     };
@@ -297,10 +302,17 @@ const BusinessDashboard = () => {
                             </p>
                         </div>
                         <div className="flex items-center gap-3">
+                            <Button
+                                variant="outline"
+                                onClick={() => window.open(`/business/${businessId}/booking`, '_blank')}
+                            >
+                                Ver página de reservas
+                            </Button>
                             <TabsList>
                                 <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                                 <TabsTrigger value="settings">Configuración</TabsTrigger>
                             </TabsList>
+                            <ThemeToggle />
                             <Button variant="outline" onClick={logout}>
                                 Cerrar Sesión
                             </Button>
@@ -442,6 +454,28 @@ const BusinessDashboard = () => {
                                                             )}
                                                         />
                                                     </div>
+                                                    <FormField
+                                                        control={serviceForm.control}
+                                                        name="isOnline"
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel>Modalidad</FormLabel>
+                                                                <Select
+                                                                    value={field.value ? "online" : "offline"}
+                                                                    onValueChange={(val) => field.onChange(val === "online")}
+                                                                >
+                                                                    <SelectTrigger>
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="offline">Solo presencial</SelectItem>
+                                                                        <SelectItem value="online">Servicio en línea</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
                                                     <DialogFooter>
                                                         <Button type="submit">Crear Servicio</Button>
                                                     </DialogFooter>
@@ -579,6 +613,28 @@ const BusinessDashboard = () => {
                                                 )}
                                             />
                                         </div>
+                                        <FormField
+                                            control={editServiceForm.control}
+                                            name="isOnline"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Modalidad</FormLabel>
+                                                    <Select
+                                                        value={field.value ? "online" : "offline"}
+                                                        onValueChange={(val) => field.onChange(val === "online")}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="offline">Solo presencial</SelectItem>
+                                                            <SelectItem value="online">Servicio en lAnea</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                         <FormField
                                             control={editServiceForm.control}
                                             name="active"

@@ -54,7 +54,8 @@ import {
   Activity,
   Calendar,
   Filter,
-  Eye
+  Eye,
+  ExternalLink
 } from "lucide-react";
 
 import {
@@ -82,6 +83,7 @@ import {
 } from "@/api/usersApi";
 
 import { getBookingsByBusiness } from "@/api/bookingsApi";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // -------------------------------------------------------------------
 //                          COMPONENTE PRINCIPAL
@@ -125,6 +127,7 @@ const AdminDashboard = () => {
     ownerName: "",
     website: "",
     description: "",
+    subscriptionStatus: "trial",
   });
 
   // Datos del usuario administrador en modo edición
@@ -163,7 +166,7 @@ const AdminDashboard = () => {
       try {
         const usersData = await getAllUsers();
         usersCount = usersData.length;
-      } catch {}
+      } catch { }
 
       let bookingsCount = 0;
       try {
@@ -172,7 +175,7 @@ const AdminDashboard = () => {
         );
         const allBookings = await Promise.all(bookingPromises);
         bookingsCount = allBookings.reduce((acc, curr) => acc + curr.length, 0);
-      } catch {}
+      } catch { }
 
       setStats({
         totalBusinesses: businessesData.length,
@@ -198,51 +201,51 @@ const AdminDashboard = () => {
 
   const handleCreateBusiness = async () => {
     if (!formData.name.trim()) {
-        toast.error("El nombre del negocio es obligatorio");
-        return;
+      toast.error("El nombre del negocio es obligatorio");
+      return;
     }
 
     if (!formData.ownerName.trim() || !formData.ownerEmail.trim()) {
-        toast.error("Email y nombre del administrador son obligatorios");
-        return;
+      toast.error("Email y nombre del administrador son obligatorios");
+      return;
     }
 
     try {
-        setCreating(true);
+      setCreating(true);
 
-        // --- 100% CORRECTO PARA TU BACKEND ---
-        const payload = {
-            name: formData.name.trim(),
-            businessName: formData.name.trim(),
-            type: formData.type,
-            email: formData.ownerEmail.trim(),
-            ownerPassword: formData.ownerPassword.trim(),
-            phone: formData.phone || undefined,
-            address: formData.address || undefined,
-            ownerName: formData.ownerName.trim(),
-            metadata: {
-                website: formData.website || undefined,
-                description: formData.description || undefined,
-            },
-            subscriptionStatus: "trial",
-        };
+      // --- 100% CORRECTO PARA TU BACKEND ---
+      const payload = {
+        name: formData.name.trim(),
+        businessName: formData.name.trim(),
+        type: formData.type,
+        email: formData.ownerEmail.trim(),
+        ownerPassword: formData.ownerPassword.trim(),
+        phone: formData.phone || undefined,
+        address: formData.address || undefined,
+        ownerName: formData.ownerName.trim(),
+        metadata: {
+          website: formData.website || undefined,
+          description: formData.description || undefined,
+        },
+        subscriptionStatus: "trial",
+      };
 
-        // Backend crea usuario + contraseña temporal + asigna businessId
-        const response = await createBusiness(payload);
+      // Backend crea usuario + contraseña temporal + asigna businessId
+      const response = await createBusiness(payload);
 
-        toast.success(
-            `Negocio creado exitosamente 🎉
+      toast.success(
+        `Negocio creado exitosamente 🎉
 
             Administrador: ${response.credentials.email}
             Contraseña: ${response.credentials.password ?? "ya existente"}`,
-            { duration: 6000 }
-        );
+        { duration: 6000 }
+      );
 
-        setBusinesses(prev => [response.business, ...prev]);
+      setBusinesses(prev => [response.business, ...prev]);
 
-        // Reset
-        setShowCreateModal(false);
-        setFormData({
+      // Reset
+      setShowCreateModal(false);
+      setFormData({
         name: "",
         type: "other",
         phone: "",
@@ -252,12 +255,12 @@ const AdminDashboard = () => {
         ownerPassword: "", // <-- ya no se usa, pero lo dejamos vacío en caso de UI
         website: "",
         description: "",
-        });
+      });
 
     } catch (error: any) {
-        toast.error(error?.response?.data?.message || "No se pudo crear el negocio");
+      toast.error(error?.response?.data?.message || "No se pudo crear el negocio");
     } finally {
-        setCreating(false);
+      setCreating(false);
     }
   };
 
@@ -277,6 +280,7 @@ const AdminDashboard = () => {
       ownerName: business.ownerName || "",
       website: (business.metadata as any)?.website || "",
       description: (business.metadata as any)?.description || "",
+      subscriptionStatus: business.subscriptionStatus || "trial",
     });
 
     // Cargar datos del usuario administrador
@@ -285,7 +289,7 @@ const AdminDashboard = () => {
         const u = await getUserById(business.ownerUserId);
         setEditOwnerEmail(u.email);
         setEditOwnerName(u.name);
-      } catch {}
+      } catch { }
     }
 
     setEditOwnerPassword("");
@@ -305,6 +309,7 @@ const AdminDashboard = () => {
         address: editFormData.address,
         ownerName: editOwnerName.trim(),
         ownerPassword: editOwnerPassword.trim() || undefined,
+        subscriptionStatus: editFormData.subscriptionStatus,
         metadata: {
           website: editFormData.website,
           description: editFormData.description,
@@ -328,10 +333,10 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50/50">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50/50 dark:bg-black">
         <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-slate-200"></div>
-          <div className="h-4 w-48 bg-slate-200 rounded"></div>
+          <div className="h-12 w-12 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+          <div className="h-4 w-48 bg-slate-200 dark:bg-slate-700 rounded"></div>
         </div>
       </div>
     );
@@ -341,10 +346,10 @@ const AdminDashboard = () => {
   const getStatusColor = (status?: string) => {
     const normalized = status ?? "trial";
     switch (normalized) {
-      case "active": return "bg-green-100 text-green-800 hover:bg-green-100";
-      case "inactive": return "bg-slate-100 text-slate-800 hover:bg-slate-100";
-      case "trial": return "bg-blue-100 text-blue-800 hover:bg-blue-100";
-      default: return "bg-gray-100 text-gray-800";
+      case "active": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40";
+      case "inactive": return "bg-slate-100 text-slate-800 dark:bg-slate-800/50 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70";
+      case "trial": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40";
+      default: return "bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-300";
     }
   };
 
@@ -373,16 +378,17 @@ const AdminDashboard = () => {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50/50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-slate-50/50 dark:bg-black p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
 
         {/* Encabezado principal */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Panel de Administración</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Panel de Administración</h1>
             <p className="text-sm text-muted-foreground">Gestiona los negocios registrados y monitorea su actividad.</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <ThemeToggle />
             <Button variant="outline" onClick={logout} className="w-full sm:w-auto">
               Cerrar Sesión
             </Button>
@@ -434,9 +440,10 @@ const AdminDashboard = () => {
                         onChange={(value) => handleFieldChange("phone", value)}
                         placeholder="+52 55 1234 5678"
                         containerClass="w-full"
-                        inputClass="!w-full !h-10 !text-base !bg-background !border !border-input !rounded-md !pl-12 focus:!ring-2 focus:!ring-ring focus:!ring-offset-2"
+                        inputClass="!w-full !h-10 !text-base !bg-background !border !border-input !rounded-md !pl-14 !text-foreground focus:!ring-2 focus:!ring-ring focus:!ring-offset-2"
                         buttonClass="!h-10 !bg-background !border !border-input !rounded-l-md !px-3"
                         dropdownClass="!bg-popover !text-foreground !shadow-lg !border !rounded-md"
+                        inputStyle={{ paddingLeft: "3.5rem" }}
                       />
                     </div>
                     <div className="space-y-1">
@@ -606,6 +613,16 @@ const AdminDashboard = () => {
                           <div className="flex flex-col">
                             <span className="font-semibold">{business.businessName || business.name}</span>
                             <span className="text-xs text-muted-foreground">{business.email || "N/A"}</span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Button
+                                variant="link"
+                                size="sm"
+                                className="px-0 h-auto text-primary"
+                                onClick={() => window.open(`/business/${business._id}/booking`, "_blank")}
+                              >
+                                Ver página de reservas
+                              </Button>
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -641,6 +658,10 @@ const AdminDashboard = () => {
                               <DropdownMenuItem onClick={() => handleViewBusiness(business._id)}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 Ver dashboard
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => window.open(`/business/${business._id}/booking`, "_blank")}>
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                Ver página de reservas
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => openEditModal(business)}>
                                 Editar negocio
@@ -716,6 +737,24 @@ const AdminDashboard = () => {
                 </Select>
               </div>
               <div className="space-y-1">
+                <Label>Estado</Label>
+                <Select
+                  value={editFormData.subscriptionStatus}
+                  onValueChange={(val) =>
+                    setEditFormData((prev) => ({ ...prev, subscriptionStatus: val }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Activo</SelectItem>
+                    <SelectItem value="trial">Prueba</SelectItem>
+                    <SelectItem value="inactive">Inactivo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
                 <Label>Teléfono</Label>
                 <PhoneInput
                   country="mx"
@@ -726,7 +765,10 @@ const AdminDashboard = () => {
                     setEditFormData((prev) => ({ ...prev, phone: value }))
                   }
                   containerClass="w-full"
-                  inputClass="!w-full !h-10 !text-base !bg-background !border !border-input !rounded-md !pl-12"
+                  inputClass="!w-full !h-10 !text-base !bg-background !border !border-input !rounded-md !pl-14 !text-foreground"
+                  buttonClass="!h-10 !bg-background !border !border-input !rounded-l-md !px-3"
+                  dropdownClass="!bg-popover !text-foreground !shadow-lg !border !rounded-md"
+                  inputStyle={{ paddingLeft: '3.5rem' }}
                 />
               </div>
               <div className="space-y-1">

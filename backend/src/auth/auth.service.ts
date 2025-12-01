@@ -1,15 +1,19 @@
 import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { User, UserDocument, UserRole } from '../users/schemas/user.schema';
+import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
 import { JwtPayload } from './types';
 
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
   user: Partial<User>;
+  isOnboardingCompleted?: boolean;
 }
 
 @Injectable()
@@ -18,6 +22,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    @InjectModel(Business.name) private readonly businessModel: Model<BusinessDocument>,
   ) { }
 
   async register(email: string, password: string, name: string): Promise<AuthResponse> {
@@ -51,7 +56,7 @@ export class AuthService {
     return this.buildAuthResponse(user as UserDocument);
   }
 
-  private buildAuthResponse(user: UserDocument): AuthResponse {
+  private async buildAuthResponse(user: UserDocument): Promise<AuthResponse> {
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -74,6 +79,17 @@ export class AuthService {
     const safeUser = user.toObject();
     delete (safeUser as Record<string, unknown>).password_hash;
 
-    return { accessToken, refreshToken, user: safeUser };
+    let isOnboardingCompleted = true;
+    if ((user.role === UserRole.Owner || user.role === UserRole.Business) && user.businessId) {
+      const business = await this.businessModel.findById(user.businessId);
+      if (business) {
+        isOnboardingCompleted = !!business.isOnboardingCompleted;
+      } else {
+        // Business ID exists in user but not found in DB? 
+        isOnboardingCompleted = false;
+      }
+    }
+
+    return { accessToken, refreshToken, user: safeUser, isOnboardingCompleted };
   }
 }

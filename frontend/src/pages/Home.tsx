@@ -101,13 +101,13 @@ const Home = () => {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50/60">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="max-w-5xl mx-auto px-6 py-16 space-y-10">
         <div className="text-center space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             BookPro
           </p>
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">
+          <h1 className="text-3xl sm:text-4xl font-bold">
             Reserva rápido en tu negocio favorito
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base">
@@ -119,11 +119,11 @@ const Home = () => {
           {(loading ? skeletonCards : cards).map((biz) => (
             <Card
               key={biz.id}
-              className="relative overflow-hidden border-slate-200 hover:shadow-md transition"
+              className="relative overflow-hidden border border-border bg-card text-card-foreground hover:shadow-md transition"
             >
               <div className={`absolute inset-x-0 top-0 h-16 bg-gradient-to-b ${biz.accent}`} />
               <CardHeader className="relative z-10 pb-3">
-                <div className="flex items-center gap-2 text-sm text-slate-500">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   {biz.icon}
                   <span>{biz.isSkeleton ? "Cargando..." : "Reservas abiertas"}</span>
                 </div>
@@ -146,13 +146,13 @@ const Home = () => {
           ))}
         </div>
 
-        <Card className="border-dashed">
+        <Card className="border-dashed border-border bg-card text-card-foreground">
           <CardHeader>
             <CardTitle className="text-lg">¿Ya reservaste?</CardTitle>
             <p className="text-sm text-muted-foreground">Consulta tus citas con tu correo y código de acceso.</p>
           </CardHeader>
           <CardContent className="flex justify-between items-center flex-col sm:flex-row gap-3">
-            <div className="text-sm text-slate-600 text-center sm:text-left">
+            <div className="text-sm text-muted-foreground text-center sm:text-left">
               Ve a <span className="font-semibold">Mis reservas</span> para ver, confirmar o cancelar.
             </div>
             <Button variant="outline" onClick={() => navigate("/my-bookings")}>

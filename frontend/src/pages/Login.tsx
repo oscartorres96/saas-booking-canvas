@@ -11,6 +11,7 @@ import { Building2, User, Lock, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import useAuth from "@/auth/useAuth";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -40,7 +41,11 @@ const Login = () => {
       if (loggedUser?.role === "owner") {
         navigate("/admin");
       } else if (loggedUser?.role === "business" && loggedUser.businessId) {
-        navigate(`/business/${loggedUser.businessId}/dashboard`);
+        if (loggedUser.isOnboardingCompleted === false) {
+          navigate("/onboarding");
+        } else {
+          navigate(`/business/${loggedUser.businessId}/dashboard`);
+        }
       } else if (loggedUser?.role === "client" && loggedUser.businessId) {
         navigate(`/business/${loggedUser.businessId}/booking`);
       } else {
@@ -55,7 +60,11 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen w-full flex">
+    <div className="min-h-screen w-full flex relative">
+      {/* Theme Toggle - Fixed position */}
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       {/* Left Side - Hero/Branding */}
       <div className="hidden lg:flex w-1/2 bg-slate-900 relative overflow-hidden flex-col justify-between p-12 text-white">
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1600880292203-757bb62b4baf?ixlib=rb-4.0.3&auto=format&fit=crop&w=1770&q=80')] bg-cover bg-center opacity-20"></div>

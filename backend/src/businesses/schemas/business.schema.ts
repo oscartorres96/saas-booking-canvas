@@ -38,6 +38,12 @@ export class Business {
   @Prop({ type: Object })
   metadata?: Record<string, unknown>;
 
+  @Prop({ default: 1 })
+  onboardingStep?: number;
+
+  @Prop({ default: false })
+  isOnboardingCompleted?: boolean;
+
   @Prop({
     type: {
       primaryColor: String,

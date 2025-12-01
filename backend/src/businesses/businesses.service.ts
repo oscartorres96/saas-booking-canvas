@@ -297,4 +297,23 @@ export class BusinessesService {
 
     return slots;
   }
+
+  async updateOnboarding(id: string, step: number, isCompleted: boolean, authUser: AuthUser) {
+    const business = await this.businessModel.findById(id);
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
+    this.assertAccess(authUser, business);
+
+    business.onboardingStep = step;
+    if (isCompleted) {
+      business.isOnboardingCompleted = true;
+      // Opcional: cambiar status a active si estaba en trial
+      if (business.subscriptionStatus === 'trial') {
+        business.subscriptionStatus = 'active';
+      }
+    }
+
+    return business.save();
+  }
 }

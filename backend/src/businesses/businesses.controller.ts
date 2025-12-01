@@ -34,6 +34,16 @@ export class BusinessesController {
     return this.businessesService.updateSettings(id, body, req.user);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Put(':id/onboarding')
+  updateOnboarding(
+    @Param('id') id: string,
+    @Body() body: { step: number; isCompleted?: boolean },
+    @Req() req: any
+  ) {
+    return this.businessesService.updateOnboarding(id, body.step, !!body.isCompleted, req.user);
+  }
+
   @Get(':id/slots')
   async getSlots(
     @Param('id') id: string,

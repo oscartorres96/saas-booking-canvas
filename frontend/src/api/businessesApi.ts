@@ -83,3 +83,12 @@ export const getBusinessSlots = async (
   });
   return data;
 };
+
+export const updateOnboarding = async (
+  businessId: string,
+  step: number,
+  isCompleted: boolean
+): Promise<Business> => {
+  const { data } = await apiClient.put<Business>(`/businesses/${businessId}/onboarding`, { step, isCompleted });
+  return data;
+};

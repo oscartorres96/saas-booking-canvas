@@ -35,6 +35,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // Mock data based on the new schema
 const mockBusinesses = [
@@ -106,10 +107,10 @@ const Admin = () => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case "active": return "bg-green-100 text-green-800 hover:bg-green-100";
-            case "inactive": return "bg-slate-100 text-slate-800 hover:bg-slate-100";
-            case "trial": return "bg-blue-100 text-blue-800 hover:bg-blue-100";
-            default: return "bg-gray-100 text-gray-800";
+            case "active": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40";
+            case "inactive": return "bg-slate-100 text-slate-800 dark:bg-slate-800/50 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70";
+            case "trial": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40";
+            default: return "bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-300";
         }
     };
 
@@ -123,16 +124,17 @@ const Admin = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50/50 p-4 sm:p-8">
+        <div className="min-h-screen bg-slate-50/50 dark:bg-black p-4 sm:p-8">
             <div className="max-w-7xl mx-auto space-y-8">
 
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Panel de Administración</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">Panel de Administración</h1>
                         <p className="text-muted-foreground">Gestiona los negocios registrados y monitorea su actividad.</p>
                     </div>
                     <div className="flex items-center gap-2">
+                        <ThemeToggle />
                         <Button variant="outline" onClick={() => window.location.href = '/login'}>
                             Cerrar Sesión
                         </Button>
