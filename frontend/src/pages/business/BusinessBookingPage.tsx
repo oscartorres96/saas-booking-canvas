@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -62,6 +62,7 @@ const bookingFormSchema = z.object({
 const BusinessBookingPage = () => {
     const { businessId } = useParams<{ businessId: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { user } = useAuth();
 
     const [business, setBusiness] = useState<Business | null>(null);
@@ -146,10 +147,16 @@ const BusinessBookingPage = () => {
                 notes: values.notes,
             };
 
-            await createBooking(bookingData);
+            const booking = await createBooking(bookingData);
 
             setBookingSuccess(true);
-            toast.success("¡Reserva creada exitosamente!");
+            toast.success("¡Reserva creada exitosamente! Redirigiendo...");
+
+            setTimeout(() => {
+                navigate(
+                    `/my-bookings?email=${encodeURIComponent(values.clientEmail)}&code=${encodeURIComponent(booking.accessCode || "")}&businessId=${encodeURIComponent(businessId)}`
+                );
+            }, 2000);
 
             if (user?.userId) {
                 const bookingsData = await getBookingsByClient(user.userId);
@@ -170,6 +177,28 @@ const BusinessBookingPage = () => {
             toast.error(error?.response?.data?.message || "Error al crear reserva");
         }
     };
+
+    // Prefill from query params (coming from "Volver a reservar")
+    useEffect(() => {
+        const serviceIdParam = searchParams.get("serviceId");
+        const nameParam = searchParams.get("name");
+        const emailParam = searchParams.get("email");
+        const phoneParam = searchParams.get("phone");
+
+        if (serviceIdParam) {
+            form.setValue("serviceId", serviceIdParam);
+            handleServiceSelect(serviceIdParam);
+        }
+        if (nameParam) {
+            form.setValue("clientName", nameParam);
+        }
+        if (emailParam) {
+            form.setValue("clientEmail", emailParam);
+        }
+        if (phoneParam) {
+            form.setValue("clientPhone", phoneParam);
+        }
+    }, [searchParams]);
 
     const handleServiceSelect = (serviceId: string) => {
         const service = services.find(s => s._id === serviceId);

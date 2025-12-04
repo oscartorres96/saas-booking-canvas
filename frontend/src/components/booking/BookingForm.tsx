@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,14 +21,13 @@ interface BookingFormProps {
 
 export const BookingForm = ({ primaryColor, selectedDate, selectedTime, businessName, businessId, services }: BookingFormProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     email: "",
     serviceId: ""
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [accessCode, setAccessCode] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,8 +97,14 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
 
       toast({
         title: "Reserva confirmada",
-        description: `Tu reserva ha sido creada exitosamente. Guarda tu código de acceso: ${booking.accessCode}`,
+        description: `Tu reserva ha sido creada exitosamente. Redirigiendo a tus reservas...`,
       });
+
+      // Redirect to My Bookings after a short delay
+      setTimeout(() => {
+        navigate(`/my-bookings?email=${encodeURIComponent(formData.email)}&code=${encodeURIComponent(booking.accessCode || "")}`);
+      }, 2000);
+
     } catch (error) {
       console.error("Error creating booking:", error);
       toast({

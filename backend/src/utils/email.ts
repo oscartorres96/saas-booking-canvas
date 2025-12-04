@@ -18,11 +18,11 @@ export const sendEmail = async (options: EmailOptions): Promise<void> => {
 };
 
 export const validateEmailConfig = (): boolean => {
-  const required = ['SMTP_USER', 'SMTP_PASS'];
-  const missing = required.filter((key) => !process.env[key]);
+  const hasSmtpConfig = process.env.SMTP_USER && process.env.SMTP_PASS;
+  const hasEmailConfig = process.env.EMAIL_USER && process.env.EMAIL_PASS;
 
-  if (missing.length > 0) {
-    console.warn(`[email] Missing SMTP configuration: ${missing.join(', ')}`);
+  if (!hasSmtpConfig && !hasEmailConfig) {
+    console.warn('[email] Missing email configuration: SMTP_USER/EMAIL_USER and SMTP_PASS/EMAIL_PASS required');
     return false;
   }
 

@@ -11,6 +11,9 @@ export class Business {
   @Prop({ required: true, trim: true })
   name!: string;
 
+  @Prop({ unique: true, trim: true, lowercase: true })
+  slug?: string;
+
   @Prop({ trim: true })
   type?: string;
 
@@ -77,12 +80,26 @@ export class Business {
 
 export const BusinessSchema = SchemaFactory.createForClass(Business);
 
+// Helper function to generate slug
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+
 BusinessSchema.pre('save', function (next) {
   if (!this.businessName && this.name) {
     this.businessName = this.name;
   }
   if (!this.name && this.businessName) {
     this.name = this.businessName;
+  }
+  // Auto-generate slug from business name if not provided
+  if (!this.slug && this.name) {
+    this.slug = slugify(this.name);
   }
   next();
 });

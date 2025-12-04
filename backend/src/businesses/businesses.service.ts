@@ -161,6 +161,22 @@ export class BusinessesService {
     return business.toObject();
   }
 
+  async findBySlug(slug: string, authUser: AuthUser) {
+    const business = await this.businessModel.findOne({ slug }).exec();
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
+    const isPublicLike = authUser.role === 'public' || authUser.role === UserRole.Client;
+    if (isPublicLike) {
+      if (business.subscriptionStatus === 'inactive') {
+        throw new ForbiddenException('Not allowed');
+      }
+    } else {
+      this.assertAccess(authUser, business);
+    }
+    return business.toObject();
+  }
+
   async update(id: string, payload: UpdateBusinessDto, authUser: AuthUser) {
     const business = await this.businessModel.findById(id);
     if (!business) {

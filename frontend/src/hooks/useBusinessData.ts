@@ -87,7 +87,7 @@ const defaultBusinessData: BusinessData = {
 const fetchBusinessData = async (businessSlug?: string): Promise<BusinessData> => {
     try {
         // Si hay un slug, lo usamos en la URL, sino usamos el endpoint genérico
-        const endpoint = businessSlug ? `/business/${businessSlug}` : '/business';
+        const endpoint = businessSlug ? `/businesses/slug/${businessSlug}` : '/businesses';
         const response = await api.get(endpoint);
         return response.data;
     } catch (error) {
