@@ -783,7 +783,7 @@ const BusinessDashboard = () => {
                     </TabsContent>
 
                     <TabsContent value="settings">
-                        <BusinessSettings />
+                        \u003cBusinessSettings businessId={businessId!} /\u003e
                     </TabsContent>
                 </Tabs>
             </div>
@@ -792,3 +792,4 @@ const BusinessDashboard = () => {
 };
 
 export default BusinessDashboard;
+

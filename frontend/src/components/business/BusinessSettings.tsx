@@ -57,7 +57,7 @@ const formSchema = z.object({
     }),
 });
 
-export function BusinessSettings() {
+export function BusinessSettings({ businessId }: { businessId: string }) {
     const { user } = useAuthContext();
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -80,9 +80,9 @@ export function BusinessSettings() {
 
     useEffect(() => {
         async function loadSettings() {
-            if (!user?.businessId) return;
+            if (!businessId) return;
             try {
-                const business = await getBusinessById(user.businessId);
+                const business = await getBusinessById(businessId);
                 form.reset({
                     businessName: business.businessName || business.name || "",
                     logoUrl: business.logoUrl || "",
@@ -113,13 +113,13 @@ export function BusinessSettings() {
             }
         }
         loadSettings();
-    }, [user?.businessId, form]);
+    }, [businessId, form]);
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
-        if (!user?.businessId) return;
+        if (!businessId) return;
         setIsSaving(true);
         try {
-            await updateBusinessSettings(user.businessId, values);
+            await updateBusinessSettings(businessId, values);
             toast.success("Configuración guardada");
         } catch (error) {
             toast.error("Error al guardar");
