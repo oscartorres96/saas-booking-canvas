@@ -25,6 +25,7 @@ const formSchema = z.object({
     primaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Color inválido").optional(),
     secondaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Color inválido").optional(),
     description: z.string().max(500, "Máximo 500 caracteres").optional(),
+    defaultServiceDuration: z.coerce.number().min(5, "Mínimo 5 minutos").default(30),
     businessHours: z.array(z.object({
         day: z.string(),
         isOpen: z.boolean(),
@@ -70,6 +71,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
             primaryColor: "#000000",
             secondaryColor: "#ffffff",
             description: "",
+            defaultServiceDuration: 30,
             businessHours: daysOfWeek.map(d => ({
                 day: d.key,
                 isOpen: true,
@@ -89,6 +91,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     primaryColor: business.settings?.primaryColor || "#000000",
                     secondaryColor: business.settings?.secondaryColor || "#ffffff",
                     description: business.settings?.description || "",
+                    defaultServiceDuration: business.settings?.defaultServiceDuration || 30,
                     businessHours: business.settings?.businessHours?.length
                         ? business.settings.businessHours.map((bh) => ({
                             day: bh.day,
@@ -176,6 +179,19 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                             <FormLabel>Descripción Corta</FormLabel>
                                             <FormControl>
                                                 <Textarea {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="defaultServiceDuration"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Duración por defecto de servicios (min)</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>

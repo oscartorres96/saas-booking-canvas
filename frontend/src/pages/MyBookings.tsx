@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { lookupBookings, cancelBookingPublic, type Booking } from "@/api/bookingsApi";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const lookupSchema = z.object({
     clientEmail: z.string().email({ message: "Correo inválido" }),
@@ -73,7 +74,7 @@ const MyBookings = () => {
                 return createdAt >= threeDaysAgo;
             });
             setBookings(filtered);
-        } catch (error: any) {
+        } catch (error: unknown) {
             setBookings([]);
             form.setError("accessCode", { message: "No encontramos reservas con esos datos" });
         } finally {
@@ -106,12 +107,15 @@ const MyBookings = () => {
 
     return (
         <div className="min-h-screen bg-slate-50/60 dark:bg-slate-950 transition-colors duration-300">
-            <div className="max-w-4xl mx-auto px-6 py-12 space-y-8">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-6 sm:space-y-8 relative">
+                <div className="absolute top-4 right-4 md:top-12 md:right-8">
+                    <ThemeToggle />
+                </div>
                 <div className="space-y-1">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
                         BookPro
                     </p>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Mis reservas</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-50">Mis reservas</h1>
                     <p className="text-muted-foreground">
                         Consulta tus citas con tu correo y el código de acceso que recibiste al reservar.
                     </p>
@@ -145,7 +149,7 @@ const MyBookings = () => {
                                         <FormItem className="md:col-span-1">
                                             <FormLabel>
                                                 Código de acceso{" "}
-                                                <span className="text-xs text-muted-foreground">(lo recibiste en el correo de confirmación)</span>
+                                                <span className="text-xs text-muted-foreground hidden sm:inline">(lo recibiste en el correo de confirmación)</span>
                                             </FormLabel>
                                             <FormControl>
                                                 <Input placeholder="Ej. 123456" {...field} className="dark:bg-slate-950" />
@@ -203,7 +207,7 @@ const MyBookings = () => {
                                     <Separator className="dark:bg-slate-800" />
                                     <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
                                         <p>Cliente: {booking.clientName}</p>
-                                        {booking.businessId && <p>ID Negocio: {booking.businessId}</p>}
+                                        {booking.businessId && <p className="break-all">ID Negocio: {booking.businessId}</p>}
                                         {booking.accessCode && <p>Código de acceso: {booking.accessCode}</p>}
                                         {booking.status === 'cancelled' && (
                                             <p className="text-xs text-muted-foreground">
@@ -211,7 +215,7 @@ const MyBookings = () => {
                                             </p>
                                         )}
                                     </div>
-                                    <div className="pt-2 flex justify-end gap-2">
+                                    <div className="pt-2 flex flex-col sm:flex-row justify-end gap-2">
                                         {booking.status !== 'cancelled' && booking.status !== 'completed' && (
                                             <Button
                                                 variant="destructive"

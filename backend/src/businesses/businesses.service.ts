@@ -9,6 +9,8 @@ import { ServicesService } from '../services/services.service';
 import { BookingsService } from '../bookings/bookings.service';
 import { generateSlots } from '../utils/generateSlots';
 import { startOfDay, endOfDay } from 'date-fns';
+import { sendEmail } from '../utils/email';
+import { businessWelcomeTemplate } from '../utils/email-templates';
 
 interface AuthUser {
   userId: string;
@@ -59,6 +61,11 @@ export class BusinessesService {
       if (authUser.userId === business.ownerUserId) return;
       if (authUser.businessId && authUser.businessId.toString() === business.id.toString()) return;
     }
+    console.log('[DEBUG] assertAccess FAILED:', {
+      authUser,
+      businessId: business.id,
+      ownerUserId: business.ownerUserId
+    });
     throw new ForbiddenException('Not allowed');
   }
 
@@ -123,8 +130,26 @@ export class BusinessesService {
     // 5. Actualizar usuario asignándole el businessId
     if (!existingUser) {
       await this.usersService.update(ownerUserId, {
-        businessId, // <-- FIX
+        businessId,
       });
+    }
+
+    // 6. Enviar correo de bienvenida
+    try {
+      const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
+      await sendEmail({
+        to: businessEmail,
+        subject: '¡Bienvenido a BookPro! - Tus credenciales de acceso',
+        html: businessWelcomeTemplate({
+          ownerName: payload.ownerName ?? 'Administrador',
+          businessName: savedBusiness.businessName || savedBusiness.name || 'Negocio',
+          email: businessEmail,
+          password: existingUser ? null : plainPassword,
+          loginUrl: loginUrl
+        })
+      });
+    } catch (error) {
+      console.error('Error sending welcome email:', error);
     }
 
     return {
@@ -209,8 +234,10 @@ export class BusinessesService {
   }
 
   async updateSettings(id: string, settings: any, authUser: AuthUser) {
+    console.log(`[DEBUG] updateSettings called for ID: '${id}'`);
     const business = await this.businessModel.findById(id);
     if (!business) {
+      console.log(`[DEBUG] Business not found for ID: '${id}'`);
       throw new NotFoundException('Business not found');
     }
     this.assertAccess(authUser, business);
@@ -218,6 +245,8 @@ export class BusinessesService {
     // Update root level fields if present in settings payload
     if (settings.businessName) business.businessName = settings.businessName;
     if (settings.logoUrl) business.logoUrl = settings.logoUrl;
+    if (settings.phone !== undefined) business.phone = settings.phone;
+    if (settings.address !== undefined) business.address = settings.address;
 
     // Update nested settings
     if (!business.settings) {

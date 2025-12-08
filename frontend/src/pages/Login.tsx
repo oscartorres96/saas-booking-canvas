@@ -51,9 +51,11 @@ const Login = () => {
       } else {
         navigate("/dashboard");
       }
-    } catch (error: any) {
-      const message = error?.response?.data?.message || "Credenciales inválidas.";
-      toast.error(message);
+    } catch (error: unknown) {
+      const message = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      toast.error(message || "Credenciales inválidas.");
     } finally {
       setIsLoading(false);
     }

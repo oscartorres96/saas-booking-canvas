@@ -52,6 +52,7 @@ export class Business {
       primaryColor: String,
       secondaryColor: String,
       description: String,
+      defaultServiceDuration: { type: Number, default: 30 },
       businessHours: [{
         day: String,
         startTime: String,

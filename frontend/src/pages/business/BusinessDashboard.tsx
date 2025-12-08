@@ -76,7 +76,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import useAuth from "@/auth/useAuth";
 import { getBusinessById, type Business } from "@/api/businessesApi";
 import { getServicesByBusiness, createService, updateService, deleteService, type Service } from "@/api/servicesApi";
-import { getBookingsByBusiness, type Booking } from "@/api/bookingsApi";
+import { getBookingsByBusiness, updateBooking, type Booking } from "@/api/bookingsApi";
 
 const serviceFormSchema = z.object({
     name: z.string().min(2, { message: "El nombre es requerido" }),
@@ -153,6 +153,16 @@ const BusinessDashboard = () => {
         }
     }, [user, businessId, navigate]);
 
+    useEffect(() => {
+        if (business?.settings?.defaultServiceDuration) {
+            const currentValues = serviceForm.getValues();
+            // Only update if it matches the hardcoded default (30) and name is empty, to avoid overwriting user input
+            if (currentValues.durationMinutes === 30 && currentValues.name === "") {
+                serviceForm.setValue("durationMinutes", business.settings.defaultServiceDuration);
+            }
+        }
+    }, [business, serviceForm]);
+
     const loadData = async () => {
         if (!businessId) return;
 
@@ -170,8 +180,11 @@ const BusinessDashboard = () => {
             // Fetch bookings
             const bookingsData = await getBookingsByBusiness(businessId);
             setBookings(bookingsData);
-        } catch (error: any) {
-            toast.error(error?.response?.data?.message || "Error al cargar datos");
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error && 'response' in error
+                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+                : undefined;
+            toast.error(errorMessage || "Error al cargar datos");
         } finally {
             setLoading(false);
         }
@@ -188,10 +201,20 @@ const BusinessDashboard = () => {
 
             setServices([newService, ...services]);
             setIsServiceDialogOpen(false);
-            serviceForm.reset();
+            serviceForm.reset({
+                name: "",
+                description: "",
+                durationMinutes: business?.settings?.defaultServiceDuration ?? 30,
+                price: 0,
+                active: true,
+                isOnline: false,
+            });
             toast.success("Servicio creado exitosamente");
-        } catch (error: any) {
-            toast.error(error?.response?.data?.message || "Error al crear servicio");
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error && 'response' in error
+                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+                : undefined;
+            toast.error(errorMessage || "Error al crear servicio");
         }
     };
 
@@ -215,8 +238,11 @@ const BusinessDashboard = () => {
             setServices(prev => prev.map(s => (s._id === updated._id ? updated : s)));
             setIsEditServiceDialogOpen(false);
             toast.success("Servicio actualizado");
-        } catch (error: any) {
-            toast.error(error?.response?.data?.message || "Error al actualizar servicio");
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error && 'response' in error
+                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+                : undefined;
+            toast.error(errorMessage || "Error al actualizar servicio");
         }
     };
 
@@ -231,11 +257,25 @@ const BusinessDashboard = () => {
             await deleteService(serviceToDelete._id);
             setServices(prev => prev.filter(s => s._id !== serviceToDelete._id));
             toast.success("Servicio eliminado");
-        } catch (error: any) {
-            toast.error(error?.response?.data?.message || "Error al eliminar servicio");
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error && 'response' in error
+                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+                : undefined;
+            toast.error(errorMessage || "Error al eliminar servicio");
         } finally {
             setIsDeleteServiceDialogOpen(false);
             setServiceToDelete(null);
+        }
+    };
+
+    const onUpdateBookingStatus = async (bookingId: string, newStatus: 'confirmed' | 'completed' | 'cancelled') => {
+        try {
+            await updateBooking(bookingId, { status: newStatus });
+            setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, status: newStatus } : b));
+            toast.success(`Cita marcada como ${getStatusLabel(newStatus).toLowerCase()}`);
+        } catch (error) {
+            toast.error("Error al actualizar el estado de la cita");
+            console.error(error);
         }
     };
 
@@ -764,10 +804,31 @@ const BusinessDashboard = () => {
                                                                     <DropdownMenuContent align="end">
                                                                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                                                                         <DropdownMenuItem>Ver detalles</DropdownMenuItem>
-                                                                        <DropdownMenuItem>Editar cita</DropdownMenuItem>
                                                                         <DropdownMenuSeparator />
-                                                                        <DropdownMenuItem className="text-green-600">Confirmar</DropdownMenuItem>
-                                                                        <DropdownMenuItem className="text-red-600">Cancelar</DropdownMenuItem>
+                                                                        {booking.status === 'pending' && (
+                                                                            <DropdownMenuItem
+                                                                                className="text-green-600"
+                                                                                onClick={() => onUpdateBookingStatus(booking._id, 'confirmed')}
+                                                                            >
+                                                                                Confirmar
+                                                                            </DropdownMenuItem>
+                                                                        )}
+                                                                        {booking.status !== 'completed' && booking.status !== 'cancelled' && (
+                                                                            <DropdownMenuItem
+                                                                                className="text-blue-600"
+                                                                                onClick={() => onUpdateBookingStatus(booking._id, 'completed')}
+                                                                            >
+                                                                                Marcar como Completada
+                                                                            </DropdownMenuItem>
+                                                                        )}
+                                                                        {booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                                                                            <DropdownMenuItem
+                                                                                className="text-red-600"
+                                                                                onClick={() => onUpdateBookingStatus(booking._id, 'cancelled')}
+                                                                            >
+                                                                                Cancelar
+                                                                            </DropdownMenuItem>
+                                                                        )}
                                                                     </DropdownMenuContent>
                                                                 </DropdownMenu>
                                                             </TableCell>

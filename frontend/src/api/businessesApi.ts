@@ -14,11 +14,14 @@ export interface Business {
   address?: string;
   subscriptionStatus?: string;
   createdAt?: string;
+  onboardingStep?: number;
+  isOnboardingCompleted?: boolean;
   metadata?: Record<string, unknown>;
   settings?: {
     primaryColor?: string;
     secondaryColor?: string;
     description?: string;
+    defaultServiceDuration?: number;
     businessHours?: Array<{
       day: string;
       isOpen: boolean;

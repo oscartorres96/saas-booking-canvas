@@ -102,6 +102,12 @@ export const generateSlots = (
         const end = parse(`${dateString} ${interval.endTime}`, 'yyyy-MM-dd HH:mm', new Date());
 
         while (isBefore(current, end)) {
+            // Filter out slots in the past
+            if (isBefore(current, new Date())) {
+                current = addMinutes(current, serviceDurationMinutes);
+                continue;
+            }
+
             const slotEnd = addMinutes(current, serviceDurationMinutes);
 
             if (isBefore(slotEnd, end) || slotEnd.getTime() === end.getTime()) {

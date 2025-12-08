@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { getAllBusinesses, type Business } from "@/api/businessesApi";
 import { toast } from "sonner";
 
@@ -34,8 +35,11 @@ const Home = () => {
         setLoading(true);
         const list = await getAllBusinesses();
         setBusinesses(list);
-      } catch (err: any) {
-        toast.error(err?.response?.data?.message || "No se pudieron cargar los negocios");
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined;
+        toast.error(errorMessage || "No se pudieron cargar los negocios");
       } finally {
         setLoading(false);
       }
@@ -102,7 +106,10 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="max-w-5xl mx-auto px-6 py-16 space-y-10">
+      <div className="max-w-5xl mx-auto px-6 py-16 space-y-10 relative">
+        <div className="absolute top-4 right-4 md:top-8 md:right-8">
+          <ThemeToggle />
+        </div>
         <div className="text-center space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             BookPro

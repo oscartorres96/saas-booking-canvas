@@ -70,10 +70,8 @@ const baseStyles = `
   }
 
   .detail-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 12px 0;
+    display: block;
+    padding: 16px 0;
     border-bottom: 1px solid #e5e7eb;
     font-size: 15px;
   }
@@ -88,14 +86,16 @@ const baseStyles = `
   }
   
   .detail-label {
+    display: block;
     font-weight: 500;
     color: #6b7280;
+    margin-bottom: 6px;
   }
 
   .detail-value {
+    display: block;
     color: #111827;
     font-weight: 600;
-    text-align: right;
   }
 
   .detail-notes {
@@ -138,6 +138,16 @@ const baseStyles = `
     margin: 4px 0;
     color: #6b7280;
     font-size: 13px;
+  }
+  
+  .email-logo {
+    text-align: center;
+    margin: 0 0 32px 0;
+  }
+  
+  .email-logo img {
+    max-width: 180px;
+    height: auto;
   }
   
   .access-code {
@@ -283,6 +293,7 @@ interface BookingEmailData {
   businessPhone?: string;
   clientEmail?: string;
   clientPhone?: string;
+  showReminder?: boolean;
 }
 
 export const clientBookingConfirmationTemplate = (data: BookingEmailData): string => {
@@ -339,9 +350,11 @@ export const clientBookingConfirmationTemplate = (data: BookingEmailData): strin
       </div>
       ` : ''}
 
+      ${data.showReminder === false ? '' : `
       <div class="alert alert-info">
         Te enviaremos un recordatorio 24 horas antes de tu cita.
       </div>
+      `}
 
       ${(data.businessPhone || data.businessEmail) ? `
       <p style="margin-top: 24px; font-size: 14px;">
@@ -555,6 +568,145 @@ export const appointmentReminderTemplate = (data: BookingEmailData): string => {
       <p style="margin-top: 8px;">
         Este es un correo automático, por favor no responder.
       </p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+};
+
+interface WelcomeEmailData {
+  ownerName: string;
+  businessName: string;
+  email: string;
+  password?: string | null;
+  loginUrl: string;
+}
+
+export const businessWelcomeTemplate = (data: WelcomeEmailData): string => {
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <style>${baseStyles}</style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>¡Bienvenido a BookPro!</h1>
+    </div>
+    <div class="email-body">
+      <div class="email-logo">
+        <svg width="180" height="60" viewBox="0 0 180 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="10" width="40" height="40" rx="8" fill="url(#gradient)" />
+          <path d="M20 25h20M20 30h20M20 35h15" stroke="white" stroke-width="2" stroke-linecap="round" />
+          <text x="60" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="700" fill="#1e1b4b">BookPro</text>
+          <defs>
+            <linearGradient id="gradient" x1="10" y1="10" x2="50" y2="50" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#4338ca" />
+              <stop offset="1" stop-color="#1e1b4b" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <h2>Hola ${data.ownerName},</h2>
+      <p>Tu cuenta para administrar <strong>${data.businessName}</strong> ha sido creada exitosamente.</p>
+      
+      <p>A continuación te compartimos tus credenciales de acceso. Por favor, guárdalas en un lugar seguro.</p>
+
+      <div class="booking-details">
+        <div class="detail-row">
+          <span class="detail-label">Portal de acceso</span>
+          <span class="detail-value"><a href="${data.loginUrl}" style="color: #4338ca;">Iniciar Sesión</a></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Usuario / Email</span>
+          <span class="detail-value">${data.email}</span>
+        </div>
+        ${data.password ? `
+        <div class="detail-row">
+          <span class="detail-label">Contraseña temporal</span>
+          <span class="detail-value">${data.password}</span>
+        </div>
+        ` : ''}
+      </div>
+
+      <div class="alert alert-info">
+        Te recomendamos cambiar tu contraseña una vez que ingreses al sistema.
+      </div>
+
+      <div style="text-align: center;">
+        <a href="${data.loginUrl}" class="button" style="color: #ffffff;">Ir a mi panel</a>
+      </div>
+
+      <p style="font-size: 14px;">
+        Si tienes problemas para acceder, no dudes en contactar al administrador del sistema.
+      </p>
+    </div>
+    <div class="email-footer">
+      <p>Bienvenido a la familia BookPro</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+};
+
+export const clientBookingCompletedTemplate = (data: BookingEmailData): string => {
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <style>${baseStyles}</style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>¡Gracias por tu visita!</h1>
+    </div>
+    <div class="email-body">
+      <h2>Hola ${data.clientName},</h2>
+      <p>Esperamos que hayas disfrutado tu servicio en <strong>${data.businessName}</strong>.</p>
+      
+      <p>Tu cita ha sido marcada como completada.</p>
+
+      <div class="booking-details">
+        <div class="detail-row">
+          <span class="detail-label">Servicio realizado</span>
+          <span class="detail-value">${data.serviceName}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Fecha</span>
+          <span class="detail-value">${data.scheduledAt}</span>
+        </div>
+      </div>
+
+      <p style="margin-top: 24px;">
+        ¡Esperamos verte pronto de nuevo!
+      </p>
+
+      ${(data.businessPhone || data.businessEmail) ? `
+      <p style="margin-top: 24px; font-size: 14px;">
+        <strong>Contacto del negocio:</strong><br>
+        ${data.businessEmail ? `${data.businessEmail}<br>` : ''}
+        ${data.businessPhone ? `${data.businessPhone}` : ''}
+      </p>
+      ` : ''}
+
+       <div style="text-align: center; margin-top: 32px;">
+         <a href="${process.env.PUBLIC_BOOKINGS_URL || '#'}" class="button" style="color: #ffffff;">Reservar de nuevo</a>
+      </div>
+    </div>
+    <div class="email-footer">
+      <p>${data.businessName}</p>
     </div>
   </div>
 </body>

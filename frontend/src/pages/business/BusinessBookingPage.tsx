@@ -48,6 +48,7 @@ import { getServicesByBusiness, type Service } from "@/api/servicesApi";
 import { createBooking, getBookingsByClient, type Booking } from "@/api/bookingsApi";
 import { Badge } from "@/components/ui/badge";
 import { useSlots } from "@/hooks/useSlots";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const bookingFormSchema = z.object({
     serviceId: z.string().min(1, { message: "Selecciona un servicio" }),
@@ -110,8 +111,8 @@ const BusinessBookingPage = () => {
             setBusiness(businessData);
 
             const servicesData = await getServicesByBusiness(businessId);
-            // Solo mostrar servicios presenciales (no en l�nea) y activos
-            setServices(servicesData.filter(s => s.active !== false && !s.isOnline));
+            // Mostrar todos los servicios activos (incluidos los que son en linea)
+            setServices(servicesData.filter(s => s.active !== false));
 
             if (user?.userId) {
                 try {
@@ -174,7 +175,22 @@ const BusinessBookingPage = () => {
             });
             setSelectedService(null);
         } catch (error: any) {
-            toast.error(error?.response?.data?.message || "Error al crear reserva");
+            const errData = error?.response?.data;
+            if (errData?.code === "BOOKING_ALREADY_EXISTS") {
+                const params = new URLSearchParams({
+                    email: values.clientEmail,
+                    ...(errData.accessCode ? { code: errData.accessCode } : {}),
+                    ...(businessId ? { businessId } : {}),
+                });
+                toast.error("Ya tienes una cita para ese dia. Consulta tus reservas para cancelarla o reagendar.", {
+                    action: {
+                        label: "Ir a Mis reservas",
+                        onClick: () => navigate(`/my-bookings?${params.toString()}`),
+                    },
+                });
+                return;
+            }
+            toast.error(errData?.message || "Error al crear reserva");
         }
     };
 
@@ -260,7 +276,7 @@ const BusinessBookingPage = () => {
     return (
         <div className="min-h-screen bg-background">
             <div className="bg-card border-b border-border shadow-sm">
-                <div className="max-w-5xl mx-auto px-4 py-6">
+                <div className="max-w-5xl mx-auto px-4 py-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                             <Building2 className="h-6 w-6 text-primary" />
@@ -270,6 +286,7 @@ const BusinessBookingPage = () => {
                             <p className="text-sm text-muted-foreground">Reserva tu cita en línea</p>
                         </div>
                     </div>
+                    <ThemeToggle />
                 </div>
             </div>
 
@@ -587,3 +604,5 @@ const BusinessBookingPage = () => {
 };
 
 export default BusinessBookingPage;
+
+

@@ -1,6 +1,7 @@
 import { Calendar, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface HeaderProps {
   logoUrl?: string;
@@ -42,32 +43,38 @@ export const Header = ({
             </div>
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
-            <a href="#servicios" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200">
-              Servicios
-            </a>
-            <a href="#reservar" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200">
-              Reservar
-            </a>
-            <a href="#contacto" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200">
-              Contacto
-            </a>
-          </nav>
+          <div className="flex items-center gap-4">
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-8">
+              <a href="#servicios" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200">
+                Servicios
+              </a>
+              <a href="#reservar" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200">
+                Reservar
+              </a>
+              <a href="#contacto" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200">
+                Contacto
+              </a>
+            </nav>
 
-          {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden"
-            onClick={toggleMenu}
-          >
-            {isMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
-          </Button>
+
+
+            <ThemeToggle />
+
+            {/* Mobile Menu Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={toggleMenu}
+            >
+              {isMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 

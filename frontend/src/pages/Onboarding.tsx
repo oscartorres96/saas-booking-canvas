@@ -14,6 +14,9 @@ import { useToast } from '@/components/ui/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Check, ChevronRight, ChevronLeft, Clock, Store, Scissors, Rocket, Loader2 } from 'lucide-react';
 import { BusinessHoursForm, daysOfWeek } from '@/components/business/BusinessHoursForm';
+import { ThemeToggle } from "@/components/ThemeToggle";
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 
 const STEPS = [
     { id: 1, title: 'Información Básica', icon: Store },
@@ -154,6 +157,8 @@ export default function Onboarding() {
                 await updateBusinessSettings(user.businessId, {
                     businessName: values.businessName,
                     description: values.description,
+                    phone: values.phone,
+                    address: values.address,
                 });
             } else if (currentStep === 2) {
                 const isValid = await formHours.trigger();
@@ -231,12 +236,15 @@ export default function Onboarding() {
     const progress = (currentStep / STEPS.length) * 100;
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center pt-10 px-4">
+        <div className="min-h-screen bg-gray-50 dark:bg-slate-950 flex flex-col items-center pt-10 px-4 relative">
+            <div className="absolute top-4 right-4">
+                <ThemeToggle />
+            </div>
             <div className="w-full max-w-3xl mb-8">
                 <div className="flex justify-between mb-2">
                     {STEPS.map((step) => (
-                        <div key={step.id} className={`flex flex-col items-center ${step.id <= currentStep ? 'text-primary' : 'text-gray-400'}`}>
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 border-2 ${step.id <= currentStep ? 'border-primary bg-primary/10' : 'border-gray-300 bg-white'}`}>
+                        <div key={step.id} className={`flex flex-col items-center ${step.id <= currentStep ? 'text-primary' : 'text-gray-400 dark:text-gray-600'}`}>
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 border-2 ${step.id <= currentStep ? 'border-primary bg-primary/10' : 'border-gray-300 bg-white dark:border-slate-800 dark:bg-slate-900'}`}>
                                 <step.icon className="w-5 h-5" />
                             </div>
                             <span className="text-xs font-medium hidden sm:block">{step.title}</span>
@@ -288,7 +296,19 @@ export default function Onboarding() {
                                         <FormItem>
                                             <FormLabel>Teléfono</FormLabel>
                                             <FormControl>
-                                                <Input {...field} placeholder="+52 55 1234 5678" />
+                                                <PhoneInput
+                                                    country="mx"
+                                                    enableSearch
+                                                    countryCodeEditable={false}
+                                                    value={field.value}
+                                                    onChange={(phone) => field.onChange(phone)}
+                                                    placeholder="+52 55 1234 5678"
+                                                    containerClass="w-full"
+                                                    inputClass="!w-full !h-10 !text-base !bg-background !border !border-input !rounded-md !pl-14 !text-foreground focus:!ring-2 focus:!ring-ring focus:!ring-offset-2"
+                                                    buttonClass="!h-10 !bg-background !border !border-input !rounded-l-md !px-3"
+                                                    dropdownClass="!bg-popover !text-foreground !shadow-lg !border !rounded-md"
+                                                    inputStyle={{ paddingLeft: "3.5rem" }}
+                                                />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -314,7 +334,7 @@ export default function Onboarding() {
                     {currentStep === 2 && (
                         <Form {...formHours}>
                             <div className="space-y-4">
-                                <p className="text-sm text-gray-500 mb-4">Define tus horarios de apertura. Desmarca los días que cierras.</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Define tus horarios de apertura. Desmarca los días que cierras.</p>
                                 <BusinessHoursForm form={formHours} />
                             </div>
                         </Form>
@@ -323,8 +343,8 @@ export default function Onboarding() {
                     {currentStep === 3 && (
                         <Form {...formService}>
                             <div className="space-y-4">
-                                <div className="bg-blue-50 p-4 rounded-md mb-4">
-                                    <p className="text-sm text-blue-700">Agrega tu primer servicio para que los clientes puedan reservar.</p>
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-md mb-4">
+                                    <p className="text-sm text-blue-700 dark:text-blue-300">Agrega tu primer servicio para que los clientes puedan reservar.</p>
                                 </div>
                                 <FormField
                                     control={formService.control}
@@ -339,7 +359,7 @@ export default function Onboarding() {
                                         </FormItem>
                                     )}
                                 />
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <FormField
                                         control={formService.control}
                                         name="durationMinutes"
@@ -360,7 +380,19 @@ export default function Onboarding() {
                                             <FormItem>
                                                 <FormLabel>Precio ($)</FormLabel>
                                                 <FormControl>
-                                                    <Input type="number" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+                                                    <Input
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        {...field}
+                                                        value={field.value === 0 ? '' : field.value}
+                                                        onChange={(e) => {
+                                                            const value = e.target.value;
+                                                            // Solo permitir números
+                                                            if (value === '' || /^\d+$/.test(value)) {
+                                                                field.onChange(value === '' ? 0 : Number(value));
+                                                            }
+                                                        }}
+                                                    />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -382,7 +414,7 @@ export default function Onboarding() {
                                             </FormControl>
                                             <div>
                                                 <FormLabel>Servicio en línea</FormLabel>
-                                                <p className="text-xs text-gray-500">Desmarca para que sea solo presencial.</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">Desmarca para que sea solo presencial.</p>
                                             </div>
                                         </FormItem>
                                     )}
@@ -393,16 +425,16 @@ export default function Onboarding() {
 
                     {currentStep === 4 && (
                         <div className="text-center py-8 space-y-4">
-                            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Rocket className="w-10 h-10 text-green-600" />
+                            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Rocket className="w-10 h-10 text-green-600 dark:text-green-400" />
                             </div>
-                            <h3 className="text-2xl font-bold text-gray-900">¡Todo listo!</h3>
-                            <p className="text-gray-500 max-w-md mx-auto">
+                            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">¡Todo listo!</h3>
+                            <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
                                 Has configurado la información básica de tu negocio. Ahora puedes acceder a tu panel de administración y empezar a recibir reservas.
                             </p>
-                            <div className="bg-gray-50 p-4 rounded-lg text-left max-w-sm mx-auto mt-6">
+                            <div className="bg-gray-50 dark:bg-slate-900 p-4 rounded-lg text-left max-w-sm mx-auto mt-6">
                                 <h4 className="font-semibold mb-2">Resumen:</h4>
-                                <ul className="space-y-1 text-sm text-gray-600">
+                                <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-300">
                                     <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Información del negocio</li>
                                     <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Horarios configurados</li>
                                     <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Servicios creados</li>

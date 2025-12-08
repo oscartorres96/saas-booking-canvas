@@ -55,7 +55,9 @@ import {
   Calendar,
   Filter,
   Eye,
-  ExternalLink
+  ExternalLink,
+  CheckCircle,
+  Copy
 } from "lucide-react";
 
 import {
@@ -102,6 +104,9 @@ const AdminDashboard = () => {
   const [showEditModal, setShowEditModal] = useState(false);
 
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successCredentials, setSuccessCredentials] = useState<{ email: string; password?: string; loginUrl: string } | null>(null);
 
   // ---------- FORMULARIO (CREAR) ----------
   // Captura los datos necesarios para crear un negocio y su administrador.  
@@ -233,15 +238,15 @@ const AdminDashboard = () => {
       // Backend crea usuario + contraseña temporal + asigna businessId
       const response = await createBusiness(payload);
 
-      toast.success(
-        `Negocio creado exitosamente 🎉
-
-            Administrador: ${response.credentials.email}
-            Contraseña: ${response.credentials.password ?? "ya existente"}`,
-        { duration: 6000 }
-      );
-
       setBusinesses(prev => [response.business, ...prev]);
+
+      // Mostrar diálogo de éxito
+      setSuccessCredentials({
+        email: response.credentials.email,
+        password: response.credentials.password || undefined,
+        loginUrl: `${window.location.origin}/login`
+      });
+      setShowSuccessDialog(true);
 
       // Reset
       setShowCreateModal(false);
@@ -685,7 +690,118 @@ const AdminDashboard = () => {
         </Card>
       </div>
 
-      {/* Modal de edición */}
+      {/* Modal de Éxito / Bienvenida */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="items-center text-center">
+            <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+            </div>
+            <DialogTitle className="text-xl">¡Negocio Creado Exitosamente!</DialogTitle>
+            <DialogDescription className="text-center pt-2">
+              Se ha enviado un correo de bienvenida al administrador.
+              <br />
+              Aquí tienes las credenciales de acceso:
+            </DialogDescription>
+          </DialogHeader>
+
+          {successCredentials && (
+            <div className="space-y-4 py-4">
+              <div className="rounded-lg border bg-slate-50 dark:bg-slate-900 p-4 space-y-3">
+                <div className="space-y-1">
+                  <span className="text-xs font-medium text-muted-foreground uppercase">Portal de Acceso</span>
+                  <div className="flex items-center justify-between gap-2 p-2 bg-background rounded border">
+                    <code className="text-sm truncate">{successCredentials.loginUrl}</code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => {
+                        navigator.clipboard.writeText(successCredentials.loginUrl);
+                        toast.success("URL copiada");
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-medium text-muted-foreground uppercase">Email</span>
+                  <div className="flex items-center justify-between gap-2 p-2 bg-background rounded border">
+                    <code className="text-sm font-semibold">{successCredentials.email}</code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => {
+                        navigator.clipboard.writeText(successCredentials.email);
+                        toast.success("Email copiado");
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                {successCredentials.password && (
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase">Contraseña Temporal</span>
+                    <div className="flex items-center justify-between gap-2 p-2 bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-900/30 rounded border">
+                      <code className="text-sm font-bold text-yellow-700 dark:text-yellow-500">
+                        {successCredentials.password}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => {
+                          navigator.clipboard.writeText(successCredentials.password || "");
+                          toast.success("Contraseña copiada");
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Esta contraseña es temporal. Se recomienda cambiarla al ingresar.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => {
+                    const text = `¡Bienvenido a BookPro!
+                    
+Accede a tu panel de administración aquí:
+${successCredentials.loginUrl}
+
+Tus credenciales:
+Usuario: ${successCredentials.email}
+Contraseña: ${successCredentials.password || "(Tu contraseña actual)"}
+`;
+                    navigator.clipboard.writeText(text);
+                    toast.success("Mensaje de invitación copiado");
+                  }}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copiar mensaje de invitación
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="sm:justify-center">
+            <Button variant="secondary" onClick={() => setShowSuccessDialog(false)} className="w-full sm:w-auto min-w-[100px]">
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={showEditModal}
         onOpenChange={(open) => {
