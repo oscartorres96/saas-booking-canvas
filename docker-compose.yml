@@ -1,27 +1,33 @@
-version: '3.9'
+version: "3.9"
 
 services:
   backend:
-    build: ./backend
-    container_name: bookpro-backend
+    build:
+      context: ./backend
+    env_file:
+      - ./backend/.env
     environment:
-      MONGODB_URI: ${MONGODB_URI}
-      JWT_SECRET: ${JWT_SECRET:-change-me}
+      NODE_ENV: production
       PORT: 3000
+      # Ajusta ALLOWED_ORIGINS según tus dominios
+      ALLOWED_ORIGINS: "http://localhost:5173"
     ports:
-      - '3000:3000'
-    restart: unless-stopped
+      - "3000:3000"
+    networks:
+      - appnet
 
   frontend:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
-    container_name: bookpro-frontend
-    environment:
-      - VITE_API_URL=${VITE_API_URL:-http://localhost:3000/api}
+        VITE_API_URL: http://localhost:3000/api
     ports:
-      - '5173:80'
+      - "4173:80"
     depends_on:
       - backend
-    restart: unless-stopped
+    networks:
+      - appnet
+
+networks:
+  appnet:
+    driver: bridge

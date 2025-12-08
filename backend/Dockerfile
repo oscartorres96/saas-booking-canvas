@@ -1,20 +1,20 @@
-FROM node:20-alpine AS builder
-WORKDIR /app
+FROM node:20-slim AS base
+WORKDIR /usr/src/app
 
+# Instalar dependencias (sin dev)
 COPY package*.json ./
-RUN npm install
+RUN npm ci --omit=dev
 
-COPY tsconfig*.json nest-cli.json ./
-COPY src ./src
+# Copiar resto del código
+COPY . .
+
+# Build de NestJS
 RUN npm run build
 
-FROM node:20-alpine
-WORKDIR /app
+# Permisos de ejecución para el entrypoint
+RUN chmod +x start.sh
 
-COPY --from=builder /app/package*.json ./
-RUN npm install --omit=dev
-
-COPY --from=builder /app/dist ./dist
-
+ENV NODE_ENV=production
 EXPOSE 3000
-CMD ["node", "dist/main.js"]
+
+CMD ["./start.sh"]

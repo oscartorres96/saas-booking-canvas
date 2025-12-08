@@ -71,3 +71,24 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+## Deployment with Docker on Render
+
+### Backend (NestJS)
+- Build: `docker build -t bookpro-backend ./backend`
+- Run local: `docker run --env-file backend/.env -p 3000:3000 bookpro-backend`
+- Render Web Service (Dockerfile):
+  - Exposed port: `3000`
+  - Env vars:
+    - `MONGODB_URI`
+    - `JWT_SECRET`
+    - `ALLOWED_ORIGINS="http://localhost:5173,https://bookpro.mx,https://admin.bookpro.mx,https://api.bookpro.mx"`
+    - `PORT=3000`
+    - `NODE_ENV=production`
+
+### Frontend (Vite)
+- Build: `docker build -t bookpro-frontend ./frontend`
+- Run local: `docker run -p 4173:80 -e VITE_API_URL=http://localhost:3000/api bookpro-frontend`
+- Render Web Service (Dockerfile) o Static Site (subiendo `/dist`):
+  - Env var: `VITE_API_URL=https://api.bookpro.mx/api`
+  - Exposed port (si Docker): `80`

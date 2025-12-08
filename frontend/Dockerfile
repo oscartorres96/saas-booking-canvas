@@ -1,21 +1,20 @@
-FROM node:20-alpine AS builder
+FROM node:20 AS builder
 WORKDIR /app
 
 ARG VITE_API_URL=http://localhost:3000/api
 ENV VITE_API_URL=${VITE_API_URL}
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
-COPY tsconfig*.json vite.config.js tailwind.config.js postcss.config.js ./
-COPY public ./public
-COPY src ./src
-COPY index.html .
-
+COPY . .
 RUN npm run build
 
-FROM nginx:1.27-alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
+FROM nginx:1.27-alpine AS runtime
+WORKDIR /usr/share/nginx/html
+
+COPY --from=builder /app/dist ./
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
