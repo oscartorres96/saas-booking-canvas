@@ -54,7 +54,10 @@ import {
   Activity,
   Calendar,
   Filter,
-  Eye
+  Eye,
+  ExternalLink,
+  CheckCircle,
+  Copy
 } from "lucide-react";
 
 import {
@@ -82,6 +85,7 @@ import {
 } from "@/api/usersApi";
 
 import { getBookingsByBusiness } from "@/api/bookingsApi";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // -------------------------------------------------------------------
 //                          COMPONENTE PRINCIPAL
@@ -100,6 +104,9 @@ const AdminDashboard = () => {
   const [showEditModal, setShowEditModal] = useState(false);
 
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successCredentials, setSuccessCredentials] = useState<{ email: string; password?: string; loginUrl: string } | null>(null);
 
   // ---------- FORMULARIO (CREAR) ----------
   // Captura los datos necesarios para crear un negocio y su administrador.  
@@ -125,6 +132,7 @@ const AdminDashboard = () => {
     ownerName: "",
     website: "",
     description: "",
+    subscriptionStatus: "trial",
   });
 
   // Datos del usuario administrador en modo edición
@@ -163,7 +171,7 @@ const AdminDashboard = () => {
       try {
         const usersData = await getAllUsers();
         usersCount = usersData.length;
-      } catch {}
+      } catch { }
 
       let bookingsCount = 0;
       try {
@@ -172,7 +180,7 @@ const AdminDashboard = () => {
         );
         const allBookings = await Promise.all(bookingPromises);
         bookingsCount = allBookings.reduce((acc, curr) => acc + curr.length, 0);
-      } catch {}
+      } catch { }
 
       setStats({
         totalBusinesses: businessesData.length,
@@ -198,51 +206,51 @@ const AdminDashboard = () => {
 
   const handleCreateBusiness = async () => {
     if (!formData.name.trim()) {
-        toast.error("El nombre del negocio es obligatorio");
-        return;
+      toast.error("El nombre del negocio es obligatorio");
+      return;
     }
 
     if (!formData.ownerName.trim() || !formData.ownerEmail.trim()) {
-        toast.error("Email y nombre del administrador son obligatorios");
-        return;
+      toast.error("Email y nombre del administrador son obligatorios");
+      return;
     }
 
     try {
-        setCreating(true);
+      setCreating(true);
 
-        // --- 100% CORRECTO PARA TU BACKEND ---
-        const payload = {
-            name: formData.name.trim(),
-            businessName: formData.name.trim(),
-            type: formData.type,
-            email: formData.ownerEmail.trim(),
-            ownerPassword: formData.ownerPassword.trim(),
-            phone: formData.phone || undefined,
-            address: formData.address || undefined,
-            ownerName: formData.ownerName.trim(),
-            metadata: {
-                website: formData.website || undefined,
-                description: formData.description || undefined,
-            },
-            subscriptionStatus: "trial",
-        };
+      // --- 100% CORRECTO PARA TU BACKEND ---
+      const payload = {
+        name: formData.name.trim(),
+        businessName: formData.name.trim(),
+        type: formData.type,
+        email: formData.ownerEmail.trim(),
+        ownerPassword: formData.ownerPassword.trim(),
+        phone: formData.phone || undefined,
+        address: formData.address || undefined,
+        ownerName: formData.ownerName.trim(),
+        metadata: {
+          website: formData.website || undefined,
+          description: formData.description || undefined,
+        },
+        subscriptionStatus: "trial",
+      };
 
-        // Backend crea usuario + contraseña temporal + asigna businessId
-        const response = await createBusiness(payload);
+      // Backend crea usuario + contraseña temporal + asigna businessId
+      const response = await createBusiness(payload);
 
-        toast.success(
-            `Negocio creado exitosamente 🎉
+      setBusinesses(prev => [response.business, ...prev]);
 
-            Administrador: ${response.credentials.email}
-            Contraseña: ${response.credentials.password ?? "ya existente"}`,
-            { duration: 6000 }
-        );
+      // Mostrar diálogo de éxito
+      setSuccessCredentials({
+        email: response.credentials.email,
+        password: response.credentials.password || undefined,
+        loginUrl: `${window.location.origin}/login`
+      });
+      setShowSuccessDialog(true);
 
-        setBusinesses(prev => [response.business, ...prev]);
-
-        // Reset
-        setShowCreateModal(false);
-        setFormData({
+      // Reset
+      setShowCreateModal(false);
+      setFormData({
         name: "",
         type: "other",
         phone: "",
@@ -252,12 +260,12 @@ const AdminDashboard = () => {
         ownerPassword: "", // <-- ya no se usa, pero lo dejamos vacío en caso de UI
         website: "",
         description: "",
-        });
+      });
 
     } catch (error: any) {
-        toast.error(error?.response?.data?.message || "No se pudo crear el negocio");
+      toast.error(error?.response?.data?.message || "No se pudo crear el negocio");
     } finally {
-        setCreating(false);
+      setCreating(false);
     }
   };
 
@@ -277,6 +285,7 @@ const AdminDashboard = () => {
       ownerName: business.ownerName || "",
       website: (business.metadata as any)?.website || "",
       description: (business.metadata as any)?.description || "",
+      subscriptionStatus: business.subscriptionStatus || "trial",
     });
 
     // Cargar datos del usuario administrador
@@ -285,7 +294,7 @@ const AdminDashboard = () => {
         const u = await getUserById(business.ownerUserId);
         setEditOwnerEmail(u.email);
         setEditOwnerName(u.name);
-      } catch {}
+      } catch { }
     }
 
     setEditOwnerPassword("");
@@ -305,6 +314,7 @@ const AdminDashboard = () => {
         address: editFormData.address,
         ownerName: editOwnerName.trim(),
         ownerPassword: editOwnerPassword.trim() || undefined,
+        subscriptionStatus: editFormData.subscriptionStatus,
         metadata: {
           website: editFormData.website,
           description: editFormData.description,
@@ -328,10 +338,10 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50/50">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50/50 dark:bg-black">
         <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-slate-200"></div>
-          <div className="h-4 w-48 bg-slate-200 rounded"></div>
+          <div className="h-12 w-12 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+          <div className="h-4 w-48 bg-slate-200 dark:bg-slate-700 rounded"></div>
         </div>
       </div>
     );
@@ -341,10 +351,10 @@ const AdminDashboard = () => {
   const getStatusColor = (status?: string) => {
     const normalized = status ?? "trial";
     switch (normalized) {
-      case "active": return "bg-green-100 text-green-800 hover:bg-green-100";
-      case "inactive": return "bg-slate-100 text-slate-800 hover:bg-slate-100";
-      case "trial": return "bg-blue-100 text-blue-800 hover:bg-blue-100";
-      default: return "bg-gray-100 text-gray-800";
+      case "active": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40";
+      case "inactive": return "bg-slate-100 text-slate-800 dark:bg-slate-800/50 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70";
+      case "trial": return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40";
+      default: return "bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-300";
     }
   };
 
@@ -373,16 +383,17 @@ const AdminDashboard = () => {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50/50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-slate-50/50 dark:bg-black p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
 
         {/* Encabezado principal */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Panel de Administración</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Panel de Administración</h1>
             <p className="text-sm text-muted-foreground">Gestiona los negocios registrados y monitorea su actividad.</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <ThemeToggle />
             <Button variant="outline" onClick={logout} className="w-full sm:w-auto">
               Cerrar Sesión
             </Button>
@@ -434,9 +445,10 @@ const AdminDashboard = () => {
                         onChange={(value) => handleFieldChange("phone", value)}
                         placeholder="+52 55 1234 5678"
                         containerClass="w-full"
-                        inputClass="!w-full !h-10 !text-base !bg-background !border !border-input !rounded-md !pl-12 focus:!ring-2 focus:!ring-ring focus:!ring-offset-2"
+                        inputClass="!w-full !h-10 !text-base !bg-background !border !border-input !rounded-md !pl-14 !text-foreground focus:!ring-2 focus:!ring-ring focus:!ring-offset-2"
                         buttonClass="!h-10 !bg-background !border !border-input !rounded-l-md !px-3"
                         dropdownClass="!bg-popover !text-foreground !shadow-lg !border !rounded-md"
+                        inputStyle={{ paddingLeft: "3.5rem" }}
                       />
                     </div>
                     <div className="space-y-1">
@@ -606,6 +618,16 @@ const AdminDashboard = () => {
                           <div className="flex flex-col">
                             <span className="font-semibold">{business.businessName || business.name}</span>
                             <span className="text-xs text-muted-foreground">{business.email || "N/A"}</span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Button
+                                variant="link"
+                                size="sm"
+                                className="px-0 h-auto text-primary"
+                                onClick={() => window.open(`/business/${business._id}/booking`, "_blank")}
+                              >
+                                Ver página de reservas
+                              </Button>
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -642,6 +664,10 @@ const AdminDashboard = () => {
                                 <Eye className="mr-2 h-4 w-4" />
                                 Ver dashboard
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => window.open(`/business/${business._id}/booking`, "_blank")}>
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                Ver página de reservas
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => openEditModal(business)}>
                                 Editar negocio
                               </DropdownMenuItem>
@@ -664,7 +690,118 @@ const AdminDashboard = () => {
         </Card>
       </div>
 
-      {/* Modal de edición */}
+      {/* Modal de Éxito / Bienvenida */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="items-center text-center">
+            <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+            </div>
+            <DialogTitle className="text-xl">¡Negocio Creado Exitosamente!</DialogTitle>
+            <DialogDescription className="text-center pt-2">
+              Se ha enviado un correo de bienvenida al administrador.
+              <br />
+              Aquí tienes las credenciales de acceso:
+            </DialogDescription>
+          </DialogHeader>
+
+          {successCredentials && (
+            <div className="space-y-4 py-4">
+              <div className="rounded-lg border bg-slate-50 dark:bg-slate-900 p-4 space-y-3">
+                <div className="space-y-1">
+                  <span className="text-xs font-medium text-muted-foreground uppercase">Portal de Acceso</span>
+                  <div className="flex items-center justify-between gap-2 p-2 bg-background rounded border">
+                    <code className="text-sm truncate">{successCredentials.loginUrl}</code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => {
+                        navigator.clipboard.writeText(successCredentials.loginUrl);
+                        toast.success("URL copiada");
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-medium text-muted-foreground uppercase">Email</span>
+                  <div className="flex items-center justify-between gap-2 p-2 bg-background rounded border">
+                    <code className="text-sm font-semibold">{successCredentials.email}</code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => {
+                        navigator.clipboard.writeText(successCredentials.email);
+                        toast.success("Email copiado");
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+
+                {successCredentials.password && (
+                  <div className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground uppercase">Contraseña Temporal</span>
+                    <div className="flex items-center justify-between gap-2 p-2 bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-900/30 rounded border">
+                      <code className="text-sm font-bold text-yellow-700 dark:text-yellow-500">
+                        {successCredentials.password}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => {
+                          navigator.clipboard.writeText(successCredentials.password || "");
+                          toast.success("Contraseña copiada");
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Esta contraseña es temporal. Se recomienda cambiarla al ingresar.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => {
+                    const text = `¡Bienvenido a BookPro!
+                    
+Accede a tu panel de administración aquí:
+${successCredentials.loginUrl}
+
+Tus credenciales:
+Usuario: ${successCredentials.email}
+Contraseña: ${successCredentials.password || "(Tu contraseña actual)"}
+`;
+                    navigator.clipboard.writeText(text);
+                    toast.success("Mensaje de invitación copiado");
+                  }}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copiar mensaje de invitación
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="sm:justify-center">
+            <Button variant="secondary" onClick={() => setShowSuccessDialog(false)} className="w-full sm:w-auto min-w-[100px]">
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog
         open={showEditModal}
         onOpenChange={(open) => {
@@ -716,6 +853,24 @@ const AdminDashboard = () => {
                 </Select>
               </div>
               <div className="space-y-1">
+                <Label>Estado</Label>
+                <Select
+                  value={editFormData.subscriptionStatus}
+                  onValueChange={(val) =>
+                    setEditFormData((prev) => ({ ...prev, subscriptionStatus: val }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Activo</SelectItem>
+                    <SelectItem value="trial">Prueba</SelectItem>
+                    <SelectItem value="inactive">Inactivo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
                 <Label>Teléfono</Label>
                 <PhoneInput
                   country="mx"
@@ -726,7 +881,10 @@ const AdminDashboard = () => {
                     setEditFormData((prev) => ({ ...prev, phone: value }))
                   }
                   containerClass="w-full"
-                  inputClass="!w-full !h-10 !text-base !bg-background !border !border-input !rounded-md !pl-12"
+                  inputClass="!w-full !h-10 !text-base !bg-background !border !border-input !rounded-md !pl-14 !text-foreground"
+                  buttonClass="!h-10 !bg-background !border !border-input !rounded-l-md !px-3"
+                  dropdownClass="!bg-popover !text-foreground !shadow-lg !border !rounded-md"
+                  inputStyle={{ paddingLeft: '3.5rem' }}
                 />
               </div>
               <div className="space-y-1">

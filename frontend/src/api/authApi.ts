@@ -4,6 +4,7 @@ export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
   user: Record<string, unknown>;
+  isOnboardingCompleted?: boolean;
 }
 
 export const login = async (email: string, password: string) => {

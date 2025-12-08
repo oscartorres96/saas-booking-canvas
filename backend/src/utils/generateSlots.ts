@@ -1,4 +1,5 @@
 import { addMinutes, format, isBefore, parse, startOfDay } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface Interval {
     startTime: string; // "HH:mm"
@@ -64,7 +65,8 @@ export const generateSlots = (
     businessHours: BusinessHour[],
     existingBookings: ExistingBooking[]
 ): string[] => {
-    const dayName = format(date, 'EEEE').toLowerCase();
+    // Use Spanish locale to match stored day names (e.g., "Lunes", "Martes")
+    const dayName = format(date, 'EEEE', { locale: es }).toLowerCase();
     console.log(`[generateSlots] Detecting day for date ${date}: "${dayName}"`);
 
     const todaySchedule = businessHours.find((h) => h.day.toLowerCase() === dayName);
@@ -100,6 +102,12 @@ export const generateSlots = (
         const end = parse(`${dateString} ${interval.endTime}`, 'yyyy-MM-dd HH:mm', new Date());
 
         while (isBefore(current, end)) {
+            // Filter out slots in the past
+            if (isBefore(current, new Date())) {
+                current = addMinutes(current, serviceDurationMinutes);
+                continue;
+            }
+
             const slotEnd = addMinutes(current, serviceDurationMinutes);
 
             if (isBefore(slotEnd, end) || slotEnd.getTime() === end.getTime()) {

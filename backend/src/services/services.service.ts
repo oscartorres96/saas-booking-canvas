@@ -10,6 +10,7 @@ export interface CreateServicePayload {
   durationMinutes: number;
   price: number;
   active?: boolean;
+  isOnline?: boolean;
   businessId?: string;
 }
 

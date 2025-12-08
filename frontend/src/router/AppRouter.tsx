@@ -8,6 +8,7 @@ import MyBookings from '../pages/MyBookings';
 import Login from '../pages/Login';
 import NotFound from '../pages/NotFound';
 import PrivateRoute from '../auth/PrivateRoute';
+import Onboarding from '../pages/Onboarding';
 
 const AppRouter = () => (
   <BrowserRouter>
@@ -17,6 +18,15 @@ const AppRouter = () => (
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Login />} />
       <Route path="/my-bookings" element={<MyBookings />} />
+
+      <Route
+        path="/onboarding"
+        element={
+          <PrivateRoute roles={['owner', 'business']}>
+            <Onboarding />
+          </PrivateRoute>
+        }
+      />
 
       {/* Admin Dashboard - Owner only */}
       <Route

@@ -8,6 +8,7 @@ export interface Service {
     durationMinutes: number;
     price: number;
     active?: boolean;
+    isOnline?: boolean;
     createdAt?: string;
 }
 

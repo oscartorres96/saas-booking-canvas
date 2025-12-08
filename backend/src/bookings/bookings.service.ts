@@ -1,9 +1,11 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { startOfDay, endOfDay } from 'date-fns';
 import { UserRole } from '../users/schemas/user.schema';
 import { Booking, BookingDocument, BookingStatus } from './schemas/booking.schema';
 import { NotificationService } from '../services/notification.service';
+import { Service, ServiceDocument } from '../services/schemas/service.schema';
 
 export interface CreateBookingPayload {
   clientName: string;
@@ -33,6 +35,7 @@ const generateAccessCode = () => Math.random().toString().slice(2, 8);
 export class BookingsService {
   constructor(
     @InjectModel(Booking.name) private readonly bookingModel: Model<BookingDocument>,
+    @InjectModel(Service.name) private readonly serviceModel: Model<ServiceDocument>,
     private readonly notificationService: NotificationService
   ) { }
 
@@ -64,6 +67,50 @@ export class BookingsService {
     if (!payload.accessCode) {
       payload.accessCode = generateAccessCode();
     }
+
+    // Evitar doble reserva el mismo dia para el mismo cliente
+    const sameDayFilter: any = {
+      businessId: payload.businessId,
+      scheduledAt: {
+        $gte: startOfDay(payload.scheduledAt),
+        $lte: endOfDay(payload.scheduledAt),
+      },
+      status: { $ne: BookingStatus.Cancelled },
+    };
+    const identityFilters = [];
+    if (payload.clientEmail) identityFilters.push({ clientEmail: payload.clientEmail });
+    if (payload.userId) identityFilters.push({ userId: payload.userId });
+    if (payload.clientPhone) identityFilters.push({ clientPhone: payload.clientPhone });
+
+    if (identityFilters.length > 0) {
+      const existingBooking = await this.bookingModel.findOne({
+        ...sameDayFilter,
+        $or: identityFilters,
+      }).lean();
+
+      if (existingBooking) {
+        throw new ConflictException({
+          message: 'Ya tienes una cita para ese dia. Consulta o cancela tu reserva existente.',
+          code: 'BOOKING_ALREADY_EXISTS',
+          bookingId: existingBooking._id?.toString?.(),
+          accessCode: existingBooking.accessCode,
+          businessId: existingBooking.businessId,
+        });
+      }
+    }
+
+    // Validar servicio: debe existir y pertenecer al negocio
+    const service = await this.serviceModel.findById(payload.serviceId).lean();
+    if (!service) {
+      throw new NotFoundException('Service not found');
+    }
+    if (service.businessId && payload.businessId && service.businessId !== payload.businessId) {
+      throw new ForbiddenException('Service does not belong to this business');
+    }
+    if (service.active === false) {
+      throw new ForbiddenException('Service is inactive');
+    }
+
     const booking = new this.bookingModel(payload);
     const savedBooking = await booking.save();
 
@@ -110,6 +157,11 @@ export class BookingsService {
       existing.status !== BookingStatus.Cancelled
     ) {
       await this.notificationService.sendCancellationNotification(updated as Booking);
+    } else if (
+      payload.status === BookingStatus.Completed &&
+      existing.status !== BookingStatus.Completed
+    ) {
+      await this.notificationService.sendBookingCompletedNotification(updated as Booking);
     }
 
     return updated;
@@ -159,3 +211,4 @@ export class BookingsService {
     }).lean();
   }
 }
+

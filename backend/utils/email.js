@@ -3,12 +3,12 @@ const nodemailer = require('nodemailer');
 // Create the SMTP transporter using environment variables
 const createTransporter = () => {
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465',
+    host: process.env.SMTP_HOST || process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: Number(process.env.SMTP_PORT || process.env.EMAIL_PORT || 587),
+    secure: (process.env.SMTP_SECURE === 'true' || process.env.EMAIL_SECURE === 'true') || (process.env.SMTP_PORT === '465' || process.env.EMAIL_PORT === '465'),
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: process.env.SMTP_USER || process.env.EMAIL_USER,
+      pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
     },
   });
 };
@@ -22,7 +22,7 @@ const createTransporter = () => {
  */
 const sendEmail = async (to, subject, html, from) => {
   const transporter = createTransporter();
-  const fromAddress = from || process.env.SMTP_FROM || process.env.SMTP_USER;
+  const fromAddress = from || process.env.SMTP_FROM || process.env.EMAIL_FROM_ADDRESS || process.env.SMTP_USER || process.env.EMAIL_USER;
 
   const mailOptions = {
     from: fromAddress,

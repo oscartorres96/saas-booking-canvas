@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -48,20 +48,22 @@ import { getServicesByBusiness, type Service } from "@/api/servicesApi";
 import { createBooking, getBookingsByClient, type Booking } from "@/api/bookingsApi";
 import { Badge } from "@/components/ui/badge";
 import { useSlots } from "@/hooks/useSlots";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const bookingFormSchema = z.object({
     serviceId: z.string().min(1, { message: "Selecciona un servicio" }),
     date: z.date({ required_error: "Fecha requerida" }),
     time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, { message: "Hora inválida (HH:MM)" }),
     clientName: z.string().min(2, { message: "El nombre es requerido" }),
-    clientEmail: z.string().email({ message: "Email inválido" }).optional().or(z.literal("")),
-    clientPhone: z.string().min(7, { message: "Teléfono inválido" }).optional().or(z.literal("")),
+    clientEmail: z.string().email({ message: "Email inválido" }),
+    clientPhone: z.string().min(8, { message: "Teléfono inválido" }),
     notes: z.string().optional(),
 });
 
 const BusinessBookingPage = () => {
     const { businessId } = useParams<{ businessId: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { user } = useAuth();
 
     const [business, setBusiness] = useState<Business | null>(null);
@@ -109,6 +111,7 @@ const BusinessBookingPage = () => {
             setBusiness(businessData);
 
             const servicesData = await getServicesByBusiness(businessId);
+            // Mostrar todos los servicios activos (incluidos los que son en linea)
             setServices(servicesData.filter(s => s.active !== false));
 
             if (user?.userId) {
@@ -137,19 +140,24 @@ const BusinessBookingPage = () => {
             const bookingData = {
                 businessId,
                 serviceId: values.serviceId,
-                clientId: user?.userId,
                 clientName: values.clientName,
-                clientEmail: values.clientEmail || undefined,
-                clientPhone: values.clientPhone || undefined,
+                clientEmail: values.clientEmail,
+                clientPhone: values.clientPhone,
                 scheduledAt: scheduledDate.toISOString(),
                 status: "pending" as const,
                 notes: values.notes,
             };
 
-            await createBooking(bookingData);
+            const booking = await createBooking(bookingData);
 
             setBookingSuccess(true);
-            toast.success("¡Reserva creada exitosamente!");
+            toast.success("¡Reserva creada exitosamente! Redirigiendo...");
+
+            setTimeout(() => {
+                navigate(
+                    `/my-bookings?email=${encodeURIComponent(values.clientEmail)}&code=${encodeURIComponent(booking.accessCode || "")}&businessId=${encodeURIComponent(businessId)}`
+                );
+            }, 2000);
 
             if (user?.userId) {
                 const bookingsData = await getBookingsByClient(user.userId);
@@ -167,9 +175,46 @@ const BusinessBookingPage = () => {
             });
             setSelectedService(null);
         } catch (error: any) {
-            toast.error(error?.response?.data?.message || "Error al crear reserva");
+            const errData = error?.response?.data;
+            if (errData?.code === "BOOKING_ALREADY_EXISTS") {
+                const params = new URLSearchParams({
+                    email: values.clientEmail,
+                    ...(errData.accessCode ? { code: errData.accessCode } : {}),
+                    ...(businessId ? { businessId } : {}),
+                });
+                toast.error("Ya tienes una cita para ese dia. Consulta tus reservas para cancelarla o reagendar.", {
+                    action: {
+                        label: "Ir a Mis reservas",
+                        onClick: () => navigate(`/my-bookings?${params.toString()}`),
+                    },
+                });
+                return;
+            }
+            toast.error(errData?.message || "Error al crear reserva");
         }
     };
+
+    // Prefill from query params (coming from "Volver a reservar")
+    useEffect(() => {
+        const serviceIdParam = searchParams.get("serviceId");
+        const nameParam = searchParams.get("name");
+        const emailParam = searchParams.get("email");
+        const phoneParam = searchParams.get("phone");
+
+        if (serviceIdParam) {
+            form.setValue("serviceId", serviceIdParam);
+            handleServiceSelect(serviceIdParam);
+        }
+        if (nameParam) {
+            form.setValue("clientName", nameParam);
+        }
+        if (emailParam) {
+            form.setValue("clientEmail", emailParam);
+        }
+        if (phoneParam) {
+            form.setValue("clientPhone", phoneParam);
+        }
+    }, [searchParams]);
 
     const handleServiceSelect = (serviceId: string) => {
         const service = services.find(s => s._id === serviceId);
@@ -185,7 +230,7 @@ const BusinessBookingPage = () => {
 
         // Disable days that are closed according to business hours
         if (business?.settings?.businessHours) {
-            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
             const dayOfWeek = dayNames[date.getDay()];
 
             const dayConfig = business.settings.businessHours.find(
@@ -229,9 +274,9 @@ const BusinessBookingPage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-            <div className="bg-white border-b shadow-sm">
-                <div className="max-w-5xl mx-auto px-4 py-6">
+        <div className="min-h-screen bg-background">
+            <div className="bg-card border-b border-border shadow-sm">
+                <div className="max-w-5xl mx-auto px-4 py-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                             <Building2 className="h-6 w-6 text-primary" />
@@ -241,6 +286,7 @@ const BusinessBookingPage = () => {
                             <p className="text-sm text-muted-foreground">Reserva tu cita en línea</p>
                         </div>
                     </div>
+                    <ThemeToggle />
                 </div>
             </div>
 
@@ -450,9 +496,9 @@ const BusinessBookingPage = () => {
                                         name="clientEmail"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Email (opcional)</FormLabel>
+                                                <FormLabel>Email</FormLabel>
                                                 <FormControl>
-                                                    <Input type="email" placeholder="tu@email.com" {...field} />
+                                                    <Input type="email" required placeholder="tu@email.com" {...field} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -463,7 +509,7 @@ const BusinessBookingPage = () => {
                                         name="clientPhone"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Teléfono (opcional)</FormLabel>
+                                                <FormLabel>Teléfono</FormLabel>
                                                 <FormControl>
                                                     <PhoneInput
                                                         country="mx"
@@ -473,9 +519,11 @@ const BusinessBookingPage = () => {
                                                         onChange={(value) => field.onChange(value)}
                                                         placeholder="+52 55 1234 5678"
                                                         containerClass="w-full"
-                                                        inputClass="!w-full !h-10 !text-base !bg-background !border !border-input !rounded-md !pl-12 focus:!ring-2 focus:!ring-ring focus:!ring-offset-2"
+                                                        inputClass="!w-full !h-10 !text-base !bg-background !border !border-input !rounded-md !pl-14 !text-foreground focus:!ring-2 focus:!ring-ring focus:!ring-offset-2"
                                                         buttonClass="!h-10 !bg-background !border !border-input !rounded-l-md !px-3"
                                                         dropdownClass="!bg-popover !text-foreground !shadow-lg !border !rounded-md"
+                                                        inputStyle={{ paddingLeft: '3.5rem' }}
+                                                        inputProps={{ required: true }}
                                                     />
                                                 </FormControl>
                                                 <FormMessage />
@@ -523,6 +571,11 @@ const BusinessBookingPage = () => {
                                                 <p className="text-sm text-muted-foreground">
                                                     {format(new Date(booking.scheduledAt), "PPP 'a las' p", { locale: es })}
                                                 </p>
+                                                {booking.accessCode && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Código de acceso: <span className="font-medium text-foreground">{booking.accessCode}</span>
+                                                    </p>
+                                                )}
                                             </div>
                                             <Badge variant={booking.status === "confirmed" ? "default" : "secondary"}>
                                                 {booking.status === "confirmed" ? "Confirmada" :
@@ -532,6 +585,15 @@ const BusinessBookingPage = () => {
                                         </div>
                                     );
                                 })}
+                                <div className="pt-2">
+                                    <Button
+                                        variant="outline"
+                                        className="w-full"
+                                        onClick={() => navigate(`/my-bookings?businessId=${businessId}`)}
+                                    >
+                                        Ver todas mis reservas (usa tu código de acceso)
+                                    </Button>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -542,3 +604,5 @@ const BusinessBookingPage = () => {
 };
 
 export default BusinessBookingPage;
+
+

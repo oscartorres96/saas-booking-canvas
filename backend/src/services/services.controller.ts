@@ -24,6 +24,10 @@ class CreateServiceDto {
   active?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  isOnline?: boolean;
+
+  @IsOptional()
   @IsString()
   businessId?: string;
 }
@@ -50,6 +54,10 @@ class UpdateServiceDto {
   @IsOptional()
   @IsBoolean()
   active?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isOnline?: boolean;
 
   @IsOptional()
   @IsString()

@@ -14,11 +14,14 @@ export interface Business {
   address?: string;
   subscriptionStatus?: string;
   createdAt?: string;
+  onboardingStep?: number;
+  isOnboardingCompleted?: boolean;
   metadata?: Record<string, unknown>;
   settings?: {
     primaryColor?: string;
     secondaryColor?: string;
     description?: string;
+    defaultServiceDuration?: number;
     businessHours?: Array<{
       day: string;
       isOpen: boolean;
@@ -81,5 +84,14 @@ export const getBusinessSlots = async (
   const { data } = await apiClient.get<string[]>(`/businesses/${businessId}/slots`, {
     params: { date, service: serviceId },
   });
+  return data;
+};
+
+export const updateOnboarding = async (
+  businessId: string,
+  step: number,
+  isCompleted: boolean
+): Promise<Business> => {
+  const { data } = await apiClient.put<Business>(`/businesses/${businessId}/onboarding`, { step, isCompleted });
   return data;
 };

@@ -20,6 +20,10 @@ export class Service {
   @Prop({ default: true })
   active!: boolean;
 
+  // Marca si el servicio se ofrece en línea (remoto). Por defecto solo presencial.
+  @Prop({ default: false })
+  isOnline?: boolean;
+
   @Prop()
   businessId?: string;
 }

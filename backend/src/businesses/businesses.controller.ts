@@ -11,6 +11,11 @@ export class BusinessesController {
     return this.businessesService.findAll(req.user ?? { role: 'public' });
   }
 
+  @Get('slug/:slug')
+  findBySlug(@Param('slug') slug: string, @Req() req: any) {
+    return this.businessesService.findBySlug(slug, req.user ?? { role: 'public', userId: 'system' });
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @Req() req: any) {
     return this.businessesService.findOne(id, req.user ?? { role: 'public' });
@@ -32,6 +37,16 @@ export class BusinessesController {
   @Put(':id/settings')
   async updateSettings(@Param('id') id: string, @Body() body: any, @Req() req: any) {
     return this.businessesService.updateSettings(id, body, req.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put(':id/onboarding')
+  updateOnboarding(
+    @Param('id') id: string,
+    @Body() body: { step: number; isCompleted?: boolean },
+    @Req() req: any
+  ) {
+    return this.businessesService.updateOnboarding(id, body.step, !!body.isCompleted, req.user);
   }
 
   @Get(':id/slots')

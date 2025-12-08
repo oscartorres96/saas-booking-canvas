@@ -7,6 +7,7 @@ import {
   businessNewBookingTemplate,
   clientBookingConfirmationTemplate,
   clientCancellationTemplate,
+  clientBookingCompletedTemplate,
 } from '../utils/email-templates';
 import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
 import { Booking } from '../bookings/schemas/booking.schema';
@@ -35,6 +36,17 @@ export class NotificationService {
     }).format(new Date(date));
   }
 
+  /** Verifica si la fecha de la cita es el mismo dia (en la zona del servidor) */
+  private isSameDay(date: Date): boolean {
+    const target = new Date(date);
+    const now = new Date();
+    return (
+      target.getFullYear() === now.getFullYear() &&
+      target.getMonth() === now.getMonth() &&
+      target.getDate() === now.getDate()
+    );
+  }
+
   /** Envia notificaciones de nueva reserva al cliente y al negocio */
   async sendBookingConfirmation(booking: Booking): Promise<void> {
     try {
@@ -43,7 +55,9 @@ export class NotificationService {
         : null;
 
       const businessName = business?.name || business?.businessName || 'Nuestro Negocio';
+      const scheduledDate = new Date(booking.scheduledAt);
       const scheduledAt = this.formatScheduledDate(booking.scheduledAt);
+      const showReminder = !this.isSameDay(scheduledDate);
 
       if (booking.clientEmail) {
         const clientHtml = clientBookingConfirmationTemplate({
@@ -55,6 +69,7 @@ export class NotificationService {
           notes: booking.notes,
           businessEmail: business?.email,
           businessPhone: business?.phone,
+          showReminder,
         });
 
         await sendEmail({
@@ -128,6 +143,11 @@ export class NotificationService {
         return;
       }
 
+      if (this.isSameDay(booking.scheduledAt)) {
+        console.log('No se envia recordatorio: la cita es el mismo dia');
+        return;
+      }
+
       const business = booking.businessId
         ? await this.getBusinessInfo(booking.businessId)
         : null;
@@ -153,6 +173,39 @@ export class NotificationService {
       });
     } catch (error) {
       console.error('Error al enviar recordatorio:', error);
+    }
+  }
+
+  /** Envia notificacion de agradecimiento al completar cita */
+  async sendBookingCompletedNotification(booking: Booking): Promise<void> {
+    try {
+      if (!booking.clientEmail) {
+        return;
+      }
+
+      const business = booking.businessId
+        ? await this.getBusinessInfo(booking.businessId)
+        : null;
+
+      const businessName = business?.name || business?.businessName || 'Nuestro Negocio';
+      const scheduledAt = this.formatScheduledDate(booking.scheduledAt);
+
+      const html = clientBookingCompletedTemplate({
+        businessName,
+        clientName: booking.clientName,
+        serviceName: booking.serviceName || 'Servicio',
+        scheduledAt,
+        businessEmail: business?.email,
+        businessPhone: business?.phone,
+      });
+
+      await sendEmail({
+        to: booking.clientEmail,
+        subject: `¡Gracias por tu visita! - ${businessName}`,
+        html,
+      });
+    } catch (error) {
+      console.error('Error al enviar agradecimiento:', error);
     }
   }
 }

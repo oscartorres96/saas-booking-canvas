@@ -8,12 +8,13 @@ interface AuthUser {
   email?: string;
   role?: string;
   businessId?: string;
+  isOnboardingCompleted?: boolean;
   [key: string]: unknown;
 }
 
 interface AuthContextValue {
   user: AuthUser | null;
-  accessToken: string | null;
+  accessToken: string | null; // ... rest is same
   loading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   register: (email: string, password: string, name: string) => Promise<AuthUser>;
@@ -67,8 +68,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const data = await authApi.login(email, password);
     setTokens(data.accessToken, data.refreshToken);
     setAccessToken(data.accessToken);
-    setUser(data.user as AuthUser);
-    return data.user as AuthUser;
+    const userWithOnboarding = { ...data.user, isOnboardingCompleted: data.isOnboardingCompleted } as AuthUser;
+    setUser(userWithOnboarding);
+    return userWithOnboarding;
   }, []);
 
   const register = useCallback(async (email: string, password: string, name: string) => {
