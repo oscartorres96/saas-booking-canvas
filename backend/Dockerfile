@@ -3,7 +3,7 @@ WORKDIR /usr/src/app
 
 # Instalar dependencias (sin dev)
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 # Copiar resto del código
 COPY . .
