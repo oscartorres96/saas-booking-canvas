@@ -12,7 +12,8 @@ async function bootstrap() {
     origin: [
       'http://localhost:5173',
       'https://bookpro-frontend.onrender.com',
-      'https://bookpro.mx'
+      'https://bookpro.mx',
+      'https://www.bookpro.mx',
     ],
     credentials: true,
   });
