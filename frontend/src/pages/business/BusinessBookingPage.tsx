@@ -195,26 +195,38 @@ const BusinessBookingPage = () => {
     };
 
     // Prefill from query params (coming from "Volver a reservar")
+    // Prefill from query params (coming from "Volver a reservar" or shared link)
     useEffect(() => {
         const serviceIdParam = searchParams.get("serviceId");
         const nameParam = searchParams.get("name");
         const emailParam = searchParams.get("email");
         const phoneParam = searchParams.get("phone");
 
-        if (serviceIdParam) {
-            form.setValue("serviceId", serviceIdParam);
-            handleServiceSelect(serviceIdParam);
+        // Only attempt to select service if services are loaded
+        if (serviceIdParam && services.length > 0) {
+            const service = services.find(s => s._id === serviceIdParam);
+            if (service) {
+                // Only Update if different to avoid loops or overwrites if user changes it?
+                // Actually for initial load it's fine.
+                // If user changes it manually, this effect won't re-run unless services change again.
+                // checking if form value is already set might be safer but `handleServiceSelect` is idempotent-ish
+                if (form.getValues("serviceId") !== serviceIdParam) {
+                    handleServiceSelect(serviceIdParam);
+                }
+            }
         }
-        if (nameParam) {
+
+        // These can be set immediately as they don't depend on async data
+        if (nameParam && form.getValues("clientName") !== nameParam) {
             form.setValue("clientName", nameParam);
         }
-        if (emailParam) {
+        if (emailParam && form.getValues("clientEmail") !== emailParam) {
             form.setValue("clientEmail", emailParam);
         }
-        if (phoneParam) {
+        if (phoneParam && form.getValues("clientPhone") !== phoneParam) {
             form.setValue("clientPhone", phoneParam);
         }
-    }, [searchParams]);
+    }, [searchParams, services]);
 
     const handleServiceSelect = (serviceId: string) => {
         const service = services.find(s => s._id === serviceId);

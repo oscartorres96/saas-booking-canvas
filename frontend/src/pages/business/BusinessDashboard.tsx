@@ -288,6 +288,13 @@ const BusinessDashboard = () => {
         toast.success("Invitación copiada al portapapeles");
     };
 
+    const handleCopyServiceLink = (service: Service) => {
+        const url = `${window.location.origin}/business/${businessId}/booking?serviceId=${service._id}`;
+        const message = `¡Hola! 👋\n\nReserva tu cita para *${service.name}* aquí: 👇\n${url}`;
+        navigator.clipboard.writeText(message);
+        toast.success("Enlace del servicio copiado al portapapeles");
+    };
+
     const filteredBookings = bookings.filter(booking =>
         booking.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.clientEmail?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -590,6 +597,9 @@ const BusinessDashboard = () => {
                                                                 </DropdownMenuTrigger>
                                                                 <DropdownMenuContent align="end">
                                                                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                                                    <DropdownMenuItem onClick={() => handleCopyServiceLink(service)}>
+                                                                        Copiar Link de Reserva
+                                                                    </DropdownMenuItem>
                                                                     <DropdownMenuItem onClick={() => openEditService(service)}>
                                                                         Editar
                                                                     </DropdownMenuItem>

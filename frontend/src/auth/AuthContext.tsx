@@ -6,6 +6,7 @@ import { clearAuthStorage, getAccessToken, setTokens } from '../utils/storage';
 interface AuthUser {
   userId?: string;
   email?: string;
+  name?: string;
   role?: string;
   businessId?: string;
   isOnboardingCompleted?: boolean;
