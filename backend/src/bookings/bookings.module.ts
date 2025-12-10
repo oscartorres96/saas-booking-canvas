@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { BookingsController } from './bookings.controller';
@@ -13,7 +13,7 @@ import { ServicesModule } from '../services/services.module';
       { name: Booking.name, schema: BookingSchema },
       { name: Service.name, schema: ServiceSchema },
     ]),
-    ServicesModule,
+    forwardRef(() => ServicesModule),
   ],
   controllers: [BookingsController],
   providers: [BookingsService, JwtAuthGuard],

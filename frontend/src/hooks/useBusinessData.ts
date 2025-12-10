@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import api from "@/services/api";
+import api from "@/services/api"; // Keep using this or switch to apiClient
+import { getServicesByBusiness } from "@/api/servicesApi";
 
 // Tipo de datos para el negocio
 export interface Service {
@@ -38,41 +39,7 @@ const defaultBusinessData: BusinessData = {
             price: "$800 MXN",
             description: "Limpieza profunda y revisión general"
         },
-        {
-            id: "2",
-            name: "Blanqueamiento",
-            duration: "60 minutos",
-            price: "$1,500 MXN",
-            description: "Tratamiento de blanqueamiento profesional"
-        },
-        {
-            id: "3",
-            name: "Ortodoncia",
-            duration: "30 minutos",
-            price: "$2,500 MXN",
-            description: "Consulta y evaluación ortodóntica"
-        },
-        {
-            id: "4",
-            name: "Extracción",
-            duration: "45 minutos",
-            price: "$1,200 MXN",
-            description: "Extracción dental simple o compleja"
-        },
-        {
-            id: "5",
-            name: "Endodoncia",
-            duration: "90 minutos",
-            price: "$3,000 MXN",
-            description: "Tratamiento de conducto radicular"
-        },
-        {
-            id: "6",
-            name: "Corona Dental",
-            duration: "60 minutos",
-            price: "$4,500 MXN",
-            description: "Colocación de corona de porcelana"
-        }
+        // ... more mock data
     ],
     businessAddress: "Av. Reforma 123, Col. Centro, Ciudad de México, 06000",
     businessPhone: "+52 55 1234 5678",
@@ -89,7 +56,37 @@ const fetchBusinessData = async (businessSlug?: string): Promise<BusinessData> =
         // Si hay un slug, lo usamos en la URL, sino usamos el endpoint genérico
         const endpoint = businessSlug ? `/businesses/slug/${businessSlug}` : '/businesses';
         const response = await api.get(endpoint);
-        return response.data;
+        const business = response.data;
+
+        let servicesData: any[] = [];
+        if (business._id) {
+            try {
+                servicesData = await getServicesByBusiness(business._id);
+            } catch (err) {
+                console.warn("Could not fetch services", err);
+            }
+        }
+
+        return {
+            _id: business._id,
+            businessName: business.businessName || business.name,
+            logoUrl: business.logoUrl || business.settings?.logoUrl || "",
+            primaryColor: business.settings?.primaryColor || business.primaryColor || "#000000",
+            services: servicesData.map((s: any) => ({
+                id: s._id,
+                name: s.name,
+                duration: `${s.durationMinutes} minutos`,
+                price: `$${s.price}`,
+                description: s.description || ""
+            })),
+            businessAddress: business.address || "",
+            businessPhone: business.phone || business.settings?.phone || "",
+            businessEmail: business.email || "",
+            businessSocials: {
+                facebook: "", // Not yet in backend
+                instagram: ""
+            }
+        };
     } catch (error) {
         console.error("Error fetching business data:", error);
         // Fallback a datos default si hay error (ej. servidor apagado)

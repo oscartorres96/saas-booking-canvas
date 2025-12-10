@@ -56,7 +56,9 @@ import {
     DollarSign,
     Clock,
     Filter,
-    Package
+    Package,
+    LogOut,
+    Copy
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -279,6 +281,13 @@ const BusinessDashboard = () => {
         }
     };
 
+    const handleCopyInvitation = () => {
+        const url = `${window.location.origin}/business/${businessId}/booking`;
+        const message = `¡Hola! 👋\n\nTe invito a reservar tu cita en *${business?.businessName}* de forma rápida y sencilla. 📅✨\n\nHaz clic aquí para ver nuestros servicios y horarios disponibles: 👇\n${url}\n\n¡Te esperamos!`;
+        navigator.clipboard.writeText(message);
+        toast.success("Invitación copiada al portapapeles");
+    };
+
     const filteredBookings = bookings.filter(booking =>
         booking.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.clientEmail?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -341,21 +350,32 @@ const BusinessDashboard = () => {
                                 Panel de gestión de tu negocio
                             </p>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
                             <Button
                                 variant="outline"
+                                className="w-full md:w-auto order-last md:order-first"
                                 onClick={() => window.open(`/business/${businessId}/booking`, '_blank')}
                             >
                                 Ver página de reservas
                             </Button>
-                            <TabsList>
-                                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-                                <TabsTrigger value="settings">Configuración</TabsTrigger>
-                            </TabsList>
-                            <ThemeToggle />
-                            <Button variant="outline" onClick={logout}>
-                                Cerrar Sesión
+                            <Button
+                                variant="default"
+                                className="w-full md:w-auto order-last md:order-first"
+                                onClick={handleCopyInvitation}
+                            >
+                                <Copy className="mr-2 h-4 w-4" />
+                                Copiar Invitación
                             </Button>
+                            <TabsList className="order-first md:order-none w-full md:w-auto">
+                                <TabsTrigger value="dashboard" className="flex-1 md:flex-none">Dashboard</TabsTrigger>
+                                <TabsTrigger value="settings" className="flex-1 md:flex-none">Configuración</TabsTrigger>
+                            </TabsList>
+                            <div className="flex items-center gap-2 ml-auto md:ml-0">
+                                <ThemeToggle />
+                                <Button variant="outline" size="icon" onClick={logout} title="Cerrar Sesión">
+                                    <LogOut className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
 
@@ -531,61 +551,63 @@ const BusinessDashboard = () => {
                                         No hay servicios creados. Crea tu primer servicio.
                                     </div>
                                 ) : (
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Nombre</TableHead>
-                                                <TableHead>Duración</TableHead>
-                                                <TableHead>Precio</TableHead>
-                                                <TableHead>Estado</TableHead>
-                                                <TableHead className="text-right">Acciones</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {services.map((service) => (
-                                                <TableRow key={service._id}>
-                                                    <TableCell className="font-medium">
-                                                        <div className="flex flex-col">
-                                                            <span className="font-semibold">{service.name}</span>
-                                                            {service.description && (
-                                                                <span className="text-xs text-muted-foreground">{service.description}</span>
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>{service.durationMinutes} min</TableCell>
-                                                    <TableCell>${service.price}</TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={service.active ? "default" : "secondary"}>
-                                                            {service.active ? "Activo" : "Inactivo"}
-                                                        </Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                                    <span className="sr-only">Abrir menú</span>
-                                                                    <MoreHorizontal className="h-4 w-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end">
-                                                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                                                <DropdownMenuItem onClick={() => openEditService(service)}>
-                                                                    Editar
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem
-                                                                    className="text-red-600"
-                                                                    onClick={() => openDeleteService(service)}
-                                                                >
-                                                                    Eliminar
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </TableCell>
+                                    <div className="overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Nombre</TableHead>
+                                                    <TableHead>Duración</TableHead>
+                                                    <TableHead>Precio</TableHead>
+                                                    <TableHead>Estado</TableHead>
+                                                    <TableHead className="text-right">Acciones</TableHead>
                                                 </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {services.map((service) => (
+                                                    <TableRow key={service._id}>
+                                                        <TableCell className="font-medium">
+                                                            <div className="flex flex-col">
+                                                                <span className="font-semibold">{service.name}</span>
+                                                                {service.description && (
+                                                                    <span className="text-xs text-muted-foreground">{service.description}</span>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>{service.durationMinutes} min</TableCell>
+                                                        <TableCell>${service.price}</TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={service.active ? "default" : "secondary"}>
+                                                                {service.active ? "Activo" : "Inactivo"}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                        <span className="sr-only">Abrir menú</span>
+                                                                        <MoreHorizontal className="h-4 w-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                                                    <DropdownMenuItem onClick={() => openEditService(service)}>
+                                                                        Editar
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuSeparator />
+                                                                    <DropdownMenuItem
+                                                                        className="text-red-600"
+                                                                        onClick={() => openDeleteService(service)}
+                                                                    >
+                                                                        Eliminar
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>
@@ -844,7 +866,7 @@ const BusinessDashboard = () => {
                     </TabsContent>
 
                     <TabsContent value="settings">
-                        \u003cBusinessSettings businessId={businessId!} /\u003e
+                        <BusinessSettings businessId={businessId!} />
                     </TabsContent>
                 </Tabs>
             </div>

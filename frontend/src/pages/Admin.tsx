@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Table,
     TableBody,
@@ -25,7 +25,8 @@ import {
     Users,
     Activity,
     DollarSign,
-    Filter
+    Filter,
+    Loader2
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -36,76 +37,42 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/ThemeToggle";
-
-// Mock data based on the new schema
-const mockBusinesses = [
-    {
-        id: "1",
-        businessName: "Clínica Dental Sonrisas",
-        type: "dentist",
-        ownerName: "Dr. Roberto Martínez",
-        email: "contacto@sonrisas.com",
-        phone: "+52 55 1234 5678",
-        subscriptionStatus: "active",
-        createdAt: "2024-01-15",
-        metadata: { specialty: "Ortodoncia", chairs: "3" }
-    },
-    {
-        id: "2",
-        businessName: "Barbería El Caballero",
-        type: "barber",
-        ownerName: "Carlos Ruiz",
-        email: "carlos@elcaballero.com",
-        phone: "+52 55 8765 4321",
-        subscriptionStatus: "active",
-        createdAt: "2024-02-10",
-        metadata: { chairs: "5", parking: "yes" }
-    },
-    {
-        id: "3",
-        businessName: "Nutrición Balanceada",
-        type: "nutritionist",
-        ownerName: "Lic. Ana Gómez",
-        email: "ana@nutricion.com",
-        phone: "+52 55 1122 3344",
-        subscriptionStatus: "trial",
-        createdAt: "2024-03-05",
-        metadata: { consultationType: "online/presencial" }
-    },
-    {
-        id: "4",
-        businessName: "Spa Relajación Total",
-        type: "other",
-        ownerName: "Sofia López",
-        email: "sofia@sparelax.com",
-        phone: "+52 55 9988 7766",
-        subscriptionStatus: "inactive",
-        createdAt: "2023-11-20",
-        metadata: { rooms: "4" }
-    },
-    {
-        id: "5",
-        businessName: "Gimnasio PowerFit",
-        type: "other",
-        ownerName: "Miguel Ángel",
-        email: "info@powerfit.mx",
-        phone: "+52 55 4455 6677",
-        subscriptionStatus: "active",
-        createdAt: "2024-01-01",
-        metadata: { members: "150" }
-    }
-];
+import { getAllBusinesses, Business } from "@/api/businessesApi";
+import { useToast } from "@/components/ui/use-toast";
 
 const Admin = () => {
+    const { toast } = useToast();
     const [searchTerm, setSearchTerm] = useState("");
+    const [businesses, setBusinesses] = useState<Business[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const filteredBusinesses = mockBusinesses.filter(business =>
-        business.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        business.ownerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        business.type.toLowerCase().includes(searchTerm.toLowerCase())
+    useEffect(() => {
+        const fetchBusinesses = async () => {
+            try {
+                const data = await getAllBusinesses();
+                setBusinesses(data);
+            } catch (error) {
+                console.error("Error fetching businesses:", error);
+                toast({
+                    title: "Error",
+                    description: "No se pudieron cargar los negocios.",
+                    variant: "destructive",
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchBusinesses();
+    }, [toast]);
+
+    const filteredBusinesses = businesses.filter(business =>
+        (business.businessName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (business.ownerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (business.type || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const getStatusColor = (status: string) => {
+    const getStatusColor = (status?: string) => {
         switch (status) {
             case "active": return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40";
             case "inactive": return "bg-slate-100 text-slate-800 dark:bg-slate-800/50 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/70";
@@ -114,12 +81,12 @@ const Admin = () => {
         }
     };
 
-    const getTypeLabel = (type: string) => {
+    const getTypeLabel = (type?: string) => {
         switch (type) {
             case "dentist": return "Dentista";
             case "barber": return "Barbería";
             case "nutritionist": return "Nutriólogo";
-            default: return "Otro";
+            default: return type || "Otro";
         }
     };
 
@@ -152,8 +119,8 @@ const Admin = () => {
                             <Building2 className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{mockBusinesses.length}</div>
-                            <p className="text-xs text-muted-foreground">+2 desde el mes pasado</p>
+                            <div className="text-2xl font-bold">{businesses.length}</div>
+                            {/* <p className="text-xs text-muted-foreground">+2 desde el mes pasado</p> */}
                         </CardContent>
                     </Card>
                     <Card>
@@ -163,19 +130,20 @@ const Admin = () => {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {mockBusinesses.filter(b => b.subscriptionStatus === 'active').length}
+                                {businesses.filter(b => b.subscriptionStatus === 'active').length}
                             </div>
-                            <p className="text-xs text-muted-foreground">+12% vs mes anterior</p>
+                            {/* <p className="text-xs text-muted-foreground">+12% vs mes anterior</p> */}
                         </CardContent>
                     </Card>
+                    {/* Placeholder Stats */}
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Usuarios Totales</CardTitle>
                             <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">1,234</div>
-                            <p className="text-xs text-muted-foreground">+54 nuevos usuarios</p>
+                            <div className="text-2xl font-bold">-</div>
+                            <p className="text-xs text-muted-foreground">No disponible</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -184,8 +152,8 @@ const Admin = () => {
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">$45,231</div>
-                            <p className="text-xs text-muted-foreground">+20.1% vs mes anterior</p>
+                            <div className="text-2xl font-bold">-</div>
+                            <p className="text-xs text-muted-foreground">No disponible</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -219,63 +187,79 @@ const Admin = () => {
                         </div>
                     </CardHeader>
                     <CardContent className="overflow-x-auto">
-                        <Table className="min-w-[640px]">
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Negocio</TableHead>
-                                    <TableHead>Tipo</TableHead>
-                                    <TableHead>Dueño</TableHead>
-                                    <TableHead>Estado</TableHead>
-                                    <TableHead>Registro</TableHead>
-                                    <TableHead className="text-right">Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredBusinesses.map((business) => (
-                                    <TableRow key={business.id}>
-                                        <TableCell className="font-medium">
-                                            <div className="flex flex-col">
-                                                <span className="font-semibold">{business.businessName}</span>
-                                                <span className="text-xs text-muted-foreground">{business.email}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="capitalize">
-                                                {getTypeLabel(business.type)}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>{business.ownerName}</TableCell>
-                                        <TableCell>
-                                            <Badge className={getStatusColor(business.subscriptionStatus)} variant="secondary">
-                                                {business.subscriptionStatus === 'active' ? 'Activo' :
-                                                    business.subscriptionStatus === 'trial' ? 'Prueba' : 'Inactivo'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>{new Date(business.createdAt).toLocaleDateString()}</TableCell>
-                                        <TableCell className="text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                                        <span className="sr-only">Abrir menú</span>
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                                    <DropdownMenuItem onClick={() => navigator.clipboard.writeText(business.id)}>
-                                                        Copiar ID
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem>Ver detalles</DropdownMenuItem>
-                                                    <DropdownMenuItem>Editar suscripción</DropdownMenuItem>
-                                                    <DropdownMenuItem className="text-red-600">Desactivar cuenta</DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
+                        {loading ? (
+                            <div className="flex justify-center p-8">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            </div>
+                        ) : (
+                            <Table className="min-w-[640px]">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Negocio</TableHead>
+                                        <TableHead>Tipo</TableHead>
+                                        <TableHead>Dueño</TableHead>
+                                        <TableHead>Estado</TableHead>
+                                        <TableHead>Registro</TableHead>
+                                        <TableHead className="text-right">Acciones</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredBusinesses.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                                No se encontraron negocios.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        filteredBusinesses.map((business) => (
+                                            <TableRow key={business._id}>
+                                                <TableCell className="font-medium">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-semibold">{business.businessName || business.name}</span>
+                                                        <span className="text-xs text-muted-foreground">{business.email}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="capitalize">
+                                                        {getTypeLabel(business.type)}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>{business.ownerName || 'N/A'}</TableCell>
+                                                <TableCell>
+                                                    <Badge className={getStatusColor(business.subscriptionStatus)} variant="secondary">
+                                                        {business.subscriptionStatus === 'active' ? 'Activo' :
+                                                            business.subscriptionStatus === 'trial' ? 'Prueba' : 'Inactivo'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {business.createdAt ? new Date(business.createdAt).toLocaleDateString() : '-'}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                <span className="sr-only">Abrir menú</span>
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                                            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(business._id)}>
+                                                                Copiar ID
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem>Ver detalles</DropdownMenuItem>
+                                                            <DropdownMenuItem>Editar suscripción</DropdownMenuItem>
+                                                            <DropdownMenuItem className="text-red-600">Desactivar cuenta</DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        )}
                     </CardContent>
                 </Card>
             </div>

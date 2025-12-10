@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { ServicesController } from './services.controller';

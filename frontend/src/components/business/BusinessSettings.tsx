@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { BusinessHoursForm, daysOfWeek } from "./BusinessHoursForm";
+import { ImageUpload } from "@/components/ImageUpload";
 
 const intervalSchema = z.object({
     startTime: z.string(),
@@ -202,9 +203,13 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                     name="logoUrl"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>URL del Logo</FormLabel>
+                                            <FormLabel>Logo del Negocio</FormLabel>
                                             <FormControl>
-                                                <Input {...field} placeholder="https://..." />
+                                                <ImageUpload
+                                                    value={field.value}
+                                                    onChange={field.onChange}
+                                                    businessId={businessId}
+                                                />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>

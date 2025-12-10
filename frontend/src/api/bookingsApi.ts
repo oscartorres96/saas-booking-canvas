@@ -47,7 +47,7 @@ export const cancelBookingPublic = async (params: { bookingId: string; clientEma
 };
 
 export const updateBooking = async (bookingId: string, bookingData: Partial<Booking>): Promise<Booking> => {
-    const { data } = await apiClient.put<Booking>(`/bookings/${bookingId}`, bookingData);
+    const { data } = await apiClient.patch<Booking>(`/bookings/${bookingId}`, bookingData);
     return data;
 };
 
