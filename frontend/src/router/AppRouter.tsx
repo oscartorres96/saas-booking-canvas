@@ -11,7 +11,12 @@ import PrivateRoute from '../auth/PrivateRoute';
 import Onboarding from '../pages/Onboarding';
 
 const AppRouter = () => (
-  <BrowserRouter>
+  <BrowserRouter
+    future={{
+      v7_startTransition: true,
+      v7_relativeSplatPath: true,
+    }}
+  >
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/:businessSlug" element={<BookingPage />} />

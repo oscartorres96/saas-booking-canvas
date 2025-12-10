@@ -48,7 +48,8 @@ import { getServicesByBusiness, type Service } from "@/api/servicesApi";
 import { createBooking, getBookingsByClient, type Booking } from "@/api/bookingsApi";
 import { Badge } from "@/components/ui/badge";
 import { useSlots } from "@/hooks/useSlots";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { BusinessThemeToggle } from "@/components/BusinessThemeToggle";
+import { useTheme } from "@/hooks/useTheme";
 
 const bookingFormSchema = z.object({
     serviceId: z.string().min(1, { message: "Selecciona un servicio" }),
@@ -72,6 +73,7 @@ const BusinessBookingPage = () => {
     const [loading, setLoading] = useState(true);
     const [selectedService, setSelectedService] = useState<Service | null>(null);
     const [bookingSuccess, setBookingSuccess] = useState(false);
+    const { theme, setTheme } = useTheme();
 
     const form = useForm<z.infer<typeof bookingFormSchema>>({
         resolver: zodResolver(bookingFormSchema),
@@ -100,6 +102,69 @@ const BusinessBookingPage = () => {
             loadData();
         }
     }, [businessId, user]);
+
+    // Apply custom colors when business data is loaded AND theme is custom
+    useEffect(() => {
+        if (theme === 'custom' && business?.settings?.primaryColor) {
+            const primaryHsl = hexToHSL(business.settings.primaryColor);
+            const secondaryHsl = business.settings.secondaryColor ? hexToHSL(business.settings.secondaryColor) : null;
+
+            if (primaryHsl) {
+                document.documentElement.style.setProperty('--primary', primaryHsl);
+
+                // Calculate contrast for foreground
+                const isDark = isColorDark(business.settings.primaryColor);
+                document.documentElement.style.setProperty('--primary-foreground', isDark ? '0 0% 100%' : '0 0% 0%');
+                document.documentElement.style.setProperty('--ring', primaryHsl);
+            }
+
+            if (secondaryHsl) {
+                document.documentElement.style.setProperty('--secondary', secondaryHsl);
+                const isSecondaryDark = isColorDark(business.settings.secondaryColor);
+                document.documentElement.style.setProperty('--secondary-foreground', isSecondaryDark ? '0 0% 100%' : '0 0% 0%');
+            }
+        } else {
+            // Reset to default when not using custom theme
+            document.documentElement.style.removeProperty('--primary');
+            document.documentElement.style.removeProperty('--primary-foreground');
+            document.documentElement.style.removeProperty('--ring');
+            document.documentElement.style.removeProperty('--secondary');
+            document.documentElement.style.removeProperty('--secondary-foreground');
+        }
+
+        // Return cleanup function
+        return () => {
+            document.documentElement.style.removeProperty('--primary');
+            document.documentElement.style.removeProperty('--primary-foreground');
+            document.documentElement.style.removeProperty('--ring');
+            document.documentElement.style.removeProperty('--secondary');
+            document.documentElement.style.removeProperty('--secondary-foreground');
+        };
+    }, [business, theme]);
+
+    // Auto-set custom theme if business has custom colors and no theme preference is saved for this business
+    useEffect(() => {
+        if (!businessId || !business) return;
+
+        const businessThemeKey = `theme-business-${businessId}`;
+        const savedThemeForBusiness = localStorage.getItem(businessThemeKey);
+
+        // If no theme preference for THIS business AND business has custom colors, set to custom
+        if (!savedThemeForBusiness && business.settings?.primaryColor) {
+            setTheme('custom');
+            localStorage.setItem(businessThemeKey, 'custom');
+        } else if (savedThemeForBusiness && savedThemeForBusiness !== theme) {
+            // Restore saved preference for this business
+            setTheme(savedThemeForBusiness as any);
+        }
+    }, [business, businessId]);
+
+    // Save theme preference when user changes it
+    useEffect(() => {
+        if (!businessId) return;
+        const businessThemeKey = `theme-business-${businessId}`;
+        localStorage.setItem(businessThemeKey, theme);
+    }, [theme, businessId]);
 
     const loadData = async () => {
         if (!businessId) return;
@@ -194,7 +259,6 @@ const BusinessBookingPage = () => {
         }
     };
 
-    // Prefill from query params (coming from "Volver a reservar")
     // Prefill from query params (coming from "Volver a reservar" or shared link)
     useEffect(() => {
         const serviceIdParam = searchParams.get("serviceId");
@@ -206,10 +270,6 @@ const BusinessBookingPage = () => {
         if (serviceIdParam && services.length > 0) {
             const service = services.find(s => s._id === serviceIdParam);
             if (service) {
-                // Only Update if different to avoid loops or overwrites if user changes it?
-                // Actually for initial load it's fine.
-                // If user changes it manually, this effect won't re-run unless services change again.
-                // checking if form value is already set might be safer but `handleServiceSelect` is idempotent-ish
                 if (form.getValues("serviceId") !== serviceIdParam) {
                     handleServiceSelect(serviceIdParam);
                 }
@@ -290,15 +350,33 @@ const BusinessBookingPage = () => {
             <div className="bg-card border-b border-border shadow-sm">
                 <div className="max-w-5xl mx-auto px-4 py-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                            <Building2 className="h-6 w-6 text-primary" />
-                        </div>
+                        {business.logoUrl ? (
+                            <div className="h-16 w-16 rounded-xl overflow-hidden flex items-center justify-center bg-muted">
+                                <img
+                                    src={business.logoUrl}
+                                    alt={`${business.businessName} logo`}
+                                    className="h-full w-full object-contain"
+                                    onError={(e) => {
+                                        // Fallback to icon if image fails to load
+                                        e.currentTarget.style.display = 'none';
+                                        const parent = e.currentTarget.parentElement;
+                                        if (parent) {
+                                            parent.innerHTML = '<div class="h-16 w-16 rounded-xl bg-primary/10 flex items-center justify-center"><svg class="h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M14 8h1"/><path d="M6 21V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/></svg></div>';
+                                        }
+                                    }}
+                                />
+                            </div>
+                        ) : (
+                            <div className="h-16 w-16 rounded-xl bg-primary/10 flex items-center justify-center">
+                                <Building2 className="h-8 w-8 text-primary" />
+                            </div>
+                        )}
                         <div>
                             <h1 className="text-2xl font-bold">{business.businessName}</h1>
                             <p className="text-sm text-muted-foreground">Reserva tu cita en línea</p>
                         </div>
                     </div>
-                    <ThemeToggle />
+                    <BusinessThemeToggle hasCustomTheme={!!business.settings?.primaryColor} />
                 </div>
             </div>
 
@@ -617,4 +695,44 @@ const BusinessBookingPage = () => {
 
 export default BusinessBookingPage;
 
+// Helper to convert hex to HSL (Tailwind format: "H S% L%")
+function hexToHSL(hex: string): string | null {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!result) return null;
+    let r = parseInt(result[1], 16);
+    let g = parseInt(result[2], 16);
+    let b = parseInt(result[3], 16);
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s, l = (max + min) / 2;
+    if (max === min) {
+        h = s = 0; // achromatic
+    } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+    const hDeg = Math.round(h * 360);
+    const sPct = Math.round(s * 100);
+    const lPct = Math.round(l * 100);
+    return `${hDeg} ${sPct}% ${lPct}%`;
+}
 
+function isColorDark(hex: string): boolean {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!result) return false;
+    const r = parseInt(result[1], 16);
+    const g = parseInt(result[2], 16);
+    const b = parseInt(result[3], 16);
+
+    // Perceived brightness formula
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness < 128; // If less than 128, it IS dark
+}

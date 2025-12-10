@@ -1,11 +1,11 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
-type Theme = 'light' | 'dark' | 'system';
+type Theme = 'light' | 'dark' | 'system' | 'custom';
 
 interface ThemeContextType {
     theme: Theme;
     setTheme: (theme: Theme) => void;
-    actualTheme: 'light' | 'dark'; // El tema que realmente se está aplicando
+    actualTheme: 'light' | 'dark' | 'custom'; // El tema que realmente se está aplicando
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -17,15 +17,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         return stored || 'system';
     });
 
-    const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light');
+    const [actualTheme, setActualTheme] = useState<'light' | 'dark' | 'custom'>('light');
 
     useEffect(() => {
         const root = window.document.documentElement;
 
         // Remover clases anteriores
-        root.classList.remove('light', 'dark');
+        root.classList.remove('light', 'dark', 'custom');
 
-        let resolvedTheme: 'light' | 'dark';
+        let resolvedTheme: 'light' | 'dark' | 'custom';
 
         if (theme === 'system') {
             // Detectar preferencia del sistema
@@ -33,6 +33,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
                 ? 'dark'
                 : 'light';
             resolvedTheme = systemTheme;
+        } else if (theme === 'custom') {
+            resolvedTheme = 'custom';
         } else {
             resolvedTheme = theme;
         }

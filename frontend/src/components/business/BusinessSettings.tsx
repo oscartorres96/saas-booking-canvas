@@ -30,10 +30,19 @@ const formSchema = z.object({
     businessHours: z.array(z.object({
         day: z.string(),
         isOpen: z.boolean(),
-        intervals: z.array(intervalSchema).min(1, "Agrega al menos un intervalo"),
+        intervals: z.array(intervalSchema),
     })).superRefine((val, ctx) => {
         val.forEach((day, idx) => {
             if (!day.isOpen) return;
+
+            if (day.intervals.length === 0) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "Agrega al menos un intervalo",
+                    path: ["businessHours", idx, "intervals"],
+                });
+            }
+
             const sorted = [...day.intervals].sort((a, b) => a.startTime.localeCompare(b.startTime));
             for (let i = 0; i < sorted.length; i++) {
                 const { startTime, endTime } = sorted[i];
@@ -63,6 +72,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
     const { user } = useAuthContext();
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [activeTab, setActiveTab] = useState("general");
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -121,9 +131,50 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         if (!businessId) return;
+
+        // Manually trigger validation only for the active tab's fields
+        let isValid = false;
+
+        if (activeTab === "general") {
+            isValid = await form.trigger(["businessName", "logoUrl", "description", "defaultServiceDuration"]);
+        } else if (activeTab === "branding") {
+            isValid = await form.trigger(["primaryColor", "secondaryColor"]);
+        } else if (activeTab === "hours") {
+            isValid = await form.trigger(["businessHours"]);
+        }
+
+        if (!isValid) {
+            toast.error("Por favor corrige los errores en el formulario");
+            return;
+        }
+
         setIsSaving(true);
         try {
-            await updateBusinessSettings(businessId, values);
+            // Only send the fields relevant to the current tab
+            let dataToSubmit: any = {};
+
+            if (activeTab === "general") {
+                // General tab: name, logo, description, duration
+                dataToSubmit = {
+                    businessName: values.businessName,
+                    logoUrl: values.logoUrl,
+                    description: values.description,
+                    defaultServiceDuration: values.defaultServiceDuration,
+                };
+            } else if (activeTab === "branding") {
+                // Branding tab: only colors
+                dataToSubmit = {
+                    primaryColor: values.primaryColor,
+                    secondaryColor: values.secondaryColor,
+                };
+            } else if (activeTab === "hours") {
+                // Hours tab: only business hours
+                dataToSubmit = {
+                    businessHours: values.businessHours,
+                };
+            }
+
+            await updateBusinessSettings(businessId, dataToSubmit);
             toast.success("Configuración guardada");
         } catch (error) {
             toast.error("Error al guardar");
@@ -134,9 +185,22 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
 
     if (isLoading) return <div className="flex justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
+    const onInvalid = (errors: any) => {
+        console.log("Form errors:", errors);
+        const errorCount = Object.keys(errors).length;
+        const firstErrorField = Object.keys(errors)[0];
+        toast.error(`Tienes ${errorCount} errores en el formulario. Revisa el campo: ${firstErrorField}`);
+    };
+
+    const handleFormSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const values = form.getValues();
+        await onSubmit(values);
+    };
+
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={handleFormSubmit} className="space-y-6">
                 <div className="flex justify-between items-center">
                     <h2 className="text-2xl font-bold">Configuración del Negocio</h2>
                     <Button type="submit" disabled={isSaving}>
@@ -145,7 +209,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     </Button>
                 </div>
 
-                <Tabs defaultValue="general" className="w-full">
+                <Tabs defaultValue="general" value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList>
                         <TabsTrigger value="general">General</TabsTrigger>
                         <TabsTrigger value="branding">Marca</TabsTrigger>
@@ -234,8 +298,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                             <FormItem>
                                                 <FormLabel>Color Primario</FormLabel>
                                                 <div className="flex gap-2">
-                                                    <Input type="color" className="w-12 p-1 h-10" {...field} />
-                                                    <Input {...field} />
+                                                    <input type="color" className="w-12 h-10 p-1 rounded-md border border-input bg-background cursor-pointer" {...field} />
+                                                    <Input {...field} placeholder="#000000" />
                                                 </div>
                                                 <FormMessage />
                                             </FormItem>
@@ -248,8 +312,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                             <FormItem>
                                                 <FormLabel>Color Secundario</FormLabel>
                                                 <div className="flex gap-2">
-                                                    <Input type="color" className="w-12 p-1 h-10" {...field} />
-                                                    <Input {...field} />
+                                                    <input type="color" className="w-12 h-10 p-1 rounded-md border border-input bg-background cursor-pointer" {...field} />
+                                                    <Input {...field} placeholder="#ffffff" />
                                                 </div>
                                                 <FormMessage />
                                             </FormItem>

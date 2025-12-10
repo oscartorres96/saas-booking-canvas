@@ -67,6 +67,7 @@ export class BusinessesController {
     return this.businessesService.remove(id, req.user);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post(':id/logo')
   @UseInterceptors(FileInterceptor('file', {
     storage: diskStorage({
@@ -94,7 +95,7 @@ export class BusinessesController {
     // Update logoUrl in business settings
     // Assuming the backend serves static files from /uploads
     const apiUrl = process.env.VITE_API_URL || process.env.BACKEND_URL || 'http://localhost:3000';
-    const logoUrl = `${apiUrl}/uploads/${file.filename}`;
+    const logoUrl = `${apiUrl}/api/uploads/${file.filename}`;
 
     await this.businessesService.updateSettings(id, { logoUrl }, req.user);
     return { url: logoUrl };
