@@ -22,6 +22,35 @@
         "to": "to",
         "minutes": "minutes"
     },
+    "home": {
+        "header": {
+            "brand": "BookPro",
+            "login": "Login"
+        },
+        "hero": {
+            "title": "Book fast at your favorite business",
+            "subtitle": "Choose a business to view available services and schedule in seconds. If you already booked, check your appointments with your access code."
+        },
+        "cards": {
+            "loading": "Loading...",
+            "open": "Bookings open",
+            "button": "Go to bookings",
+            "default_description": "Services available.",
+            "skeleton_name": "Loading business...",
+            "skeleton_description": "Preparing booking catalog."
+        },
+        "my_bookings": {
+            "title": "Already booked?",
+            "description": "Check your appointments with your email and access code.",
+            "info": "Go to",
+            "link_text": "My bookings",
+            "info_suffix": "to view, confirm or cancel.",
+            "button": "View my bookings"
+        },
+        "errors": {
+            "load_businesses": "Could not load businesses"
+        }
+    },
     "booking": {
         "form": {
             "title": "Book Appointment",

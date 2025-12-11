@@ -22,6 +22,35 @@
     "to": "a",
     "minutes": "minutos"
   },
+  "home": {
+    "header": {
+      "brand": "BookPro",
+      "login": "Iniciar Sesión"
+    },
+    "hero": {
+      "title": "Reserva rápido en tu negocio favorito",
+      "subtitle": "Elige un negocio para ver servicios disponibles y agendar en segundos. Si ya reservaste, revisa tus citas con tu código de acceso."
+    },
+    "cards": {
+      "loading": "Cargando...",
+      "open": "Reservas abiertas",
+      "button": "Ir a reservas",
+      "default_description": "Servicios disponibles.",
+      "skeleton_name": "Cargando negocio...",
+      "skeleton_description": "Preparando catálogo de reservas."
+    },
+    "my_bookings": {
+      "title": "¿Ya reservaste?",
+      "description": "Consulta tus citas con tu correo y código de acceso.",
+      "info": "Ve a",
+      "link_text": "Mis reservas",
+      "info_suffix": "para ver, confirmar o cancelar.",
+      "button": "Ver mis reservas"
+    },
+    "errors": {
+      "load_businesses": "No se pudieron cargar los negocios"
+    }
+  },
   "booking": {
     "form": {
       "title": "Agendar Cita",
