@@ -24,8 +24,8 @@ export class NotificationService {
   }
 
   /** Formatea la fecha y hora de la reserva */
-  private formatScheduledDate(date: Date): string {
-    return new Intl.DateTimeFormat('es-MX', {
+  private formatScheduledDate(date: Date, locale: string = 'es-MX'): string {
+    return new Intl.DateTimeFormat(locale, {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -55,8 +55,10 @@ export class NotificationService {
         : null;
 
       const businessName = business?.name || business?.businessName || 'Nuestro Negocio';
+      const language = business?.language || 'es';
+      const locale = language === 'en' ? 'en-US' : 'es-MX';
       const scheduledDate = new Date(booking.scheduledAt);
-      const scheduledAt = this.formatScheduledDate(booking.scheduledAt);
+      const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale);
       const showReminder = !this.isSameDay(scheduledDate);
 
       if (booking.clientEmail) {
@@ -70,6 +72,7 @@ export class NotificationService {
           businessEmail: business?.email,
           businessPhone: business?.phone,
           showReminder,
+          language,
         });
 
         await sendEmail({
@@ -88,6 +91,7 @@ export class NotificationService {
           clientEmail: booking.clientEmail,
           clientPhone: booking.clientPhone,
           notes: booking.notes,
+          language,
         });
 
         await sendEmail({
@@ -114,7 +118,9 @@ export class NotificationService {
         : null;
 
       const businessName = business?.name || business?.businessName || 'Nuestro Negocio';
-      const scheduledAt = this.formatScheduledDate(booking.scheduledAt);
+      const language = business?.language || 'es';
+      const locale = language === 'en' ? 'en-US' : 'es-MX';
+      const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale);
 
       const html = clientCancellationTemplate({
         businessName,
@@ -123,6 +129,7 @@ export class NotificationService {
         scheduledAt,
         businessEmail: business?.email,
         businessPhone: business?.phone,
+        language,
       });
 
       await sendEmail({
@@ -153,7 +160,9 @@ export class NotificationService {
         : null;
 
       const businessName = business?.name || business?.businessName || 'Nuestro Negocio';
-      const scheduledAt = this.formatScheduledDate(booking.scheduledAt);
+      const language = business?.language || 'es';
+      const locale = language === 'en' ? 'en-US' : 'es-MX';
+      const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale);
 
       const html = appointmentReminderTemplate({
         businessName,
@@ -164,6 +173,7 @@ export class NotificationService {
         notes: booking.notes,
         businessEmail: business?.email,
         businessPhone: business?.phone,
+        language,
       });
 
       await sendEmail({
@@ -188,7 +198,9 @@ export class NotificationService {
         : null;
 
       const businessName = business?.name || business?.businessName || 'Nuestro Negocio';
-      const scheduledAt = this.formatScheduledDate(booking.scheduledAt);
+      const language = business?.language || 'es';
+      const locale = language === 'en' ? 'en-US' : 'es-MX';
+      const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale);
 
       const html = clientBookingCompletedTemplate({
         businessName,
@@ -197,6 +209,7 @@ export class NotificationService {
         scheduledAt,
         businessEmail: business?.email,
         businessPhone: business?.phone,
+        language,
       });
 
       await sendEmail({

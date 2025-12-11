@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface BookingCalendarProps {
   primaryColor?: string;
@@ -18,6 +19,7 @@ export const BookingCalendar = ({
   selectedTime,
   setSelectedTime
 }: BookingCalendarProps) => {
+  const { t, i18n } = useTranslation();
 
   // Mock dates for the next 7 days
   const mockDates = Array.from({ length: 7 }, (_, i) => {
@@ -27,7 +29,7 @@ export const BookingCalendar = ({
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const dayStr = String(date.getDate()).padStart(2, '0');
     return {
-      day: date.toLocaleDateString('es-ES', { weekday: 'short' }),
+      day: date.toLocaleDateString(i18n.language, { weekday: 'short' }),
       date: date.getDate(),
       fullDate: `${year}-${month}-${dayStr}`
     };
@@ -44,10 +46,10 @@ export const BookingCalendar = ({
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center space-y-4 mb-12">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
-            Selecciona Fecha y Hora
+            {t('booking.calendar.title')}
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Elige el día y horario que mejor se adapte a tu agenda
+            {t('booking.calendar.subtitle')}
           </p>
         </div>
 
@@ -61,14 +63,14 @@ export const BookingCalendar = ({
                 </Button>
                 <CardTitle className="text-xl flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
-                  Selecciona un día
+                  {t('booking.calendar.date_title')}
                 </CardTitle>
                 <Button variant="ghost" size="icon" className="h-9 w-9">
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
               <CardDescription>
-                Horarios disponibles actualizados en tiempo real
+                {t('booking.calendar.date_desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -100,11 +102,11 @@ export const BookingCalendar = ({
           {/* Time Selection */}
           <Card className="shadow-md">
             <CardHeader>
-              <CardTitle className="text-xl">Horarios disponibles</CardTitle>
+              <CardTitle className="text-xl">{t('booking.calendar.time_title')}</CardTitle>
               <CardDescription>
                 {selectedDate
-                  ? `Horarios para el ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`
-                  : 'Selecciona primero una fecha'
+                  ? t('booking.calendar.time_desc_selected', { date: new Date(selectedDate + 'T00:00:00').toLocaleDateString(i18n.language, { day: 'numeric', month: 'long' }) })
+                  : t('booking.calendar.time_desc_empty')
                 }
               </CardDescription>
             </CardHeader>
@@ -134,7 +136,7 @@ export const BookingCalendar = ({
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
                   <Calendar className="h-12 w-12 mx-auto mb-4 opacity-40" />
-                  <p>Selecciona una fecha para ver los horarios disponibles</p>
+                  <p>{t('booking.calendar.empty_state')}</p>
                 </div>
               )}
             </CardContent>

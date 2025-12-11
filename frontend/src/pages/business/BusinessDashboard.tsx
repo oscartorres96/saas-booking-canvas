@@ -4,7 +4,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { es, enUS } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
 import {
     Table,
     TableBody,
@@ -74,7 +75,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BusinessSettings } from "@/components/business/BusinessSettings";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { BusinessThemeToggle } from "@/components/BusinessThemeToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import useAuth from "@/auth/useAuth";
 import { getBusinessById, type Business } from "@/api/businessesApi";
 import { getServicesByBusiness, createService, updateService, deleteService, type Service } from "@/api/servicesApi";
@@ -105,6 +107,7 @@ const BusinessDashboard = () => {
     const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null);
     const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
     const [activeTab, setActiveTab] = useState("dashboard");
+    const { t, i18n } = useTranslation();
 
     const serviceForm = useForm<z.infer<typeof serviceFormSchema>>({
         resolver: zodResolver(serviceFormSchema),
@@ -139,13 +142,13 @@ const BusinessDashboard = () => {
 
         // Owner can access any business, business role must match businessId
         if (user.role === "business" && user.businessId !== businessId) {
-            toast.error("No tienes acceso a este negocio");
+            toast.error(t('common.access_denied'));
             navigate("/");
             return;
         }
 
         if (user.role === "client") {
-            toast.error("No tienes acceso a este panel");
+            toast.error(t('common.client_access_denied'));
             navigate("/");
             return;
         }
@@ -186,7 +189,7 @@ const BusinessDashboard = () => {
             const errorMessage = error instanceof Error && 'response' in error
                 ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
                 : undefined;
-            toast.error(errorMessage || "Error al cargar datos");
+            toast.error(errorMessage || t('common.load_error'));
         } finally {
             setLoading(false);
         }
@@ -211,12 +214,12 @@ const BusinessDashboard = () => {
                 active: true,
                 isOnline: false,
             });
-            toast.success("Servicio creado exitosamente");
+            toast.success(t('dashboard.services.toasts.created'));
         } catch (error: unknown) {
             const errorMessage = error instanceof Error && 'response' in error
                 ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
                 : undefined;
-            toast.error(errorMessage || "Error al crear servicio");
+            toast.error(errorMessage || t('dashboard.services.toasts.error_create'));
         }
     };
 
@@ -239,12 +242,12 @@ const BusinessDashboard = () => {
             const updated = await updateService(serviceToEdit._id, values);
             setServices(prev => prev.map(s => (s._id === updated._id ? updated : s)));
             setIsEditServiceDialogOpen(false);
-            toast.success("Servicio actualizado");
+            toast.success(t('dashboard.services.toasts.updated'));
         } catch (error: unknown) {
             const errorMessage = error instanceof Error && 'response' in error
                 ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
                 : undefined;
-            toast.error(errorMessage || "Error al actualizar servicio");
+            toast.error(errorMessage || t('dashboard.services.toasts.error_update'));
         }
     };
 
@@ -258,12 +261,12 @@ const BusinessDashboard = () => {
         try {
             await deleteService(serviceToDelete._id);
             setServices(prev => prev.filter(s => s._id !== serviceToDelete._id));
-            toast.success("Servicio eliminado");
+            toast.success(t('dashboard.services.toasts.deleted'));
         } catch (error: unknown) {
             const errorMessage = error instanceof Error && 'response' in error
                 ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
                 : undefined;
-            toast.error(errorMessage || "Error al eliminar servicio");
+            toast.error(errorMessage || t('dashboard.services.toasts.error_delete'));
         } finally {
             setIsDeleteServiceDialogOpen(false);
             setServiceToDelete(null);
@@ -274,25 +277,25 @@ const BusinessDashboard = () => {
         try {
             await updateBooking(bookingId, { status: newStatus });
             setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, status: newStatus } : b));
-            toast.success(`Cita marcada como ${getStatusLabel(newStatus).toLowerCase()}`);
+            toast.success(t('dashboard.bookings.toasts.status_updated', { status: getStatusLabel(newStatus).toLowerCase() }));
         } catch (error) {
-            toast.error("Error al actualizar el estado de la cita");
+            toast.error(t('dashboard.bookings.toasts.error_update'));
             console.error(error);
         }
     };
 
     const handleCopyInvitation = () => {
         const url = `${window.location.origin}/business/${businessId}/booking`;
-        const message = `¡Hola! 👋\n\nTe invito a reservar tu cita en *${business?.businessName}* de forma rápida y sencilla. 📅✨\n\nHaz clic aquí para ver nuestros servicios y horarios disponibles: 👇\n${url}\n\n¡Te esperamos!`;
+        const message = t('dashboard.invitationMessage', { businessName: business?.businessName, url });
         navigator.clipboard.writeText(message);
-        toast.success("Invitación copiada al portapapeles");
+        toast.success(t('dashboard.invitationCopied'));
     };
 
     const handleCopyServiceLink = (service: Service) => {
         const url = `${window.location.origin}/business/${businessId}/booking?serviceId=${service._id}`;
-        const message = `¡Hola! 👋\n\nReserva tu cita para *${service.name}* aquí: 👇\n${url}`;
+        const message = t('dashboard.serviceLinkMessage', { serviceName: service.name, url });
         navigator.clipboard.writeText(message);
-        toast.success("Enlace del servicio copiado al portapapeles");
+        toast.success(t('dashboard.services.toasts.link_copied'));
     };
 
     const filteredBookings = bookings.filter(booking =>
@@ -312,14 +315,9 @@ const BusinessDashboard = () => {
         }
     };
 
+
     const getStatusLabel = (status: string) => {
-        switch (status) {
-            case "confirmed": return "Confirmada";
-            case "pending": return "Pendiente";
-            case "completed": return "Completada";
-            case "cancelled": return "Cancelada";
-            default: return status;
-        }
+        return t(`dashboard.bookings.status.${status}`, status);
     };
 
     if (loading) {
@@ -354,7 +352,7 @@ const BusinessDashboard = () => {
                         <div>
                             <h1 className="text-2xl font-semibold tracking-tight">{business.businessName}</h1>
                             <p className="text-muted-foreground text-sm">
-                                Panel de gestión de tu negocio
+                                {t('dashboard.subtitle')}
                             </p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
@@ -363,7 +361,7 @@ const BusinessDashboard = () => {
                                 className="w-full md:w-auto order-last md:order-first"
                                 onClick={() => window.open(`/business/${businessId}/booking`, '_blank')}
                             >
-                                Ver página de reservas
+                                {t('dashboard.viewBookingPage')}
                             </Button>
                             <Button
                                 variant="default"
@@ -371,14 +369,15 @@ const BusinessDashboard = () => {
                                 onClick={handleCopyInvitation}
                             >
                                 <Copy className="mr-2 h-4 w-4" />
-                                Copiar Invitación
+                                {t('dashboard.copyInvitation')}
                             </Button>
                             <TabsList className="order-first md:order-none w-full md:w-auto">
-                                <TabsTrigger value="dashboard" className="flex-1 md:flex-none">Dashboard</TabsTrigger>
-                                <TabsTrigger value="settings" className="flex-1 md:flex-none">Configuración</TabsTrigger>
+                                <TabsTrigger value="dashboard" className="flex-1 md:flex-none">{t('dashboard.tabs.dashboard')}</TabsTrigger>
+                                <TabsTrigger value="settings" className="flex-1 md:flex-none">{t('dashboard.tabs.settings')}</TabsTrigger>
                             </TabsList>
                             <div className="flex items-center gap-2 ml-auto md:ml-0">
-                                <ThemeToggle />
+                                <LanguageSwitcher />
+                                <BusinessThemeToggle />
                                 <Button variant="outline" size="icon" onClick={logout} title="Cerrar Sesión">
                                     <LogOut className="h-4 w-4" />
                                 </Button>
@@ -389,10 +388,11 @@ const BusinessDashboard = () => {
                     <TabsContent value="dashboard" className="space-y-6">
 
                         {/* Stats Cards */}
+                        {/* Stats Cards */}
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                             <Card className="shadow-sm">
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                                    <CardTitle className="text-sm font-medium text-muted-foreground">Servicios</CardTitle>
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.stats.services')}</CardTitle>
                                     <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
                                         <Package className="h-4 w-4 text-primary" />
                                     </div>
@@ -400,37 +400,37 @@ const BusinessDashboard = () => {
                                 <CardContent>
                                     <div className="text-2xl font-semibold">{services.length}</div>
                                     <p className="text-xs text-muted-foreground mt-1">
-                                        {services.filter(s => s.active).length} activos
+                                        {services.filter(s => s.active).length} {t('dashboard.stats.active_services')}
                                     </p>
                                 </CardContent>
                             </Card>
                             <Card className="shadow-sm">
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                                    <CardTitle className="text-sm font-medium text-muted-foreground">Próximas Citas</CardTitle>
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.stats.upcoming_bookings')}</CardTitle>
                                     <div className="h-8 w-8 rounded-xl bg-orange-500/10 flex items-center justify-center">
                                         <Clock className="h-4 w-4 text-orange-600 dark:text-orange-500" />
                                     </div>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-2xl font-semibold">{upcomingBookings.length}</div>
-                                    <p className="text-xs text-muted-foreground mt-1">Agendadas a futuro</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{t('dashboard.stats.future_bookings')}</p>
                                 </CardContent>
                             </Card>
                             <Card className="shadow-sm">
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                                    <CardTitle className="text-sm font-medium text-muted-foreground">Total Reservas</CardTitle>
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.stats.total_bookings')}</CardTitle>
                                     <div className="h-8 w-8 rounded-xl bg-blue-500/10 flex items-center justify-center">
                                         <CalendarIcon className="h-4 w-4 text-blue-600 dark:text-blue-500" />
                                     </div>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-2xl font-semibold">{bookings.length}</div>
-                                    <p className="text-xs text-muted-foreground mt-1">Todas las citas</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{t('dashboard.stats.all_bookings')}</p>
                                 </CardContent>
                             </Card>
                             <Card className="shadow-sm">
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                                    <CardTitle className="text-sm font-medium text-muted-foreground">Pendientes</CardTitle>
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">{t('dashboard.stats.pending_bookings')}</CardTitle>
                                     <div className="h-8 w-8 rounded-xl bg-yellow-500/10 flex items-center justify-center">
                                         <Users className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
                                     </div>
@@ -439,7 +439,7 @@ const BusinessDashboard = () => {
                                     <div className="text-2xl font-semibold">
                                         {bookings.filter(b => b.status === 'pending').length}
                                     </div>
-                                    <p className="text-xs text-muted-foreground mt-1">Por confirmar</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{t('dashboard.stats.to_confirm')}</p>
                                 </CardContent>
                             </Card>
                         </div>
@@ -449,20 +449,20 @@ const BusinessDashboard = () => {
                             <CardHeader>
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <CardTitle>Servicios</CardTitle>
-                                        <CardDescription>Gestiona los servicios que ofreces.</CardDescription>
+                                        <CardTitle>{t('dashboard.services.title')}</CardTitle>
+                                        <CardDescription>{t('dashboard.services.description')}</CardDescription>
                                     </div>
                                     <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
                                         <DialogTrigger asChild>
                                             <Button>
-                                                <Plus className="mr-2 h-4 w-4" /> Crear Servicio
+                                                <Plus className="mr-2 h-4 w-4" /> {t('dashboard.services.create')}
                                             </Button>
                                         </DialogTrigger>
                                         <DialogContent className="sm:max-w-[425px]">
                                             <DialogHeader>
-                                                <DialogTitle>Nuevo Servicio</DialogTitle>
+                                                <DialogTitle>{t('dashboard.services.new_title')}</DialogTitle>
                                                 <DialogDescription>
-                                                    Crea un nuevo servicio para tu negocio.
+                                                    {t('dashboard.services.new_description')}
                                                 </DialogDescription>
                                             </DialogHeader>
                                             <Form {...serviceForm}>
@@ -472,9 +472,9 @@ const BusinessDashboard = () => {
                                                         name="name"
                                                         render={({ field }) => (
                                                             <FormItem>
-                                                                <FormLabel>Nombre del Servicio</FormLabel>
+                                                                <FormLabel>{t('dashboard.services.name_label')}</FormLabel>
                                                                 <FormControl>
-                                                                    <Input placeholder="Ej. Corte de cabello" {...field} />
+                                                                    <Input placeholder={t('dashboard.services.name_placeholder')} {...field} />
                                                                 </FormControl>
                                                                 <FormMessage />
                                                             </FormItem>
@@ -485,9 +485,9 @@ const BusinessDashboard = () => {
                                                         name="description"
                                                         render={({ field }) => (
                                                             <FormItem>
-                                                                <FormLabel>Descripción (opcional)</FormLabel>
+                                                                <FormLabel>{t('dashboard.services.desc_label')}</FormLabel>
                                                                 <FormControl>
-                                                                    <Input placeholder="Descripción del servicio" {...field} />
+                                                                    <Input placeholder={t('dashboard.services.desc_placeholder')} {...field} />
                                                                 </FormControl>
                                                                 <FormMessage />
                                                             </FormItem>
@@ -499,7 +499,7 @@ const BusinessDashboard = () => {
                                                             name="durationMinutes"
                                                             render={({ field }) => (
                                                                 <FormItem>
-                                                                    <FormLabel>Duración (min)</FormLabel>
+                                                                    <FormLabel>{t('dashboard.services.duration_label')}</FormLabel>
                                                                     <FormControl>
                                                                         <Input type="number" {...field} />
                                                                     </FormControl>
@@ -512,7 +512,7 @@ const BusinessDashboard = () => {
                                                             name="price"
                                                             render={({ field }) => (
                                                                 <FormItem>
-                                                                    <FormLabel>Precio ($)</FormLabel>
+                                                                    <FormLabel>{t('dashboard.services.price_label')}</FormLabel>
                                                                     <FormControl>
                                                                         <Input type="number" {...field} />
                                                                     </FormControl>
@@ -526,7 +526,7 @@ const BusinessDashboard = () => {
                                                         name="isOnline"
                                                         render={({ field }) => (
                                                             <FormItem>
-                                                                <FormLabel>Modalidad</FormLabel>
+                                                                <FormLabel>{t('dashboard.services.mode_label')}</FormLabel>
                                                                 <Select
                                                                     value={field.value ? "online" : "offline"}
                                                                     onValueChange={(val) => field.onChange(val === "online")}
@@ -535,8 +535,8 @@ const BusinessDashboard = () => {
                                                                         <SelectValue />
                                                                     </SelectTrigger>
                                                                     <SelectContent>
-                                                                        <SelectItem value="offline">Solo presencial</SelectItem>
-                                                                        <SelectItem value="online">Servicio en línea</SelectItem>
+                                                                        <SelectItem value="offline">{t('dashboard.services.mode_offline')}</SelectItem>
+                                                                        <SelectItem value="online">{t('dashboard.services.mode_online')}</SelectItem>
                                                                     </SelectContent>
                                                                 </Select>
                                                                 <FormMessage />
@@ -544,7 +544,7 @@ const BusinessDashboard = () => {
                                                         )}
                                                     />
                                                     <DialogFooter>
-                                                        <Button type="submit">Crear Servicio</Button>
+                                                        <Button type="submit">{t('dashboard.services.create')}</Button>
                                                     </DialogFooter>
                                                 </form>
                                             </Form>
@@ -555,18 +555,18 @@ const BusinessDashboard = () => {
                             <CardContent>
                                 {services.length === 0 ? (
                                     <div className="text-center py-8 text-muted-foreground">
-                                        No hay servicios creados. Crea tu primer servicio.
+                                        {t('dashboard.services.empty')}
                                     </div>
                                 ) : (
                                     <div className="overflow-x-auto">
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
-                                                    <TableHead>Nombre</TableHead>
-                                                    <TableHead>Duración</TableHead>
-                                                    <TableHead>Precio</TableHead>
-                                                    <TableHead>Estado</TableHead>
-                                                    <TableHead className="text-right">Acciones</TableHead>
+                                                    <TableHead>{t('dashboard.services.name_label')}</TableHead>
+                                                    <TableHead>{t('dashboard.services.duration_label')}</TableHead>
+                                                    <TableHead>{t('dashboard.services.price_label')}</TableHead>
+                                                    <TableHead>{t('dashboard.services.status_header')}</TableHead>
+                                                    <TableHead className="text-right">{t('dashboard.services.actions_header')}</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -584,7 +584,7 @@ const BusinessDashboard = () => {
                                                         <TableCell>${service.price}</TableCell>
                                                         <TableCell>
                                                             <Badge variant={service.active ? "default" : "secondary"}>
-                                                                {service.active ? "Activo" : "Inactivo"}
+                                                                {service.active ? t('common.active') : t('common.inactive')}
                                                             </Badge>
                                                         </TableCell>
                                                         <TableCell className="text-right">
@@ -596,19 +596,19 @@ const BusinessDashboard = () => {
                                                                     </Button>
                                                                 </DropdownMenuTrigger>
                                                                 <DropdownMenuContent align="end">
-                                                                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                                                    <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
                                                                     <DropdownMenuItem onClick={() => handleCopyServiceLink(service)}>
-                                                                        Copiar Link de Reserva
+                                                                        {t('dashboard.services.copy_link')}
                                                                     </DropdownMenuItem>
                                                                     <DropdownMenuItem onClick={() => openEditService(service)}>
-                                                                        Editar
+                                                                        {t('common.edit')}
                                                                     </DropdownMenuItem>
                                                                     <DropdownMenuSeparator />
                                                                     <DropdownMenuItem
                                                                         className="text-red-600"
                                                                         onClick={() => openDeleteService(service)}
                                                                     >
-                                                                        Eliminar
+                                                                        {t('common.delete')}
                                                                     </DropdownMenuItem>
                                                                 </DropdownMenuContent>
                                                             </DropdownMenu>
@@ -626,8 +626,8 @@ const BusinessDashboard = () => {
                         <Dialog open={isEditServiceDialogOpen} onOpenChange={setIsEditServiceDialogOpen}>
                             <DialogContent className="sm:max-w-[425px]">
                                 <DialogHeader>
-                                    <DialogTitle>Editar Servicio</DialogTitle>
-                                    <DialogDescription>Modifica los datos del servicio.</DialogDescription>
+                                    <DialogTitle>{t('dashboard.services.edit_title')}</DialogTitle>
+                                    <DialogDescription>{t('dashboard.services.edit_description')}</DialogDescription>
                                 </DialogHeader>
                                 <Form {...editServiceForm}>
                                     <form onSubmit={editServiceForm.handleSubmit(onUpdateService)} className="space-y-4">
@@ -636,9 +636,9 @@ const BusinessDashboard = () => {
                                             name="name"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Nombre del Servicio</FormLabel>
+                                                    <FormLabel>{t('dashboard.services.name_label')}</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="Ej. Corte de cabello" {...field} />
+                                                        <Input placeholder={t('dashboard.services.name_placeholder')} {...field} />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -649,9 +649,9 @@ const BusinessDashboard = () => {
                                             name="description"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Descripción (opcional)</FormLabel>
+                                                    <FormLabel>{t('dashboard.services.desc_label')}</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="Descripción del servicio" {...field} />
+                                                        <Input placeholder={t('dashboard.services.desc_placeholder')} {...field} />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -663,7 +663,7 @@ const BusinessDashboard = () => {
                                                 name="durationMinutes"
                                                 render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel>Duración (min)</FormLabel>
+                                                        <FormLabel>{t('dashboard.services.duration_label')}</FormLabel>
                                                         <FormControl>
                                                             <Input type="number" {...field} />
                                                         </FormControl>
@@ -676,7 +676,7 @@ const BusinessDashboard = () => {
                                                 name="price"
                                                 render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel>Precio ($)</FormLabel>
+                                                        <FormLabel>{t('dashboard.services.price_label')}</FormLabel>
                                                         <FormControl>
                                                             <Input type="number" {...field} />
                                                         </FormControl>
@@ -690,7 +690,7 @@ const BusinessDashboard = () => {
                                             name="isOnline"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Modalidad</FormLabel>
+                                                    <FormLabel>{t('dashboard.services.mode_label')}</FormLabel>
                                                     <Select
                                                         value={field.value ? "online" : "offline"}
                                                         onValueChange={(val) => field.onChange(val === "online")}
@@ -699,8 +699,8 @@ const BusinessDashboard = () => {
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="offline">Solo presencial</SelectItem>
-                                                            <SelectItem value="online">Servicio en lAnea</SelectItem>
+                                                            <SelectItem value="offline">{t('dashboard.services.mode_offline')}</SelectItem>
+                                                            <SelectItem value="online">{t('dashboard.services.mode_online')}</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     <FormMessage />
@@ -712,7 +712,7 @@ const BusinessDashboard = () => {
                                             name="active"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Estado</FormLabel>
+                                                    <FormLabel>{t('dashboard.services.status_header')}</FormLabel>
                                                     <Select
                                                         value={field.value ? "active" : "inactive"}
                                                         onValueChange={(val) => field.onChange(val === "active")}
@@ -721,8 +721,8 @@ const BusinessDashboard = () => {
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="active">Activo</SelectItem>
-                                                            <SelectItem value="inactive">Inactivo</SelectItem>
+                                                            <SelectItem value="active">{t('common.active')}</SelectItem>
+                                                            <SelectItem value="inactive">{t('common.inactive')}</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     <FormMessage />
@@ -730,7 +730,7 @@ const BusinessDashboard = () => {
                                             )}
                                         />
                                         <DialogFooter>
-                                            <Button type="submit">Guardar cambios</Button>
+                                            <Button type="submit">{t('common.save')}</Button>
                                         </DialogFooter>
                                     </form>
                                 </Form>
@@ -741,17 +741,17 @@ const BusinessDashboard = () => {
                         <Dialog open={isDeleteServiceDialogOpen} onOpenChange={setIsDeleteServiceDialogOpen}>
                             <DialogContent className="sm:max-w-[400px]">
                                 <DialogHeader>
-                                    <DialogTitle>Eliminar servicio</DialogTitle>
+                                    <DialogTitle>{t('dashboard.services.delete_title')}</DialogTitle>
                                     <DialogDescription>
-                                        Esta acción no se puede deshacer. ¿Deseas eliminar "{serviceToDelete?.name}"?
+                                        {t('dashboard.services.delete_description', { name: serviceToDelete?.name })}
                                     </DialogDescription>
                                 </DialogHeader>
                                 <DialogFooter className="flex flex-row justify-end gap-2">
                                     <Button variant="ghost" onClick={() => setIsDeleteServiceDialogOpen(false)}>
-                                        Cancelar
+                                        {t('common.cancel')}
                                     </Button>
                                     <Button variant="destructive" onClick={onDeleteService}>
-                                        Eliminar
+                                        {t('common.delete')}
                                     </Button>
                                 </DialogFooter>
                             </DialogContent>
@@ -762,14 +762,14 @@ const BusinessDashboard = () => {
                             <CardHeader>
                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                     <div>
-                                        <CardTitle>Próximas Citas</CardTitle>
-                                        <CardDescription>Gestiona las reservas de tus clientes.</CardDescription>
+                                        <CardTitle>{t('dashboard.bookings.title')}</CardTitle>
+                                        <CardDescription>{t('dashboard.bookings.description')}</CardDescription>
                                     </div>
                                     <div className="flex items-center gap-2 w-full md:w-auto">
                                         <div className="relative w-full md:w-64">
                                             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                                             <Input
-                                                placeholder="Buscar cliente..."
+                                                placeholder={t('dashboard.bookings.search_placeholder')}
                                                 className="pl-8 w-full"
                                                 value={searchTerm}
                                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -784,18 +784,18 @@ const BusinessDashboard = () => {
                             <CardContent>
                                 {upcomingBookings.length === 0 ? (
                                     <div className="text-center py-8 text-muted-foreground">
-                                        No hay citas próximas.
+                                        {t('dashboard.bookings.empty')}
                                     </div>
                                 ) : (
                                     <div className="overflow-x-auto">
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
-                                                    <TableHead>Cliente</TableHead>
-                                                    <TableHead>Servicio</TableHead>
-                                                    <TableHead>Fecha y Hora</TableHead>
-                                                    <TableHead>Estado</TableHead>
-                                                    <TableHead className="text-right">Acciones</TableHead>
+                                                    <TableHead>{t('dashboard.bookings.table.client')}</TableHead>
+                                                    <TableHead>{t('dashboard.bookings.table.service')}</TableHead>
+                                                    <TableHead>{t('dashboard.bookings.table.date')}</TableHead>
+                                                    <TableHead>{t('dashboard.bookings.table.status')}</TableHead>
+                                                    <TableHead className="text-right">{t('dashboard.bookings.table.actions')}</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -814,9 +814,9 @@ const BusinessDashboard = () => {
                                                             <TableCell>{service?.name || booking.serviceId}</TableCell>
                                                             <TableCell>
                                                                 <div className="flex flex-col">
-                                                                    <span>{format(new Date(booking.scheduledAt), "PPP", { locale: es })}</span>
+                                                                    <span>{format(new Date(booking.scheduledAt), "PPP", { locale: i18n.language === 'en' ? enUS : es })}</span>
                                                                     <span className="text-xs text-muted-foreground">
-                                                                        {format(new Date(booking.scheduledAt), "p", { locale: es })}
+                                                                        {format(new Date(booking.scheduledAt), "p", { locale: i18n.language === 'en' ? enUS : es })}
                                                                     </span>
                                                                 </div>
                                                             </TableCell>
@@ -829,20 +829,20 @@ const BusinessDashboard = () => {
                                                                 <DropdownMenu>
                                                                     <DropdownMenuTrigger asChild>
                                                                         <Button variant="ghost" className="h-8 w-8 p-0">
-                                                                            <span className="sr-only">Abrir menú</span>
+                                                                            <span className="sr-only">{t('common.actions')}</span>
                                                                             <MoreHorizontal className="h-4 w-4" />
                                                                         </Button>
                                                                     </DropdownMenuTrigger>
                                                                     <DropdownMenuContent align="end">
-                                                                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                                                        <DropdownMenuItem>Ver detalles</DropdownMenuItem>
+                                                                        <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
+                                                                        <DropdownMenuItem>{t('dashboard.bookings.actions.view_details')}</DropdownMenuItem>
                                                                         <DropdownMenuSeparator />
                                                                         {booking.status === 'pending' && (
                                                                             <DropdownMenuItem
                                                                                 className="text-green-600"
                                                                                 onClick={() => onUpdateBookingStatus(booking._id, 'confirmed')}
                                                                             >
-                                                                                Confirmar
+                                                                                {t('dashboard.bookings.actions.confirm')}
                                                                             </DropdownMenuItem>
                                                                         )}
                                                                         {booking.status !== 'completed' && booking.status !== 'cancelled' && (
@@ -850,7 +850,7 @@ const BusinessDashboard = () => {
                                                                                 className="text-blue-600"
                                                                                 onClick={() => onUpdateBookingStatus(booking._id, 'completed')}
                                                                             >
-                                                                                Marcar como Completada
+                                                                                {t('dashboard.bookings.actions.complete')}
                                                                             </DropdownMenuItem>
                                                                         )}
                                                                         {booking.status !== 'cancelled' && booking.status !== 'completed' && (
@@ -858,7 +858,7 @@ const BusinessDashboard = () => {
                                                                                 className="text-red-600"
                                                                                 onClick={() => onUpdateBookingStatus(booking._id, 'cancelled')}
                                                                             >
-                                                                                Cancelar
+                                                                                {t('dashboard.bookings.actions.cancel')}
                                                                             </DropdownMenuItem>
                                                                         )}
                                                                     </DropdownMenuContent>

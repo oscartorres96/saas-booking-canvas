@@ -294,12 +294,99 @@ interface BookingEmailData {
   clientEmail?: string;
   clientPhone?: string;
   showReminder?: boolean;
+  language?: string;
 }
 
+const translations = {
+  es: {
+    bookingConfirmed: "Reserva Confirmada",
+    hello: "Hola",
+    bookingSaved: "Tu reserva se ha guardado correctamente. Aquí están los detalles:",
+    service: "Servicio",
+    date: "Fecha y hora",
+    business: "Negocio",
+    notes: "Notas",
+    accessCode: "Código de acceso",
+    saveCode: "Guarda este código para consultar o cancelar tu reserva.",
+    consultBookings: "Consulta tus citas en",
+    myBookings: "Mis reservas",
+    usingEmailCode: "usando tu correo y código.",
+    reminderInfo: "Te enviaremos un recordatorio 24 horas antes de tu cita.",
+    contactBusiness: "Contacto del negocio:",
+    thanks: "Gracias por reservar en",
+    autoEmail: "Este es un correo automático, por favor no responder.",
+    newBooking: "Nueva Reserva Recibida",
+    newBookingHeader: "Tienes una nueva reserva",
+    newBookingBody: "Se registró una nueva cita en",
+    client: "Cliente",
+    email: "Email",
+    phone: "Teléfono",
+    manageBooking: "Gestiona la reserva desde tu panel de administración.",
+    bookingSystem: "Sistema de reservas",
+    bookingCancelled: "Reserva Cancelada",
+    bookingCancelledBody: "Tu reserva ha sido cancelada.",
+    cancellationDoubt: "Si tienes dudas sobre la cancelación, contacta directamente con el negocio.",
+    reminderSubject: "Recordatorio de Cita",
+    reminderBody: "Te recordamos que tienes una cita en 24 horas.",
+    useCode: "Usa este código si necesitas consultar o cancelar tu reserva.",
+    seeYouSoon: "Nos vemos pronto en",
+    thanksVisit: "¡Gracias por tu visita!",
+    hopeEnjoyed: "Esperamos que hayas disfrutado tu servicio en",
+    markedCompleted: "Tu cita ha sido marcada como completada.",
+    servicePerformed: "Servicio realizado",
+    dateLabel: "Fecha",
+    hopeSeeYou: "¡Esperamos verte pronto de nuevo!",
+    bookAgain: "Reservar de nuevo"
+  },
+  en: {
+    bookingConfirmed: "Booking Confirmed",
+    hello: "Hello",
+    bookingSaved: "Your booking has been successfully saved. Here are the details:",
+    service: "Service",
+    date: "Date and time",
+    business: "Business",
+    notes: "Notes",
+    accessCode: "Access Code",
+    saveCode: "Keep this code to check or cancel your booking.",
+    consultBookings: "Check your bookings at",
+    myBookings: "My bookings",
+    usingEmailCode: "using your email and code.",
+    reminderInfo: "We will send you a reminder 24 hours before your appointment.",
+    contactBusiness: "Business Contact:",
+    thanks: "Thank you for booking at",
+    autoEmail: "This is an automated email, please do not reply.",
+    newBooking: "New Booking Received",
+    newBookingHeader: "You have a new booking",
+    newBookingBody: "A new appointment was registered at",
+    client: "Client",
+    email: "Email",
+    phone: "Phone",
+    manageBooking: "Manage the booking from your admin dashboard.",
+    bookingSystem: "Booking system",
+    bookingCancelled: "Booking Cancelled",
+    bookingCancelledBody: "Your booking has been cancelled.",
+    cancellationDoubt: "If you have questions about the cancellation, please contact the business directly.",
+    reminderSubject: "Appointment Reminder",
+    reminderBody: "This is a reminder that you have an appointment in 24 hours.",
+    useCode: "Use this code if you need to check or cancel your booking.",
+    seeYouSoon: "See you soon at",
+    thanksVisit: "Thanks for your visit!",
+    hopeEnjoyed: "We hope you enjoyed your service at",
+    markedCompleted: "Your appointment has been marked as completed.",
+    servicePerformed: "Service performed",
+    dateLabel: "Date",
+    hopeSeeYou: "We hope to see you again soon!",
+    bookAgain: "Book again"
+  }
+};
+
 export const clientBookingConfirmationTemplate = (data: BookingEmailData): string => {
+  const lang = (data.language || 'es') as keyof typeof translations;
+  const t = translations[lang];
+
   return `
 <!DOCTYPE html>
-<html lang="es">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -310,28 +397,28 @@ export const clientBookingConfirmationTemplate = (data: BookingEmailData): strin
 <body>
   <div class="email-container">
     <div class="email-header">
-      <h1>Reserva Confirmada</h1>
+      <h1>${t.bookingConfirmed}</h1>
     </div>
     <div class="email-body">
-      <h2>Hola ${data.clientName}!</h2>
-      <p>Tu reserva se ha guardado correctamente. Aquí están los detalles:</p>
+      <h2>${t.hello} ${data.clientName}!</h2>
+      <p>${t.bookingSaved}</p>
       
       <div class="booking-details">
         <div class="detail-row">
-          <span class="detail-label">Servicio</span>
+          <span class="detail-label">${t.service}</span>
           <span class="detail-value">${data.serviceName}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Fecha y hora</span>
+          <span class="detail-label">${t.date}</span>
           <span class="detail-value">${data.scheduledAt}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Negocio</span>
+          <span class="detail-label">${t.business}</span>
           <span class="detail-value">${data.businessName}</span>
         </div>
         ${data.notes ? `
         <div class="detail-row detail-notes">
-          <span class="detail-label">Notas</span>
+          <span class="detail-label">${t.notes}</span>
           <span class="detail-value">${data.notes}</span>
         </div>
         ` : ''}
@@ -339,35 +426,35 @@ export const clientBookingConfirmationTemplate = (data: BookingEmailData): strin
 
       ${data.accessCode ? `
       <div class="access-code">
-        <div class="access-code-label">Código de acceso</div>
+        <div class="access-code-label">${t.accessCode}</div>
         <div class="access-code-value">${data.accessCode}</div>
         <p style="margin-top: 12px; font-size: 14px; color: inherit; opacity: 0.8;">
-          Guarda este código para consultar o cancelar tu reserva.
+          ${t.saveCode}
         </p>
         <p style="margin-top: 10px; font-size: 14px; color: inherit; opacity: 0.8;">
-          Consulta tus citas en <a href="${process.env.PUBLIC_BOOKINGS_URL || ''}?email=${encodeURIComponent(data.clientEmail || '')}&code=${encodeURIComponent(data.accessCode || '')}" style="color: #4338ca; font-weight: 600; text-decoration: none;">Mis reservas</a> usando tu correo y código.
+          ${t.consultBookings} <a href="${process.env.PUBLIC_BOOKINGS_URL || ''}?email=${encodeURIComponent(data.clientEmail || '')}&code=${encodeURIComponent(data.accessCode || '')}" style="color: #4338ca; font-weight: 600; text-decoration: none;">${t.myBookings}</a> ${t.usingEmailCode}
         </p>
       </div>
       ` : ''}
 
       ${data.showReminder === false ? '' : `
       <div class="alert alert-info">
-        Te enviaremos un recordatorio 24 horas antes de tu cita.
+        ${t.reminderInfo}
       </div>
       `}
 
       ${(data.businessPhone || data.businessEmail) ? `
       <p style="margin-top: 24px; font-size: 14px;">
-        <strong>Contacto del negocio:</strong><br>
+        <strong>${t.contactBusiness}</strong><br>
         ${data.businessEmail ? `${data.businessEmail}<br>` : ''}
         ${data.businessPhone ? `${data.businessPhone}` : ''}
       </p>
       ` : ''}
     </div>
     <div class="email-footer">
-      <p>Gracias por reservar en ${data.businessName}</p>
+      <p>${t.thanks} ${data.businessName}</p>
       <p style="margin-top: 8px;">
-        Este es un correo automático, por favor no responder.
+        ${t.autoEmail}
       </p>
     </div>
   </div>
@@ -377,9 +464,12 @@ export const clientBookingConfirmationTemplate = (data: BookingEmailData): strin
 };
 
 export const businessNewBookingTemplate = (data: BookingEmailData): string => {
+  const lang = (data.language || 'es') as keyof typeof translations;
+  const t = translations[lang];
+
   return `
 <!DOCTYPE html>
-<html lang="es">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -390,51 +480,51 @@ export const businessNewBookingTemplate = (data: BookingEmailData): string => {
 <body>
   <div class="email-container">
     <div class="email-header">
-      <h1>Nueva Reserva Recibida</h1>
+      <h1>${t.newBooking}</h1>
     </div>
     <div class="email-body">
-      <h2>Tienes una nueva reserva</h2>
-      <p>Se registró una nueva cita en <strong>${data.businessName}</strong>.</p>
+      <h2>${t.newBookingHeader}</h2>
+      <p>${t.newBookingBody} <strong>${data.businessName}</strong>.</p>
       
       <div class="booking-details">
         <div class="detail-row">
-          <span class="detail-label">Cliente</span>
+          <span class="detail-label">${t.client}</span>
           <span class="detail-value">${data.clientName}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Servicio</span>
+          <span class="detail-label">${t.service}</span>
           <span class="detail-value">${data.serviceName}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Fecha y hora</span>
+          <span class="detail-label">${t.date}</span>
           <span class="detail-value">${data.scheduledAt}</span>
         </div>
         ${data.clientEmail ? `
         <div class="detail-row">
-          <span class="detail-label">Email</span>
+          <span class="detail-label">${t.email}</span>
           <span class="detail-value">${data.clientEmail}</span>
         </div>
         ` : ''}
         ${data.clientPhone ? `
         <div class="detail-row">
-          <span class="detail-label">Teléfono</span>
+          <span class="detail-label">${t.phone}</span>
           <span class="detail-value">${data.clientPhone}</span>
         </div>
         ` : ''}
         ${data.notes ? `
         <div class="detail-row">
-          <span class="detail-label">Notas</span>
+          <span class="detail-label">${t.notes}</span>
           <span class="detail-value">${data.notes}</span>
         </div>
         ` : ''}
       </div>
 
       <p style="margin-top: 24px;">
-        Gestiona la reserva desde tu panel de administración.
+        ${t.manageBooking}
       </p>
     </div>
     <div class="email-footer">
-      <p>Sistema de reservas - ${data.businessName}</p>
+      <p>${t.bookingSystem} - ${data.businessName}</p>
     </div>
   </div>
 </body>
@@ -443,9 +533,12 @@ export const businessNewBookingTemplate = (data: BookingEmailData): string => {
 };
 
 export const clientCancellationTemplate = (data: BookingEmailData): string => {
+  const lang = (data.language || 'es') as keyof typeof translations;
+  const t = translations[lang];
+
   return `
 <!DOCTYPE html>
-<html lang="es">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -456,34 +549,34 @@ export const clientCancellationTemplate = (data: BookingEmailData): string => {
 <body>
   <div class="email-container">
     <div class="email-header">
-      <h1>Reserva Cancelada</h1>
+      <h1>${t.bookingCancelled}</h1>
     </div>
     <div class="email-body">
-      <h2>Hola ${data.clientName},</h2>
-      <p>Tu reserva ha sido cancelada.</p>
+      <h2>${t.hello} ${data.clientName},</h2>
+      <p>${t.bookingCancelledBody}</p>
       
       <div class="booking-details">
         <div class="detail-row">
-          <span class="detail-label">Servicio</span>
+          <span class="detail-label">${t.service}</span>
           <span class="detail-value">${data.serviceName}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Fecha y hora</span>
+          <span class="detail-label">${t.date}</span>
           <span class="detail-value">${data.scheduledAt}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Negocio</span>
+          <span class="detail-label">${t.business}</span>
           <span class="detail-value">${data.businessName}</span>
         </div>
       </div>
 
       <div class="alert alert-warning">
-        Si tienes dudas sobre la cancelación, contacta directamente con el negocio.
+        ${t.cancellationDoubt}
       </div>
 
       ${(data.businessPhone || data.businessEmail) ? `
       <p style="margin-top: 24px; font-size: 14px;">
-        <strong>Contacto del negocio:</strong><br>
+        <strong>${t.contactBusiness}</strong><br>
         ${data.businessEmail ? `${data.businessEmail}<br>` : ''}
         ${data.businessPhone ? `${data.businessPhone}` : ''}
       </p>
@@ -492,7 +585,7 @@ export const clientCancellationTemplate = (data: BookingEmailData): string => {
     <div class="email-footer">
       <p>${data.businessName}</p>
       <p style="margin-top: 8px;">
-        Este es un correo automático, por favor no responder.
+        ${t.autoEmail}
       </p>
     </div>
   </div>
@@ -502,9 +595,12 @@ export const clientCancellationTemplate = (data: BookingEmailData): string => {
 };
 
 export const appointmentReminderTemplate = (data: BookingEmailData): string => {
+  const lang = (data.language || 'es') as keyof typeof translations;
+  const t = translations[lang];
+
   return `
 <!DOCTYPE html>
-<html lang="es">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -515,28 +611,28 @@ export const appointmentReminderTemplate = (data: BookingEmailData): string => {
 <body>
   <div class="email-container">
     <div class="email-header">
-      <h1>Recordatorio de Cita</h1>
+      <h1>${t.reminderSubject}</h1>
     </div>
     <div class="email-body">
-      <h2>Hola ${data.clientName}!</h2>
-      <p>Te recordamos que tienes una cita en 24 horas.</p>
+      <h2>${t.hello} ${data.clientName}!</h2>
+      <p>${t.reminderBody}</p>
       
       <div class="booking-details">
         <div class="detail-row">
-          <span class="detail-label">Servicio</span>
+          <span class="detail-label">${t.service}</span>
           <span class="detail-value">${data.serviceName}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Fecha y hora</span>
+          <span class="detail-label">${t.date}</span>
           <span class="detail-value">${data.scheduledAt}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Negocio</span>
+          <span class="detail-label">${t.business}</span>
           <span class="detail-value">${data.businessName}</span>
         </div>
         ${data.notes ? `
         <div class="detail-row">
-          <span class="detail-label">Notas</span>
+          <span class="detail-label">${t.notes}</span>
           <span class="detail-value">${data.notes}</span>
         </div>
         ` : ''}
@@ -544,29 +640,29 @@ export const appointmentReminderTemplate = (data: BookingEmailData): string => {
 
       ${data.accessCode ? `
       <div class="access-code">
-        <div class="access-code-label">Código de acceso</div>
+        <div class="access-code-label">${t.accessCode}</div>
         <div class="access-code-value">${data.accessCode}</div>
         <p style="margin-top: 12px; font-size: 14px; color: inherit; opacity: 0.8;">
-          Usa este código si necesitas consultar o cancelar tu reserva.
+          ${t.useCode}
         </p>
         <p style="margin-top: 10px; font-size: 14px; color: inherit; opacity: 0.8;">
-          Consulta tus citas en <a href="${process.env.PUBLIC_BOOKINGS_URL || ''}?email=${encodeURIComponent(data.clientEmail || '')}&code=${encodeURIComponent(data.accessCode || '')}" style="color: #4338ca; font-weight: 600; text-decoration: none;">Mis reservas</a> usando tu correo y código.
+          ${t.consultBookings} <a href="${process.env.PUBLIC_BOOKINGS_URL || ''}?email=${encodeURIComponent(data.clientEmail || '')}&code=${encodeURIComponent(data.accessCode || '')}" style="color: #4338ca; font-weight: 600; text-decoration: none;">${t.myBookings}</a> ${t.usingEmailCode}
         </p>
       </div>
       ` : ''}
 
       ${(data.businessPhone || data.businessEmail) ? `
       <p style="margin-top: 24px; font-size: 14px;">
-        <strong>Contacto del negocio:</strong><br>
+        <strong>${t.contactBusiness}</strong><br>
         ${data.businessEmail ? `${data.businessEmail}<br>` : ''}
         ${data.businessPhone ? `${data.businessPhone}` : ''}
       </p>
       ` : ''}
     </div>
     <div class="email-footer">
-      <p>Nos vemos pronto en ${data.businessName}</p>
+      <p>${t.seeYouSoon} ${data.businessName}</p>
       <p style="margin-top: 8px;">
-        Este es un correo automático, por favor no responder.
+        ${t.autoEmail}
       </p>
     </div>
   </div>
@@ -657,9 +753,12 @@ export const businessWelcomeTemplate = (data: WelcomeEmailData): string => {
 };
 
 export const clientBookingCompletedTemplate = (data: BookingEmailData): string => {
+  const lang = (data.language || 'es') as keyof typeof translations;
+  const t = translations[lang];
+
   return `
 <!DOCTYPE html>
-<html lang="es">
+<html lang="${lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -670,39 +769,39 @@ export const clientBookingCompletedTemplate = (data: BookingEmailData): string =
 <body>
   <div class="email-container">
     <div class="email-header">
-      <h1>¡Gracias por tu visita!</h1>
+      <h1>${t.thanksVisit}</h1>
     </div>
     <div class="email-body">
-      <h2>Hola ${data.clientName},</h2>
-      <p>Esperamos que hayas disfrutado tu servicio en <strong>${data.businessName}</strong>.</p>
+      <h2>${t.hello} ${data.clientName},</h2>
+      <p>${t.hopeEnjoyed} <strong>${data.businessName}</strong>.</p>
       
-      <p>Tu cita ha sido marcada como completada.</p>
+      <p>${t.markedCompleted}</p>
 
       <div class="booking-details">
         <div class="detail-row">
-          <span class="detail-label">Servicio realizado</span>
+          <span class="detail-label">${t.servicePerformed}</span>
           <span class="detail-value">${data.serviceName}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">Fecha</span>
+          <span class="detail-label">${t.dateLabel}</span>
           <span class="detail-value">${data.scheduledAt}</span>
         </div>
       </div>
 
       <p style="margin-top: 24px;">
-        ¡Esperamos verte pronto de nuevo!
+        ${t.hopeSeeYou}
       </p>
 
       ${(data.businessPhone || data.businessEmail) ? `
       <p style="margin-top: 24px; font-size: 14px;">
-        <strong>Contacto del negocio:</strong><br>
+        <strong>${t.contactBusiness}</strong><br>
         ${data.businessEmail ? `${data.businessEmail}<br>` : ''}
         ${data.businessPhone ? `${data.businessPhone}` : ''}
       </p>
       ` : ''}
 
        <div style="text-align: center; margin-top: 32px;">
-         <a href="${process.env.PUBLIC_BOOKINGS_URL || '#'}" class="button" style="color: #ffffff;">Reservar de nuevo</a>
+         <a href="${process.env.PUBLIC_BOOKINGS_URL || '#'}" class="button" style="color: #ffffff;">${t.bookAgain}</a>
       </div>
     </div>
     <div class="email-footer">

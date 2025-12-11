@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, DollarSign } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface ServiceCardProps {
   service: {
@@ -14,6 +15,7 @@ interface ServiceCardProps {
 }
 
 export const ServiceCard = ({ service, primaryColor, onBook }: ServiceCardProps) => {
+  const { t } = useTranslation();
   return (
     <Card className="group hover:shadow-elevated transition-all duration-300 border-2 hover:border-primary/20">
       <CardHeader>
@@ -33,12 +35,12 @@ export const ServiceCard = ({ service, primaryColor, onBook }: ServiceCardProps)
         </div>
       </CardContent>
       <CardFooter>
-        <Button 
-          className="w-full" 
+        <Button
+          className="w-full"
           style={primaryColor ? { backgroundColor: primaryColor } : {}}
           onClick={onBook}
         >
-          Reservar este servicio
+          {t('booking.services.book_btn')}
         </Button>
       </CardFooter>
     </Card>

@@ -1,4 +1,5 @@
 import { ServiceCard } from "./ServiceCard";
+import { useTranslation } from "react-i18next";
 
 interface Service {
   id: string;
@@ -14,6 +15,7 @@ interface ServicesSectionProps {
 }
 
 export const ServicesSection = ({ services, primaryColor }: ServicesSectionProps) => {
+  const { t } = useTranslation();
   const handleBookService = (serviceId: string) => {
     document.getElementById('reservar')?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -23,10 +25,10 @@ export const ServicesSection = ({ services, primaryColor }: ServicesSectionProps
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center space-y-4 mb-12">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
-            Nuestros Servicios
+            {t('booking.services.title')}
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Selecciona el servicio que necesitas y agenda tu cita en el horario que mejor te convenga
+            {t('booking.services.subtitle')}
           </p>
         </div>
 

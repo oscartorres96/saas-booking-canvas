@@ -1,15 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, CheckCircle2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface HeroSectionProps {
   businessName: string;
   primaryColor?: string;
 }
 
-export const HeroSection = ({ 
-  businessName = "{{business_name}}", 
-  primaryColor 
+export const HeroSection = ({
+  businessName = "{{business_name}}",
+  primaryColor
 }: HeroSectionProps) => {
+  const { t } = useTranslation();
   const scrollToBooking = () => {
     document.getElementById('reservar')?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -21,52 +23,51 @@ export const HeroSection = ({
           <div className="space-y-8">
             <div className="space-y-4">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
-                Reserva tu cita con{" "}
-                <span 
+                {t('booking.hero.title_pre')}{" "}
+                <span
                   className="text-primary"
                   style={primaryColor ? { color: primaryColor } : {}}
                 >
                   {businessName}
                 </span>{" "}
-                fácilmente
+                {t('booking.hero.title_post')}
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground max-w-xl">
-                Servicios profesionales y disponibilidad actualizada en tiempo real. 
-                Agenda tu cita en menos de 2 minutos.
+                {t('booking.hero.subtitle')}
               </p>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="text-base h-12 px-8 shadow-elevated"
                 style={primaryColor ? { backgroundColor: primaryColor } : {}}
                 onClick={scrollToBooking}
               >
                 <Calendar className="mr-2 h-5 w-5" />
-                Reservar ahora
+                {t('booking.hero.book_btn')}
               </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
+              <Button
+                size="lg"
+                variant="outline"
                 className="text-base h-12 px-8"
               >
-                Ver servicios
+                {t('booking.hero.services_btn')}
               </Button>
             </div>
 
             <div className="flex flex-wrap gap-6 pt-4">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-primary" style={primaryColor ? { color: primaryColor } : {}} />
-                <span className="text-sm text-muted-foreground">Confirmación instantánea</span>
+                <span className="text-sm text-muted-foreground">{t('booking.hero.features.confirm')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-primary" style={primaryColor ? { color: primaryColor } : {}} />
-                <span className="text-sm text-muted-foreground">Horarios flexibles</span>
+                <span className="text-sm text-muted-foreground">{t('booking.hero.features.flexible')}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" style={primaryColor ? { color: primaryColor } : {}} />
-                <span className="text-sm text-muted-foreground">Disponibilidad en tiempo real</span>
+                <span className="text-sm text-muted-foreground">{t('booking.hero.features.realtime')}</span>
               </div>
             </div>
           </div>
