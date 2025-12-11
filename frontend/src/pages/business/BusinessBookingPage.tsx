@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { es, enUS } from "date-fns/locale";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import {
@@ -50,6 +50,7 @@ import { Badge } from "@/components/ui/badge";
 import { useSlots } from "@/hooks/useSlots";
 import { BusinessThemeToggle } from "@/components/BusinessThemeToggle";
 import { useTheme } from "@/hooks/useTheme";
+import { useTranslation } from "react-i18next";
 
 const bookingFormSchema = z.object({
     serviceId: z.string().min(1, { message: "Selecciona un servicio" }),
@@ -74,6 +75,7 @@ const BusinessBookingPage = () => {
     const [selectedService, setSelectedService] = useState<Service | null>(null);
     const [bookingSuccess, setBookingSuccess] = useState(false);
     const { theme, setTheme } = useTheme();
+    const { t, i18n } = useTranslation();
 
     const form = useForm<z.infer<typeof bookingFormSchema>>({
         resolver: zodResolver(bookingFormSchema),
@@ -102,6 +104,13 @@ const BusinessBookingPage = () => {
             loadData();
         }
     }, [businessId, user]);
+
+    // Change language based on business settings
+    useEffect(() => {
+        if (business?.language) {
+            i18n.changeLanguage(business.language);
+        }
+    }, [business, i18n]);
 
     // Apply custom colors when business data is loaded AND theme is custom
     useEffect(() => {
@@ -188,7 +197,7 @@ const BusinessBookingPage = () => {
                 }
             }
         } catch (error: any) {
-            toast.error(error?.response?.data?.message || "Error al cargar datos");
+            toast.error(error?.response?.data?.message || t('common.load_error'));
         } finally {
             setLoading(false);
         }
@@ -216,7 +225,7 @@ const BusinessBookingPage = () => {
             const booking = await createBooking(bookingData);
 
             setBookingSuccess(true);
-            toast.success("¡Reserva creada exitosamente! Redirigiendo...");
+            toast.success(t('booking.form.toasts.confirmed_desc'));
 
             setTimeout(() => {
                 navigate(
@@ -247,15 +256,15 @@ const BusinessBookingPage = () => {
                     ...(errData.accessCode ? { code: errData.accessCode } : {}),
                     ...(businessId ? { businessId } : {}),
                 });
-                toast.error("Ya tienes una cita para ese dia. Consulta tus reservas para cancelarla o reagendar.", {
+                toast.error(t('booking.form.toasts.error_desc'), {
                     action: {
-                        label: "Ir a Mis reservas",
+                        label: t('booking.form.check_booking'),
                         onClick: () => navigate(`/my-bookings?${params.toString()}`),
                     },
                 });
                 return;
             }
-            toast.error(errData?.message || "Error al crear reserva");
+            toast.error(errData?.message || t('booking.form.toasts.error_desc'));
         }
     };
 
@@ -338,8 +347,8 @@ const BusinessBookingPage = () => {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold">Negocio no encontrado</h2>
-                    <Button className="mt-4" onClick={() => navigate("/")}>Volver al inicio</Button>
+                    <h2 className="text-2xl font-bold">{t('common.error')}</h2>
+                    <Button className="mt-4" onClick={() => navigate("/")}>{t('common.cancel')}</Button>
                 </div>
             </div>
         );
@@ -373,7 +382,7 @@ const BusinessBookingPage = () => {
                         )}
                         <div>
                             <h1 className="text-2xl font-bold">{business.businessName}</h1>
-                            <p className="text-sm text-muted-foreground">Reserva tu cita en línea</p>
+                            <p className="text-sm text-muted-foreground">{t('booking.header.system')}</p>
                         </div>
                     </div>
                     <BusinessThemeToggle hasCustomTheme={!!business.settings?.primaryColor} />
@@ -387,9 +396,9 @@ const BusinessBookingPage = () => {
                             <div className="flex items-center gap-3">
                                 <CheckCircle2 className="h-8 w-8 text-green-600" />
                                 <div>
-                                    <h3 className="font-semibold text-green-900">¡Reserva confirmada!</h3>
+                                    <h3 className="font-semibold text-green-900">{t('booking.form.confirmation_title')}</h3>
                                     <p className="text-sm text-green-700">
-                                        Recibirás un correo de confirmación (si ingresaste tu email).
+                                        {t('booking.form.need_code')}
                                     </p>
                                 </div>
                             </div>
@@ -399,13 +408,13 @@ const BusinessBookingPage = () => {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Nuestros Servicios</CardTitle>
-                        <CardDescription>Selecciona el servicio que deseas reservar</CardDescription>
+                        <CardTitle>{t('booking.services.title')}</CardTitle>
+                        <CardDescription>{t('booking.services.subtitle')}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {services.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground">
-                                No hay servicios disponibles en este momento.
+                                {t('booking.form.warnings.select_service_desc')}
                             </div>
                         ) : (
                             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -427,7 +436,7 @@ const BusinessBookingPage = () => {
                                         <CardContent className="space-y-2">
                                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                                 <Clock className="h-4 w-4" />
-                                                <span>{service.durationMinutes} minutos</span>
+                                                <span>{service.durationMinutes} {t('common.minutes')}</span>
                                             </div>
                                             <div className="flex items-center gap-2 text-sm font-semibold text-primary">
                                                 <DollarSign className="h-4 w-4" />
@@ -443,8 +452,8 @@ const BusinessBookingPage = () => {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Agendar Cita</CardTitle>
-                        <CardDescription>Completa el formulario para reservar tu cita</CardDescription>
+                        <CardTitle>{t('booking.form.title')}</CardTitle>
+                        <CardDescription>{t('booking.form.subtitle')}</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Form {...form}>
@@ -454,11 +463,11 @@ const BusinessBookingPage = () => {
                                     name="serviceId"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Servicio</FormLabel>
+                                            <FormLabel>{t('booking.form.service_label')}</FormLabel>
                                             <Select onValueChange={(val) => { field.onChange(val); handleServiceSelect(val); }} value={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="Selecciona un servicio" />
+                                                        <SelectValue placeholder={t('booking.form.service_placeholder')} />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
@@ -480,7 +489,7 @@ const BusinessBookingPage = () => {
                                         name="date"
                                         render={({ field }) => (
                                             <FormItem className="flex flex-col">
-                                                <FormLabel>Fecha</FormLabel>
+                                                <FormLabel>{t('booking.form.date_label')}</FormLabel>
                                                 <Popover>
                                                     <PopoverTrigger asChild>
                                                         <FormControl>
@@ -492,9 +501,9 @@ const BusinessBookingPage = () => {
                                                                 )}
                                                             >
                                                                 {field.value ? (
-                                                                    format(field.value, "PPP", { locale: es })
+                                                                    format(field.value, "PPP", { locale: i18n.language === 'es' ? es : enUS })
                                                                 ) : (
-                                                                    <span>Seleccionar fecha</span>
+                                                                    <span>{t('booking.form.date_placeholder')}</span>
                                                                 )}
                                                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                             </Button>
@@ -522,24 +531,24 @@ const BusinessBookingPage = () => {
                                         name="time"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Hora</FormLabel>
+                                                <FormLabel>{t('booking.form.time_label')}</FormLabel>
                                                 <FormControl>
                                                     <div className="grid grid-cols-3 gap-2 max-h-60 overflow-y-auto pr-2">
                                                         {!selectedServiceId ? (
                                                             <div className="col-span-full text-center text-sm text-muted-foreground py-4 border-2 border-dashed rounded-md">
-                                                                ⬆️ Primero selecciona un servicio
+                                                                ⬆️ {t('booking.form.time_placeholder')}
                                                             </div>
                                                         ) : !selectedDate ? (
                                                             <div className="col-span-full text-center text-sm text-muted-foreground py-4 border-2 border-dashed rounded-md">
-                                                                ⬅️ Selecciona una fecha
+                                                                ⬅️ {t('booking.calendar.empty_state')}
                                                             </div>
                                                         ) : isLoadingSlots ? (
                                                             <div className="col-span-full text-center text-sm text-muted-foreground py-4">
-                                                                ⏳ Cargando horarios...
+                                                                ⏳ {t('common.loading')}
                                                             </div>
                                                         ) : slots?.length === 0 ? (
                                                             <div className="col-span-full text-center text-sm text-muted-foreground py-4 border-2 border-dashed rounded-md border-orange-300 bg-orange-50">
-                                                                ❌ No hay horarios disponibles para esta fecha
+                                                                ❌ {t('common.closed')}
                                                             </div>
                                                         ) : (
                                                             slots?.map((slot) => (
@@ -571,9 +580,9 @@ const BusinessBookingPage = () => {
                                     name="clientName"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Nombre Completo</FormLabel>
+                                            <FormLabel>{t('booking.form.name_label')}</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Tu nombre" {...field} />
+                                                <Input placeholder={t('booking.form.name_placeholder')} {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -586,9 +595,9 @@ const BusinessBookingPage = () => {
                                         name="clientEmail"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Email</FormLabel>
+                                                <FormLabel>{t('booking.form.email_label')}</FormLabel>
                                                 <FormControl>
-                                                    <Input type="email" required placeholder="tu@email.com" {...field} />
+                                                    <Input type="email" required placeholder={t('booking.form.email_placeholder')} {...field} />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -599,7 +608,7 @@ const BusinessBookingPage = () => {
                                         name="clientPhone"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Teléfono</FormLabel>
+                                                <FormLabel>{t('booking.form.phone_label')}</FormLabel>
                                                 <FormControl>
                                                     <PhoneInput
                                                         country="mx"
@@ -627,9 +636,9 @@ const BusinessBookingPage = () => {
                                     name="notes"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Notas (opcional)</FormLabel>
+                                            <FormLabel>{t('booking.form.notes_label')} ({t('booking.form.optional')})</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Información adicional..." {...field} />
+                                                <Input placeholder={t('booking.form.notes_placeholder')} {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -637,7 +646,7 @@ const BusinessBookingPage = () => {
                                 />
 
                                 <Button type="submit" className="w-full" size="lg">
-                                    Confirmar Reserva
+                                    {t('booking.form.btn_confirm')}
                                 </Button>
                             </form>
                         </Form>
@@ -647,8 +656,8 @@ const BusinessBookingPage = () => {
                 {myBookings.length > 0 && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Mis Reservas</CardTitle>
-                            <CardDescription>Tus citas agendadas en {business.businessName}</CardDescription>
+                            <CardTitle>{t('dashboard.bookings.title')}</CardTitle>
+                            <CardDescription>{t('booking.services.subtitle')}</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
@@ -657,9 +666,9 @@ const BusinessBookingPage = () => {
                                     return (
                                         <div key={booking._id} className="flex items-center justify-between p-4 border rounded-lg">
                                             <div className="space-y-1">
-                                                <p className="font-semibold">{service?.name || "Servicio"}</p>
+                                                <p className="font-semibold">{service?.name || t('booking.form.service_label')}</p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    {format(new Date(booking.scheduledAt), "PPP 'a las' p", { locale: es })}
+                                                    {format(new Date(booking.scheduledAt), "PPP 'a las' p", { locale: i18n.language === 'es' ? es : enUS })}
                                                 </p>
                                                 {booking.accessCode && (
                                                     <p className="text-xs text-muted-foreground">
@@ -668,9 +677,7 @@ const BusinessBookingPage = () => {
                                                 )}
                                             </div>
                                             <Badge variant={booking.status === "confirmed" ? "default" : "secondary"}>
-                                                {booking.status === "confirmed" ? "Confirmada" :
-                                                    booking.status === "pending" ? "Pendiente" :
-                                                        booking.status === "completed" ? "Completada" : "Cancelada"}
+                                                {t(`dashboard.bookings.status.${booking.status}`)}
                                             </Badge>
                                         </div>
                                     );
@@ -681,7 +688,7 @@ const BusinessBookingPage = () => {
                                         className="w-full"
                                         onClick={() => navigate(`/my-bookings?businessId=${businessId}`)}
                                     >
-                                        Ver todas mis reservas (usa tu código de acceso)
+                                        {t('booking.form.check_booking')}
                                     </Button>
                                 </div>
                             </div>

@@ -12,6 +12,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import useAuth from "@/auth/useAuth";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -24,6 +26,7 @@ const Login = () => {
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const defaultTab = location.pathname === "/register" ? "register" : "login";
+  const { t } = useTranslation();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -37,7 +40,7 @@ const Login = () => {
     try {
       setIsLoading(true);
       const loggedUser = await login(values.email, values.password);
-      toast.success("Bienvenido");
+      toast.success(t('login.form.welcome_toast'));
       if (loggedUser?.role === "owner") {
         navigate("/admin");
       } else if (loggedUser?.role === "business" && loggedUser.businessId) {
@@ -55,7 +58,7 @@ const Login = () => {
       const message = error instanceof Error && 'response' in error
         ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
         : undefined;
-      toast.error(message || "Credenciales inválidas.");
+      toast.error(message || t('login.form.error_toast'));
     } finally {
       setIsLoading(false);
     }
@@ -63,8 +66,9 @@ const Login = () => {
 
   return (
     <div className="min-h-screen w-full flex relative">
-      {/* Theme Toggle - Fixed position */}
-      <div className="absolute top-4 right-4 z-50">
+      {/* Theme and Language Toggles - Fixed position */}
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+        <LanguageSwitcher />
         <ThemeToggle />
       </div>
       {/* Left Side - Hero/Branding */}
@@ -80,30 +84,29 @@ const Login = () => {
         </div>
 
         <div className="relative z-10 max-w-lg">
-          <h1 className="text-4xl font-bold leading-tight mb-6">Gestiona tu negocio con elegancia y eficiencia</h1>
+          <h1 className="text-4xl font-bold leading-tight mb-6">{t('login.hero_title')}</h1>
           <p className="text-lg text-slate-300 mb-8">
-            La plataforma todo en uno para nutriólogos, barberías, dentistas y más. Simplifica tus citas y haz crecer tu
-            clientela.
+            {t('login.hero_subtitle')}
           </p>
 
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-primary" />
-              <span className="text-slate-200">Gestión de citas automatizada</span>
+              <span className="text-slate-200">{t('login.feature_1')}</span>
             </div>
             <div className="flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-primary" />
-              <span className="text-slate-200">Recordatorios por WhatsApp y Email</span>
+              <span className="text-slate-200">{t('login.feature_2')}</span>
             </div>
             <div className="flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-primary" />
-              <span className="text-slate-200">Página de reservas personalizada</span>
+              <span className="text-slate-200">{t('login.feature_3')}</span>
             </div>
           </div>
         </div>
 
         <div className="relative z-10 text-sm text-slate-400">
-          © 2024 BookingCanvas Inc. Todos los derechos reservados.
+          © 2024 BookingCanvas Inc. {t('login.copyright')}
         </div>
       </div>
 
@@ -111,21 +114,21 @@ const Login = () => {
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center lg:text-left">
-            <h2 className="text-3xl font-bold tracking-tight">Bienvenido</h2>
-            <p className="text-muted-foreground mt-2">Ingresa a tu panel de control para gestionar tu negocio.</p>
+            <h2 className="text-3xl font-bold tracking-tight">{t('login.welcome')}</h2>
+            <p className="text-muted-foreground mt-2">{t('login.subtitle')}</p>
           </div>
 
           <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
-              <TabsTrigger value="register">Registrar Negocio</TabsTrigger>
+              <TabsTrigger value="login">{t('login.tabs.login')}</TabsTrigger>
+              <TabsTrigger value="register">{t('login.tabs.register')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
               <Card className="border-none shadow-none lg:shadow-sm lg:border">
                 <CardHeader className="px-0 lg:px-6">
-                  <CardTitle>Acceso</CardTitle>
-                  <CardDescription>Ingresa tus credenciales para acceder.</CardDescription>
+                  <CardTitle>{t('login.form.title')}</CardTitle>
+                  <CardDescription>{t('login.form.description')}</CardDescription>
                 </CardHeader>
                 <CardContent className="px-0 lg:px-6">
                   <Form {...form}>
@@ -135,11 +138,11 @@ const Login = () => {
                         name="email"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Email</FormLabel>
+                            <FormLabel>{t('login.form.email_label')}</FormLabel>
                             <FormControl>
                               <div className="relative">
                                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input placeholder="nombre@empresa.com" className="pl-10" {...field} />
+                                <Input placeholder={t('login.form.email_placeholder')} className="pl-10" {...field} />
                               </div>
                             </FormControl>
                             <FormMessage />
@@ -151,11 +154,11 @@ const Login = () => {
                         name="password"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Contraseña</FormLabel>
+                            <FormLabel>{t('login.form.password_label')}</FormLabel>
                             <FormControl>
                               <div className="relative">
                                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input type="password" placeholder="••••••••" className="pl-10" {...field} />
+                                <Input type="password" placeholder={t('login.form.password_placeholder')} className="pl-10" {...field} />
                               </div>
                             </FormControl>
                             <FormMessage />
@@ -164,10 +167,10 @@ const Login = () => {
                       />
                       <Button type="submit" className="w-full" disabled={isLoading}>
                         {isLoading ? (
-                          "Ingresando..."
+                          t('login.form.submitting')
                         ) : (
                           <span className="flex items-center gap-2">
-                            Ingresar <ArrowRight className="h-4 w-4" />
+                            {t('login.form.submit_button')} <ArrowRight className="h-4 w-4" />
                           </span>
                         )}
                       </Button>
@@ -180,29 +183,29 @@ const Login = () => {
             <TabsContent value="register">
               <Card className="border-none shadow-none lg:shadow-sm lg:border">
                 <CardHeader className="px-0 lg:px-6">
-                  <CardTitle>Nuevo Negocio</CardTitle>
-                  <CardDescription>Comienza tu prueba gratuita de 14 días.</CardDescription>
+                  <CardTitle>{t('login.register.title')}</CardTitle>
+                  <CardDescription>{t('login.register.description')}</CardDescription>
                 </CardHeader>
                 <CardContent className="px-0 lg:px-6 space-y-4">
                   <div className="grid gap-4">
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => toast.info("Funcionalidad de registro próximamente")}
+                      onClick={() => toast.info(t('login.register.coming_soon'))}
                     >
                       <Building2 className="mr-2 h-4 w-4" />
-                      Soy un Negocio (Nutriólogo, Dentista...)
+                      {t('login.register.business_button')}
                     </Button>
                     <div className="relative">
                       <div className="absolute inset-0 flex items-center">
                         <span className="w-full border-t" />
                       </div>
                       <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">O contáctanos</span>
+                        <span className="bg-background px-2 text-muted-foreground">{t('login.register.or_label')}</span>
                       </div>
                     </div>
                     <p className="text-center text-sm text-muted-foreground">
-                      Para registros empresariales, por favor contacta a ventas@bookingcanvas.com
+                      {t('login.register.contact_text')}
                     </p>
                   </div>
                 </CardContent>

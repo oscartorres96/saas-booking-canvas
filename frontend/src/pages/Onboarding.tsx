@@ -12,6 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Check, ChevronRight, ChevronLeft, Clock, Store, Scissors, Rocket, Loader2 } from 'lucide-react';
 import { BusinessHoursForm, daysOfWeek } from '@/components/business/BusinessHoursForm';
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -33,6 +40,7 @@ const intervalSchema = z.object({
 // Schema for step 1
 const basicInfoSchema = z.object({
     businessName: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
+    language: z.enum(["es", "en"]).default("es"),
     phone: z.string().optional(),
     address: z.string().optional(),
     description: z.string().optional(),
@@ -69,6 +77,7 @@ export default function Onboarding() {
         resolver: zodResolver(basicInfoSchema),
         defaultValues: {
             businessName: '',
+            language: 'es',
             phone: '',
             address: '',
             description: '',
@@ -112,6 +121,7 @@ export default function Onboarding() {
 
                 formBasicInfo.reset({
                     businessName: data.businessName || data.name || '',
+                    language: (data.language as "es" | "en") || 'es',
                     phone: data.phone || '',
                     address: data.address || '',
                     description: data.settings?.description || '',
@@ -156,6 +166,7 @@ export default function Onboarding() {
                 const values = formBasicInfo.getValues();
                 await updateBusinessSettings(user.businessId, {
                     businessName: values.businessName,
+                    language: values.language,
                     description: values.description,
                     phone: values.phone,
                     address: values.address,
@@ -314,6 +325,7 @@ export default function Onboarding() {
                                         </FormItem>
                                     )}
                                 />
+
                                 <FormField
                                     control={formBasicInfo.control}
                                     name="address"
@@ -323,6 +335,28 @@ export default function Onboarding() {
                                             <FormControl>
                                                 <Input {...field} placeholder="Av. Reforma 123, CDMX" />
                                             </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={formBasicInfo.control}
+                                    name="language"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Idioma de Comunicación</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecciona un idioma" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="es">Español</SelectItem>
+                                                    <SelectItem value="en">English</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <p className="text-xs text-muted-foreground">Los correos a tus clientes se enviarán en este idioma.</p>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -454,6 +488,6 @@ export default function Onboarding() {
                     </Button>
                 </CardFooter>
             </Card>
-        </div>
+        </div >
     );
 }

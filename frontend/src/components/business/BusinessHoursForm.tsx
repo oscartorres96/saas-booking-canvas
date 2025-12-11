@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { UseFormReturn } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ interface BusinessHoursFormProps {
 }
 
 export function BusinessHoursForm({ form, fieldName = "businessHours" }: BusinessHoursFormProps) {
+    const { t } = useTranslation();
     return (
         <div className="space-y-4">
             {daysOfWeek.map((day, index) => {
@@ -43,12 +45,12 @@ export function BusinessHoursForm({ form, fieldName = "businessHours" }: Busines
                                                 onCheckedChange={field.onChange}
                                             />
                                         </FormControl>
-                                        <FormLabel className="w-24 cursor-pointer">{day.label}</FormLabel>
+                                        <FormLabel className="w-24 cursor-pointer">{t(`days.${day.key}`)}</FormLabel>
                                     </FormItem>
                                 )}
                             />
                             {!isOpen && (
-                                <span className="text-muted-foreground text-sm italic">Cerrado</span>
+                                <span className="text-muted-foreground text-sm italic">{t('common.closed')}</span>
                             )}
                         </div>
                         {isOpen && (
@@ -66,7 +68,7 @@ export function BusinessHoursForm({ form, fieldName = "businessHours" }: Busines
                                                 </FormItem>
                                             )}
                                         />
-                                        <span className="text-center sm:w-auto">a</span>
+                                        <span className="text-center sm:w-auto">{t('common.to')}</span>
                                         <FormField
                                             control={form.control}
                                             name={`${fieldName}.${index}.intervals.${intervalIndex}.endTime`}
@@ -110,7 +112,7 @@ export function BusinessHoursForm({ form, fieldName = "businessHours" }: Busines
                                             form.setValue(`${fieldName}.${index}.intervals`, next, { shouldDirty: true });
                                         }}
                                     >
-                                        <Plus className="h-4 w-4 mr-2" /> Agregar intervalo
+                                        <Plus className="h-4 w-4 mr-2" /> {t('settings.hours.add_interval')}
                                     </Button>
                                 )}
                             </div>

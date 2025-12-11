@@ -1,5 +1,6 @@
 import { Calendar, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -14,6 +15,7 @@ export const Header = ({
   businessName = "{{business_name}}",
   primaryColor
 }: HeaderProps) => {
+  const { t } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -39,21 +41,21 @@ export const Header = ({
             )}
             <div>
               <h1 className="text-lg font-semibold tracking-tight">{businessName}</h1>
-              <p className="text-xs text-muted-foreground">Sistema de Reservas</p>
+              <p className="text-xs text-muted-foreground">{t('booking.header.system')}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Desktop Navigation */}
+/* Desktop Navigation */
             <nav className="hidden md:flex items-center gap-8">
               <a href="#servicios" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200">
-                Servicios
+                {t('booking.nav.services')}
               </a>
               <a href="#reservar" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200">
-                Reservar
+                {t('booking.nav.book')}
               </a>
               <a href="#contacto" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200">
-                Contacto
+                {t('booking.nav.contact')}
               </a>
             </nav>
 
@@ -87,21 +89,21 @@ export const Header = ({
               className="block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
-              Servicios
+              {t('booking.nav.services')}
             </a>
             <a
               href="#reservar"
               className="block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
-              Reservar
+              {t('booking.nav.book')}
             </a>
             <a
               href="#contacto"
               className="block text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
-              Contacto
+              {t('booking.nav.contact')}
             </a>
           </div>
         </div>
