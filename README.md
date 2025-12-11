@@ -1,94 +1,103 @@
-# Welcome to your Lovable project
+# BookPro - SaaS Booking Canvas
 
-## Project info
+A comprehensive SaaS solution for booking and appointment management, designed to streamline operations for service-based businesses.
 
-**URL**: https://lovable.dev/projects/f3e07e8a-7587-49ff-857c-57ec9cad52ba
+## 🚀 Features
 
-## How can I edit this code?
+- **Public Booking Interface**: intuitive booking flow for clients to select services, dates, and times.
+- **Business Dashboard**: robust tools for business owners to manage appointments, services, and settings.
+- **Admin Panel**: platform administration and business management.
+- **Multi-tenancy**: support for multiple businesses with isolated configurations.
+- **Customization**:
+  - Brand customization (Logos, Colors).
+  - Theming support (Light/Dark mode).
+- **Internationalization**: fully localized interface (English & Spanish).
+- **Notifications**: automated email notifications for booking confirmations and updates.
+- **Service Management**: flexible configuration for service duration, pricing, and availability.
 
-There are several ways of editing your application.
+## 🛠️ Tech Stack
 
-**Use Lovable**
+### Frontend
+- **Framework**: React (Vite)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS, shadcn-ui
+- **State Management**: React Query
+- **Routing**: React Router
+- **I18n**: i18next
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f3e07e8a-7587-49ff-857c-57ec9cad52ba) and start prompting.
+### Backend
+- **Framework**: NestJS
+- **Language**: TypeScript
+- **Database**: MongoDB (Mongoose)
+- **Authentication**: Passport.js (JWT)
+- **Email**: Nodemailer
+- **Scheduler**: Node Cron
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🏁 Getting Started
 
-**Use your preferred IDE**
+### Prerequisites
+- Node.js (v20+)
+- npm or yarn
+- MongoDB
+- Docker (optional)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. **Clone the repository**
+   ```bash
+   git clone <YOUR_REPO_URL>
+   cd saas-booking-canvas
+   ```
 
-Follow these steps:
+2. **Backend Setup**
+   ```bash
+   cd backend
+   npm install
+   
+   # Configure environment variables
+   cp .env.example .env
+   # Update .env with your MongoDB URI and other settings
+   
+   # Start the backend server
+   npm run start:dev
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. **Frontend Setup**
+   ```bash
+   cd frontend
+   npm install
+   
+   # Start the frontend development server
+   npm run dev
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/f3e07e8a-7587-49ff-857c-57ec9cad52ba) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
-
-## Deployment with Docker on Render
+## 🐳 Deployment with Docker
 
 ### Backend (NestJS)
-- Build: `docker build -t bookpro-backend ./backend`
-- Run local: `docker run --env-file backend/.env -p 3000:3000 bookpro-backend`
-- Render Web Service (Dockerfile):
+- **Build**: `docker build -t bookpro-backend ./backend`
+- **Run local**: `docker run --env-file backend/.env -p 3000:3000 bookpro-backend`
+- **Render Web Service**:
   - Exposed port: `3000`
-  - Env vars:
-    - `MONGODB_URI`
-    - `JWT_SECRET`
-    - `ALLOWED_ORIGINS="http://localhost:5173,https://bookpro.mx,https://admin.bookpro.mx,https://api.bookpro.mx"`
-    - `PORT=3000`
-    - `NODE_ENV=production`
+  - Environment Variables:
+    - `MONGODB_URI`: Your MongoDB connection string
+    - `JWT_SECRET`: Secret key for authentication
+    - `ALLOWED_ORIGINS`: Comma-separated allowed origins (e.g., `http://localhost:5173,https://bookpro.mx`)
+    - `PORT`: `3000`
+    - `NODE_ENV`: `production`
 
 ### Frontend (Vite)
-- Build: `docker build -t bookpro-frontend ./frontend`
-- Run local: `docker run -p 4173:80 -e VITE_API_URL=http://localhost:3000/api bookpro-frontend`
-- Render Web Service (Dockerfile) o Static Site (subiendo `/dist`):
-  - Env var: `VITE_API_URL=https://api.bookpro.mx/api`
-  - Exposed port (si Docker): `80`
+- **Build**: `docker build -t bookpro-frontend ./frontend`
+- **Run local**: `docker run -p 4173:80 -e VITE_API_URL=http://localhost:3000/api bookpro-frontend`
+- **Render Web Service (or Static Site)**:
+  - Environment Variable: `VITE_API_URL=https://api.bookpro.mx/api`
+  - Exposed port: `80`
+
+## 📁 Project Structure
+
+- `frontend/`: React application source code.
+- `backend/`: NestJS API application source code.
+- `docs/`: Additional documentation and assets.
+
+## 📄 License
+
+This project is licensed under the MIT License.

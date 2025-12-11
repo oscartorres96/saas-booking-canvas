@@ -128,9 +128,11 @@ const Home = () => {
 
         {/* Hero section */}
         <div className="text-center space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            {t('home.header.brand')}
-          </p>
+          <img
+            src="/brand-full.png"
+            alt="BookPro Logo"
+            className="h-12 mx-auto"
+          />
           <h1 className="text-3xl sm:text-4xl font-bold">
             {t('home.hero.title')}
           </h1>

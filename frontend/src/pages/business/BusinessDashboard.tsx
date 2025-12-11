@@ -349,11 +349,33 @@ const BusinessDashboard = () => {
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                     {/* Header */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <h1 className="text-2xl font-semibold tracking-tight">{business.businessName}</h1>
-                            <p className="text-muted-foreground text-sm">
-                                {t('dashboard.subtitle')}
-                            </p>
+                        <div className="flex items-center gap-4">
+                            {business.logoUrl && business.logoUrl !== "/placeholder.svg" ? (
+                                <img
+                                    src={business.logoUrl}
+                                    alt="Logo"
+                                    className="h-14 w-14 rounded-xl object-cover shadow-sm bg-background border"
+                                />
+                            ) : (
+                                <div
+                                    className="h-14 w-14 rounded-xl flex items-center justify-center shadow-sm border"
+                                    style={{
+                                        backgroundColor: business.settings?.primaryColor ? `${business.settings.primaryColor}15` : undefined, // 15 = ~10% opacity hex
+                                        borderColor: business.settings?.primaryColor ? `${business.settings.primaryColor}30` : undefined
+                                    }}
+                                >
+                                    <CalendarIcon
+                                        className="h-7 w-7"
+                                        style={{ color: business.settings?.primaryColor || undefined }}
+                                    />
+                                </div>
+                            )}
+                            <div>
+                                <h1 className="text-2xl font-semibold tracking-tight">{business.businessName}</h1>
+                                <p className="text-muted-foreground text-sm">
+                                    {t('dashboard.subtitle')}
+                                </p>
+                            </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
                             <Button

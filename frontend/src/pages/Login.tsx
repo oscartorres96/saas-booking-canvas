@@ -77,10 +77,11 @@ const Login = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-slate-900/80 to-slate-900/40"></div>
 
         <div className="relative z-10">
-          <div className="flex items-center gap-2 text-2xl font-bold tracking-tight text-primary-light">
-            <Building2 className="h-8 w-8" />
-            <span>BookingCanvas</span>
-          </div>
+          <img
+            src="/brand-full.png"
+            alt="BookPro Logo"
+            className="h-12 w-auto bg-white/95 p-2 rounded-lg shadow-lg"
+          />
         </div>
 
         <div className="relative z-10 max-w-lg">
@@ -106,7 +107,7 @@ const Login = () => {
         </div>
 
         <div className="relative z-10 text-sm text-slate-400">
-          © 2024 BookingCanvas Inc. {t('login.copyright')}
+          © {new Date().getFullYear()} BookPro. {t('login.copyright')}
         </div>
       </div>
 
