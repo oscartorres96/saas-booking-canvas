@@ -11,7 +11,9 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // Serve static files from uploads directory
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+  const uploadsPath = join(process.cwd(), 'uploads');
+  console.log('[DEBUG] Serving static files from:', uploadsPath);
+  app.useStaticAssets(uploadsPath, {
     prefix: '/api/uploads/',
   });
 

@@ -7,4 +7,9 @@ export default () => ({
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d',
   waToken: process.env.WA_TOKEN,
   waPhoneNumberId: process.env.WA_PHONE_NUMBER_ID,
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+  },
 });

@@ -6,6 +6,7 @@ import { Business, BusinessSchema } from './schemas/business.schema';
 import { UsersModule } from '../users/users.module';
 import { ServicesModule } from '../services/services.module';
 import { BookingsModule } from '../bookings/bookings.module';
+import { UploadsModule } from '../uploads/uploads.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { BookingsModule } from '../bookings/bookings.module';
     UsersModule,
     forwardRef(() => ServicesModule),
     forwardRef(() => BookingsModule),
+    UploadsModule,
   ],
   controllers: [BusinessesController],
   providers: [BusinessesService],

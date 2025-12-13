@@ -1,13 +1,16 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import 'multer';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { BusinessesService, CreateBusinessResult } from './businesses.service';
+import { CloudinaryService } from '../uploads/cloudinary.service';
 
 @Controller('businesses')
 export class BusinessesController {
-  constructor(private readonly businessesService: BusinessesService) { }
+  constructor(
+    private readonly businessesService: BusinessesService,
+    private readonly cloudinaryService: CloudinaryService,
+  ) { }
 
   @Get()
   findAll(@Req() req: any) {
@@ -69,35 +72,21 @@ export class BusinessesController {
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/logo')
-  @UseInterceptors(FileInterceptor('file', {
-    storage: diskStorage({
-      destination: './uploads',
-      filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        const ext = extname(file.originalname);
-        cb(null, `logo-${uniqueSuffix}${ext}`);
-      },
-    }),
-    fileFilter: (req, file, cb) => {
-      if (!file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
-        return cb(new Error('Only image files are allowed!'), false);
-      }
-      cb(null, true);
-    },
-    limits: {
-      fileSize: 2 * 1024 * 1024, // 2MB
-    }
-  }))
+  @UseInterceptors(FileInterceptor('file'))
   async uploadLogo(@Param('id') id: string, @UploadedFile() file: Express.Multer.File, @Req() req: any) {
     if (!file) {
       throw new Error('File upload failed');
     }
-    // Update logoUrl in business settings
-    // Assuming the backend serves static files from /uploads
-    const apiUrl = process.env.VITE_API_URL || process.env.BACKEND_URL || 'http://localhost:3000';
-    const logoUrl = `${apiUrl}/api/uploads/${file.filename}`;
 
-    await this.businessesService.updateSettings(id, { logoUrl }, req.user);
-    return { url: logoUrl };
+    try {
+      const result = await this.cloudinaryService.uploadImage(file) as any;
+      const logoUrl = result.secure_url;
+
+      await this.businessesService.updateSettings(id, { logoUrl }, req.user);
+      return { url: logoUrl };
+    } catch (error) {
+      console.error('Cloudinary upload error:', error);
+      throw new Error('Image upload failed');
+    }
   }
 }

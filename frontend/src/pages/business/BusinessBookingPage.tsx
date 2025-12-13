@@ -602,12 +602,12 @@ const BusinessBookingPage = () => {
                                                 <FormLabel>Teléfono</FormLabel>
                                                 <FormControl>
                                                     <PhoneInput
-                                                        country="mx"
+                                                        country={business?.settings?.language?.startsWith('en') ? 'us' : 'mx'}
                                                         enableSearch
                                                         countryCodeEditable={false}
                                                         value={field.value}
                                                         onChange={(value) => field.onChange(value)}
-                                                        placeholder="+52 55 1234 5678"
+                                                        placeholder={business?.settings?.language?.startsWith('en') ? '+1 (555) 000-0000' : '+52 55 1234 5678'}
                                                         containerClass="w-full"
                                                         inputClass="!w-full !h-10 !text-base !bg-background !border !border-input !rounded-md !pl-14 !text-foreground focus:!ring-2 focus:!ring-ring focus:!ring-offset-2"
                                                         buttonClass="!h-10 !bg-background !border !border-input !rounded-l-md !px-3"
