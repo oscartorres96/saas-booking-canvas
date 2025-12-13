@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { BusinessHoursForm, daysOfWeek } from "./BusinessHoursForm";
@@ -35,6 +36,7 @@ const formSchema = z.object({
     primaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Color inválido").optional(),
     secondaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Color inválido").optional(),
     description: z.string().max(500, "Máximo 500 caracteres").optional(),
+    language: z.string().optional(),
     defaultServiceDuration: z.coerce.number().min(5, "Mínimo 5 minutos").default(30),
     businessHours: z.array(z.object({
         day: z.string(),
@@ -93,6 +95,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
             primaryColor: "#000000",
             secondaryColor: "#ffffff",
             description: "",
+            language: "es_MX",
             defaultServiceDuration: 30,
             businessHours: daysOfWeek.map(d => ({
                 day: d.key,
@@ -114,6 +117,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     primaryColor: business.settings?.primaryColor || "#000000",
                     secondaryColor: business.settings?.secondaryColor || "#ffffff",
                     description: business.settings?.description || "",
+                    language: business.settings?.language || "es_MX",
                     defaultServiceDuration: business.settings?.defaultServiceDuration || 30,
                     businessHours: business.settings?.businessHours?.length
                         ? business.settings.businessHours.map((bh) => ({
@@ -148,7 +152,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
         let isValid = false;
 
         if (activeTab === "general") {
-            isValid = await form.trigger(["businessName", "language", "description", "defaultServiceDuration"]);
+            isValid = await form.trigger(["businessName", "logoUrl", "description", "language", "defaultServiceDuration"]);
         } else if (activeTab === "branding") {
             isValid = await form.trigger(["logoUrl", "primaryColor", "secondaryColor"]);
         } else if (activeTab === "hours") {
@@ -166,11 +170,12 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
             let dataToSubmit: any = {};
 
             if (activeTab === "general") {
-                // General tab: name, logo, description, duration
+                // General tab: name, logo, description, language, duration
                 dataToSubmit = {
                     businessName: values.businessName,
                     language: values.language,
                     description: values.description,
+                    language: values.language,
                     defaultServiceDuration: values.defaultServiceDuration,
                 };
             } else if (activeTab === "branding") {
@@ -308,6 +313,28 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                 <CardDescription>{t('settings.branding.description')}</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
+                                <FormField
+                                    control={form.control}
+                                    name="language"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Idioma de Comunicación</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecciona idioma" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="es_MX">Español (México) 🇲🇽</SelectItem>
+                                                    <SelectItem value="en_US">English (USA) 🇺🇸</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <p className="text-xs text-muted-foreground">Este idioma afecta los correos y la bandera del teléfono en la página de reservas</p>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                                 <FormField
                                     control={form.control}
                                     name="logoUrl"

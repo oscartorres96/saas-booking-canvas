@@ -55,6 +55,7 @@ export class Business {
       primaryColor: String,
       secondaryColor: String,
       description: String,
+      language: { type: String, default: 'es_MX' },
       defaultServiceDuration: { type: Number, default: 30 },
       businessHours: [{
         day: String,
@@ -72,6 +73,7 @@ export class Business {
     primaryColor?: string;
     secondaryColor?: string;
     description?: string;
+    language?: string;
     businessHours?: {
       day: string;
       startTime?: string;

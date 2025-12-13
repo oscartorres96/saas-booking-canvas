@@ -95,7 +95,8 @@ const Login = () => {
               <CheckCircle2 className="h-5 w-5 text-primary" />
               <span className="text-slate-200">{t('login.feature_1')}</span>
             </div>
-            <div className="flex items-center gap-3">
+            {/* TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp */}
+            {/* <div className="flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-primary" />
               <span className="text-slate-200">{t('login.feature_2')}</span>
             </div>

@@ -22,6 +22,7 @@ export interface Business {
     primaryColor?: string;
     secondaryColor?: string;
     description?: string;
+    language?: string;
     defaultServiceDuration?: number;
     businessHours?: Array<{
       day: string;
