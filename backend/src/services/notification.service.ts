@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { sendEmail } from '../utils/email';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import {
   appointmentReminderTemplate,
   businessNewBookingTemplate,
@@ -16,6 +17,7 @@ import { Booking } from '../bookings/schemas/booking.schema';
 export class NotificationService {
   constructor(
     @InjectModel(Business.name) private readonly businessModel: Model<BusinessDocument>,
+    private readonly whatsappService: WhatsappService,
   ) { }
 
   /** Obtiene la informacion del negocio */
@@ -96,6 +98,29 @@ export class NotificationService {
           html: businessHtml,
         });
       }
+
+      // --- WhatsApp Notification ---
+      if (booking.clientPhone) {
+        try {
+          // Basic phone number cleaning (remove + and spaces)
+          const cleanPhone = booking.clientPhone.replace(/[\+\s]/g, '');
+
+          await this.whatsappService.sendTemplateMessage(
+            cleanPhone,
+            'booking_confirmation', // Template name in Meta
+            [
+              booking.clientName,   // Variable {{1}}: Client Name
+              businessName,         // Variable {{2}}: Business Name
+              booking.serviceName || 'Servicio', // Variable {{3}}: Service
+              scheduledAt           // Variable {{4}}: Date & Time
+            ],
+            business?.settings?.language || 'es_MX'
+          );
+        } catch (waError: any) {
+          console.error('Error enviando WhatsApp de confirmación:', waError.message);
+          // Don't block the flow if WhatsApp fails
+        }
+      }
     } catch (error) {
       console.error('Error al enviar confirmacion de reserva:', error);
     }
@@ -171,6 +196,28 @@ export class NotificationService {
         subject: `Recordatorio de cita - ${businessName}`,
         html,
       });
+
+      // --- WhatsApp Reminder ---
+      if (booking.clientPhone) {
+        try {
+          const cleanPhone = booking.clientPhone.replace(/[\+\s]/g, '');
+
+          await this.whatsappService.sendTemplateMessage(
+            cleanPhone,
+            'appointment_reminder', // Template name in Meta
+            [
+              booking.clientName,   // Variable {{1}}: Client Name
+              businessName,         // Variable {{2}}: Business Name
+              booking.serviceName || 'Servicio', // Variable {{3}}: Service
+              scheduledAt           // Variable {{4}}: Date & Time
+            ],
+            business?.settings?.language || 'es_MX'
+          );
+        } catch (waError: any) {
+          console.error('Error enviando WhatsApp de recordatorio:', waError.message);
+        }
+      }
+
     } catch (error) {
       console.error('Error al enviar recordatorio:', error);
     }

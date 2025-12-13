@@ -9,6 +9,7 @@ import { Booking, BookingSchema } from '../bookings/schemas/booking.schema';
 import { NotificationService } from './notification.service';
 import { CronService } from './cron.service';
 import { TestEmailController } from './test-email.controller';
+import { WhatsappModule } from '../whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -16,7 +17,8 @@ import { TestEmailController } from './test-email.controller';
       { name: Service.name, schema: ServiceSchema },
       { name: Business.name, schema: BusinessSchema },
       { name: Booking.name, schema: BookingSchema },
-    ])
+    ]),
+    WhatsappModule,
   ],
   controllers: [ServicesController, TestEmailController],
   providers: [ServicesService, JwtAuthGuard, NotificationService, CronService],
