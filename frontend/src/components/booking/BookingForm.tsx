@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { createBooking } from "@/api/bookingsApi";
@@ -20,6 +21,7 @@ interface BookingFormProps {
 }
 
 export const BookingForm = ({ primaryColor, selectedDate, selectedTime, businessName, businessId, services }: BookingFormProps) => {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -34,8 +36,8 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
 
     if (!selectedDate || !selectedTime) {
       toast({
-        title: "Selecciona fecha y hora",
-        description: "Por favor selecciona una fecha y hora en el calendario antes de continuar",
+        title: t('booking.form.warnings.select_date_time'),
+        description: t('booking.form.warnings.select_date_time_desc'),
         variant: "destructive",
       });
       return;
@@ -44,8 +46,8 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
     // Basic validation
     if (!formData.name || !formData.phone || !formData.email) {
       toast({
-        title: "Campos incompletos",
-        description: "Por favor completa todos los campos",
+        title: t('booking.form.warnings.incomplete_fields'),
+        description: t('booking.form.warnings.incomplete_fields_desc'),
         variant: "destructive",
       });
       return;
@@ -53,8 +55,8 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
 
     if (services && services.length > 0 && !formData.serviceId) {
       toast({
-        title: "Selecciona un servicio",
-        description: "Por favor selecciona el servicio que deseas reservar",
+        title: t('booking.form.warnings.select_service'),
+        description: t('booking.form.warnings.select_service_desc'),
         variant: "destructive",
       });
       return;
@@ -96,8 +98,8 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
       window.open(googleCalendarUrl, '_blank');
 
       toast({
-        title: "Reserva confirmada",
-        description: `Tu reserva ha sido creada exitosamente. Redirigiendo a tus reservas...`,
+        title: t('booking.form.toasts.confirmed_title'),
+        description: t('booking.form.toasts.confirmed_desc'),
       });
 
       // Redirect to My Bookings after a short delay
@@ -108,8 +110,8 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
     } catch (error) {
       console.error("Error creating booking:", error);
       toast({
-        title: "Error al crear reserva",
-        description: "Hubo un problema al procesar tu reserva. Por favor intenta de nuevo.",
+        title: t('booking.form.toasts.error_title'),
+        description: t('booking.form.toasts.error_desc'),
         variant: "destructive",
       });
     } finally {
@@ -132,9 +134,9 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
                   style={primaryColor ? { color: primaryColor } : {}}
                 />
               </div>
-              <CardTitle className="text-2xl">Confirma tu reserva</CardTitle>
+              <CardTitle className="text-2xl">{t('booking.form.title')}</CardTitle>
               <CardDescription className="text-base">
-                Completa tus datos para confirmar la cita
+                {t('booking.form.subtitle')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -144,16 +146,16 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
                     <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-400" />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">¡Reserva Confirmada!</h3>
-                    <p className="text-muted-foreground">Tu cita ha sido reservada exitosamente</p>
+                    <h3 className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">{t('booking.form.confirmation_title')}</h3>
+                    <p className="text-muted-foreground">{t('booking.form.confirmation_desc')}</p>
                   </div>
                   <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-xl">
-                    <p className="text-sm text-muted-foreground mb-2">Guarda este código de acceso:</p>
+                    <p className="text-sm text-muted-foreground mb-2">{t('booking.form.save_code')}</p>
                     <p className="text-4xl font-bold text-primary" style={primaryColor ? { color: primaryColor } : {}}>{accessCode}</p>
-                    <p className="text-xs text-muted-foreground mt-4">Lo necesitarás para consultar o cancelar tu reserva</p>
+                    <p className="text-xs text-muted-foreground mt-4">{t('booking.form.need_code')}</p>
                   </div>
                   <div className="space-y-2">
-                    <p className="font-medium">Consulta tus reservas en:</p>
+                    <p className="font-medium">{t('booking.form.check_booking')}</p>
                     <a href="/my-bookings" className="text-primary hover:underline" style={primaryColor ? { color: primaryColor } : {}}>
                       /my-bookings
                     </a>
@@ -165,17 +167,17 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
                     }}
                     variant="outline"
                   >
-                    Hacer otra reserva
+                    {t('booking.form.new_booking')}
                   </Button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-sm font-medium">Nombre completo</Label>
+                    <Label htmlFor="name" className="text-sm font-medium">{t('booking.form.name_label')}</Label>
                     <Input
                       id="name"
                       type="text"
-                      placeholder="Juan Perez"
+                      placeholder={t('booking.form.name_placeholder')}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
@@ -183,7 +185,7 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-sm font-medium">Telefono</Label>
+                    <Label htmlFor="phone" className="text-sm font-medium">{t('booking.form.phone_label')}</Label>
                     <PhoneInput
                       country="mx"
                       enableSearch
@@ -206,11 +208,11 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                    <Label htmlFor="email" className="text-sm font-medium">{t('booking.form.email_label')}</Label>
                     <Input
                       id="email"
                       type="email"
-                      placeholder="juan@ejemplo.com"
+                      placeholder={t('booking.form.email_placeholder')}
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       required
@@ -219,7 +221,7 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
 
                   {services && services.length > 0 && (
                     <div className="space-y-2">
-                      <Label htmlFor="service" className="text-sm font-medium">Servicio</Label>
+                      <Label htmlFor="service" className="text-sm font-medium">{t('booking.form.service_label')}</Label>
                       <select
                         id="service"
                         value={formData.serviceId}
@@ -227,7 +229,7 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
                         className="w-full h-11 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         required
                       >
-                        <option value="">Selecciona un servicio</option>
+                        <option value="">{t('booking.form.service_placeholder')}</option>
                         {services.map((service) => (
                           <option key={service.id} value={service.id}>
                             {service.name}
@@ -244,11 +246,11 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
                     style={primaryColor ? { backgroundColor: primaryColor } : {}}
                     disabled={isLoading}
                   >
-                    {isLoading ? "Procesando..." : "Confirmar reserva"}
+                    {isLoading ? t('booking.form.btn_processing') : t('booking.form.btn_confirm')}
                   </Button>
 
                   <p className="text-xs text-muted-foreground text-center pt-1">
-                    Al confirmar, aceptas recibir notificaciones sobre tu reserva
+                    {t('booking.form.privacy_notice')}
                   </p>
                 </form>
               )}

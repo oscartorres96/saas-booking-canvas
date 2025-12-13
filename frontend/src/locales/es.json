@@ -1,0 +1,323 @@
+{
+  "common": {
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "save": "Guardar cambios",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "actions": "Acciones",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "details": "Ver detalles",
+    "confirm": "Confirmar",
+    "complete": "Marcar como Completada",
+    "cancel_booking": "Cancelar Cita",
+    "access_denied": "No tienes acceso a este negocio",
+    "client_access_denied": "No tienes acceso a este panel",
+    "load_error": "Error al cargar datos",
+    "saved": "Guardado",
+    "closed": "Cerrado",
+    "to": "a",
+    "minutes": "minutos"
+  },
+  "home": {
+    "header": {
+      "brand": "BookPro",
+      "login": "Iniciar Sesión"
+    },
+    "hero": {
+      "title": "Reserva rápido en tu negocio favorito",
+      "subtitle": "Elige un negocio para ver servicios disponibles y agendar en segundos. Si ya reservaste, revisa tus citas con tu código de acceso."
+    },
+    "cards": {
+      "loading": "Cargando...",
+      "open": "Reservas abiertas",
+      "button": "Ir a reservas",
+      "default_description": "Servicios disponibles.",
+      "skeleton_name": "Cargando negocio...",
+      "skeleton_description": "Preparando catálogo de reservas."
+    },
+    "my_bookings": {
+      "title": "¿Ya reservaste?",
+      "description": "Consulta tus citas con tu correo y código de acceso.",
+      "info": "Ve a",
+      "link_text": "Mis reservas",
+      "info_suffix": "para ver, confirmar o cancelar.",
+      "button": "Ver mis reservas"
+    },
+    "errors": {
+      "load_businesses": "No se pudieron cargar los negocios"
+    }
+  },
+  "booking": {
+    "form": {
+      "title": "Agendar Cita",
+      "subtitle": "Completa el formulario para reservar tu cita",
+      "service_label": "Servicio",
+      "service_placeholder": "Selecciona un servicio",
+      "date_label": "Fecha",
+      "date_placeholder": "Seleccionar fecha",
+      "time_label": "Hora",
+      "time_placeholder": "Primero selecciona un servicio",
+      "name_label": "Nombre Completo",
+      "name_placeholder": "Tu nombre",
+      "email_label": "Email",
+      "email_placeholder": "tu@email.com",
+      "phone_label": "Teléfono",
+      "btn_confirm": "Confirmar reserva",
+      "btn_processing": "Procesando...",
+      "notes_label": "Notas",
+      "notes_placeholder": "Información adicional...",
+      "optional": "opcional",
+      "confirmation_title": "¡Reserva Confirmada!",
+      "confirmation_desc": "Tu cita ha sido reservada exitosamente",
+      "save_code": "Guarda este código de acceso:",
+      "need_code": "Lo necesitarás para consultar o cancelar tu reserva",
+      "check_booking": "Consulta tus reservas en:",
+      "new_booking": "Hacer otra reserva",
+      "privacy_notice": "Al confirmar, aceptas recibir notificaciones sobre tu reserva",
+      "warnings": {
+        "select_date_time": "Selecciona fecha y hora",
+        "select_date_time_desc": "Por favor selecciona una fecha y hora en el calendario antes de continuar",
+        "incomplete_fields": "Campos incompletos",
+        "incomplete_fields_desc": "Por favor completa todos los campos",
+        "select_service": "Selecciona un servicio",
+        "select_service_desc": "Por favor selecciona el servicio que deseas reservar"
+      },
+      "toasts": {
+        "confirmed_title": "Reserva confirmada",
+        "confirmed_desc": "Tu reserva ha sido creada exitosamente. Redirigiendo a tus reservas...",
+        "error_title": "Error al crear reserva",
+        "error_desc": "Hubo un problema al procesar tu reserva. Por favor intenta de nuevo."
+      }
+    },
+    "calendar": {
+      "title": "Selecciona Fecha y Hora",
+      "subtitle": "Elige el día y horario que mejor se adapte a tu agenda",
+      "date_title": "Selecciona un día",
+      "date_desc": "Horarios disponibles actualizados en tiempo real",
+      "time_title": "Horarios disponibles",
+      "time_desc_selected": "Horarios para el {{date}}",
+      "time_desc_empty": "Selecciona primero una fecha",
+      "empty_state": "Selecciona una fecha para ver los horarios disponibles"
+    },
+    "header": {
+      "system": "Sistema de Reservas"
+    },
+    "nav": {
+      "services": "Servicios",
+      "book": "Reservar",
+      "contact": "Contacto"
+    },
+    "hero": {
+      "title_pre": "Reserva tu cita con",
+      "title_post": "fácilmente",
+      "subtitle": "Servicios profesionales y disponibilidad actualizada en tiempo real. Agenda tu cita en menos de 2 minutos.",
+      "book_btn": "Reservar ahora",
+      "services_btn": "Ver servicios",
+      "features": {
+        "confirm": "Confirmación instantánea",
+        "flexible": "Horarios flexibles",
+        "realtime": "Disponibilidad en tiempo real"
+      }
+    },
+    "services": {
+      "title": "Nuestros Servicios",
+      "subtitle": "Selecciona el servicio que necesitas y agenda tu cita en el horario que mejor te convenga",
+      "book_btn": "Reservar este servicio"
+    },
+    "footer": {
+      "contact_title": "Contacto",
+      "hours_title": "Horario de Atención",
+      "follow_title": "Síguenos",
+      "copyright": "Todos los derechos reservados",
+      "powered_by": "Página generada por nuestro sistema de reservas",
+      "days": {
+        "mon_fri": "Lunes - Viernes",
+        "sat": "Sábado",
+        "sun": "Domingo"
+      }
+    }
+  },
+  "days": {
+    "monday": "Lunes",
+    "tuesday": "Martes",
+    "wednesday": "Miércoles",
+    "thursday": "Jueves",
+    "friday": "Viernes",
+    "saturday": "Sábado",
+    "sunday": "Domingo"
+  },
+  "dashboard": {
+    "welcome": "Bienvenido",
+    "subtitle": "Panel de gestión de tu negocio",
+    "viewBookingPage": "Ver página de reservas",
+    "copyInvitation": "Copiar Invitación",
+    "invitationCopied": "Invitación copiada al portapapeles",
+    "invitationMessage": "¡Hola! 👋\n\nTe invito a reservar tu cita en *{{businessName}}* de forma rápida y sencilla. 📅✨\n\nHaz clic aquí para ver nuestros servicios y horarios disponibles: 👇\n{{url}}\n\n¡Te esperamos!",
+    "serviceLinkMessage": "¡Hola! 👋\n\nReserva tu cita para *{{serviceName}}* aquí: 👇\n{{url}}",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "settings": "Configuración"
+    },
+    "stats": {
+      "services": "Servicios",
+      "active_services": "activos",
+      "upcoming_bookings": "Próximas Citas",
+      "future_bookings": "Agendadas a futuro",
+      "total_bookings": "Total Reservas",
+      "all_bookings": "Todas las citas",
+      "pending_bookings": "Pendientes",
+      "to_confirm": "Por confirmar"
+    },
+    "services": {
+      "title": "Servicios",
+      "description": "Gestiona los servicios que ofreces.",
+      "create": "Crear Servicio",
+      "new_title": "Nuevo Servicio",
+      "new_description": "Crea un nuevo servicio para tu negocio.",
+      "name_label": "Nombre del Servicio",
+      "name_placeholder": "Ej. Corte de cabello",
+      "desc_label": "Descripción (opcional)",
+      "desc_placeholder": "Descripción del servicio",
+      "duration_label": "Duración (min)",
+      "price_label": "Precio ($)",
+      "mode_label": "Modalidad",
+      "mode_offline": "Solo presencial",
+      "mode_online": "Servicio en línea",
+      "empty": "No hay servicios creados. Crea tu primer servicio.",
+      "status_header": "Estado",
+      "actions_header": "Acciones",
+      "copy_link": "Copiar Link de Reserva",
+      "edit_title": "Editar Servicio",
+      "edit_description": "Modifica los datos del servicio.",
+      "delete_title": "Eliminar servicio",
+      "delete_description": "Esta acción no se puede deshacer. ¿Deseas eliminar \"{{name}}\"?",
+      "toasts": {
+        "created": "Servicio creado exitosamente",
+        "updated": "Servicio actualizado",
+        "deleted": "Servicio eliminado",
+        "error_create": "Error al crear servicio",
+        "error_update": "Error al actualizar servicio",
+        "error_delete": "Error al eliminar servicio",
+        "link_copied": "Enlace del servicio copiado al portapapeles"
+      }
+    },
+    "bookings": {
+      "title": "Próximas Citas",
+      "description": "Gestiona las reservas de tus clientes.",
+      "search_placeholder": "Buscar cliente...",
+      "empty": "No hay citas próximas.",
+      "status": {
+        "confirmed": "Confirmada",
+        "pending": "Pendiente",
+        "completed": "Completada",
+        "cancelled": "Cancelada"
+      },
+      "table": {
+        "client": "Cliente",
+        "service": "Servicio",
+        "date": "Fecha y Hora",
+        "status": "Estado",
+        "actions": "Acciones"
+      },
+      "actions": {
+        "view_details": "Ver detalles",
+        "confirm": "Confirmar",
+        "complete": "Marcar como Completada",
+        "cancel": "Cancelar"
+      },
+      "toasts": {
+        "status_updated": "Cita marcada como {{status}}",
+        "error_update": "Error al actualizar el estado de la cita"
+      }
+    }
+  },
+  "theme": {
+    "light": "Claro",
+    "dark": "Oscuro",
+    "custom": "Personalizado",
+    "system": "Sistema",
+    "toggle": "Cambiar tema"
+  },
+  "settings": {
+    "language": "Idioma de Comunicación",
+    "language_desc": "Idioma para tu página de reservas pública y correos a clientes. (El idioma del dashboard se puede cambiar usando el selector en la parte superior derecha)",
+    "title": "Configuración del Negocio",
+    "save": "Guardar Cambios",
+    "saved": "Configuración guardada",
+    "error": "Error al guardar",
+    "tabs": {
+      "general": "General",
+      "branding": "Marca",
+      "hours": "Horarios"
+    },
+    "general": {
+      "title": "Información General",
+      "description": "Detalles básicos de tu negocio visible para los clientes.",
+      "name": "Nombre del Negocio",
+      "short_desc": "Descripción Corta",
+      "default_duration": "Duración por defecto de servicios (min)",
+      "logo": "Logo del Negocio"
+    },
+    "branding": {
+      "title": "Apariencia",
+      "description": "Personaliza los colores de tu página de reservas.",
+      "primary": "Color Primario",
+      "secondary": "Color Secundario"
+    },
+    "hours": {
+      "title": "Horarios de Atención",
+      "description": "Define los días y horas en que tu negocio está abierto.",
+      "add_interval": "Agregar intervalo"
+    }
+  },
+  "onboarding": {
+    "step1": "Información Básica",
+    "step2": "Horarios",
+    "step3": "Servicios",
+    "step4": "Activar",
+    "businessName": "Nombre del Negocio",
+    "businessDesc": "Descripción Corta",
+    "phone": "Teléfono",
+    "address": "Dirección",
+    "language": "Idioma de Comunicación",
+    "languageHelp": "Idioma para tu página de reservas pública y correos a clientes. (Cambia el idioma del dashboard usando el selector arriba)"
+  },
+  "login": {
+    "welcome": "Bienvenido",
+    "subtitle": "Ingresa a tu panel de control para gestionar tu negocio.",
+    "hero_title": "Gestiona tu negocio con elegancia y eficiencia",
+    "hero_subtitle": "La plataforma todo en uno para nutriólogos, barberías, dentistas y más. Simplifica tus citas y haz crecer tu clientela.",
+    "feature_1": "Gestión de citas automatizada",
+    "feature_2": "Recordatorios por WhatsApp y Email",
+    "feature_3": "Página de reservas personalizada",
+    "copyright": "Todos los derechos reservados.",
+    "tabs": {
+      "login": "Iniciar Sesión",
+      "register": "Registrar Negocio"
+    },
+    "form": {
+      "title": "Acceso",
+      "description": "Ingresa tus credenciales para acceder.",
+      "email_label": "Email",
+      "email_placeholder": "nombre@empresa.com",
+      "password_label": "Contraseña",
+      "password_placeholder": "••••••••",
+      "submit_button": "Ingresar",
+      "submitting": "Ingresando...",
+      "welcome_toast": "Bienvenido",
+      "error_toast": "Credenciales inválidas."
+    },
+    "register": {
+      "title": "Nuevo Negocio",
+      "description": "Comienza tu prueba gratuita de 14 días.",
+      "business_button": "Soy un Negocio (Nutriólogo, Dentista...)",
+      "or_label": "O contáctanos",
+      "contact_text": "Para registros empresariales, por favor contacta a oscartorres0396@gmail.com",
+      "coming_soon": "Funcionalidad de registro próximamente"
+    }
+  }
+}

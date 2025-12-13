@@ -1,0 +1,31 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient id="paint0_linear" x1="0" y1="32" x2="64" y2="32" gradientUnits="userSpaceOnUse">
+<stop stop-color="#005c97"/>
+<stop offset="1" stop-color="#363795"/>
+</linearGradient>
+<linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+<stop offset="0%" style="stop-color:#009FFD;stop-opacity:1" />
+<stop offset="100%" style="stop-color:#2A2A72;stop-opacity:1" />
+</linearGradient>
+<linearGradient id="mainGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+<stop offset="0%" stop-color="#005bea" />
+<stop offset="100%" stop-color="#00c6fb" />
+</linearGradient>
+</defs>
+<path d="M56 14H50V8C50 5.79 48.21 4 46 4C43.79 4 42 5.79 42 8V14H22V8C22 5.79 20.21 4 18 4C15.79 4 14 5.79 14 8V14H8C5.79 14 4 15.79 4 18V56C4 58.21 5.79 60 8 60H56C58.21 60 60 58.21 60 56V18C60 15.79 58.21 14 56 14ZM56 56H8V24H56V56ZM18 18C16.9 18 16 17.1 16 16V8C16 6.9 16.9 6 18 6C19.1 6 20 6.9 20 8V16C20 17.1 19.1 18 18 18ZM46 18C44.9 18 44 17.1 44 16V8C44 6.9 44.9 6 46 6C47.1 6 48 6.9 48 8V16C48 17.1 47.1 18 46 18Z" fill="url(#mainGradient)"/>
+<path d="M12 30H18V36H12V30Z" fill="url(#mainGradient)"/>
+<path d="M22 30H28V36H22V30Z" fill="url(#mainGradient)"/>
+<path d="M32 30H38V36H32V30Z" fill="url(#mainGradient)"/>
+<path d="M12 40H18V46H12V40Z" fill="url(#mainGradient)"/>
+<path d="M22 40H28V46H22V40Z" fill="url(#mainGradient)"/>
+<path d="M32 40H38V46H32V40Z" fill="url(#mainGradient)"/>
+<path d="M44.83 24.51L26.83 42.51C26.2 43.14 25.38 43.51 24.51 43.51C23.64 43.51 22.82 43.14 22.19 42.51L15.51 35.83C14.21 34.53 14.21 32.41 15.51 31.11C16.81 29.81 18.93 29.81 20.23 31.11L24.51 35.39L40.11 19.79C41.41 18.49 43.53 18.49 44.83 19.79C46.13 21.09 46.13 23.21 44.83 24.51Z" fill="url(#mainGradient)"/>
+<circle cx="58" cy="32" r="3" fill="url(#mainGradient)"/>
+<circle cx="58" cy="46" r="3" fill="url(#mainGradient)"/>
+<circle cx="46" cy="58" r="3" fill="url(#mainGradient)"/>
+<path d="M58 35V43" stroke="url(#mainGradient)" stroke-width="2" stroke-linecap="round"/>
+<path d="M55 46H49" stroke="url(#mainGradient)" stroke-width="2" stroke-linecap="round"/>
+<path d="M46 55V49" stroke="url(#mainGradient)" stroke-width="2" stroke-linecap="round"/>
+<path d="M49 49L55 43" stroke="url(#mainGradient)" stroke-width="2" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,28 @@
+<svg width="220" height="60" viewBox="0 0 220 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+<stop offset="0%" stop-color="#005bea" />
+<stop offset="100%" stop-color="#00c6fb" />
+</linearGradient>
+</defs>
+<g>
+<path d="M56 12H50V6C50 3.79 48.21 2 46 2C43.79 2 42 3.79 42 6V12H22V6C22 3.79 20.21 2 18 2C15.79 2 14 3.79 14 6V12H8C5.79 12 4 13.79 4 16V54C4 56.21 5.79 58 8 58H56C58.21 58 60 56.21 60 54V16C60 13.79 58.21 12 56 12ZM56 54H8V22H56V54ZM18 16C16.9 16 16 15.1 16 14V6C16 4.9 16.9 4 18 4C19.1 4 20 4.9 20 6V14C20 15.1 19.1 16 18 16ZM46 16C44.9 16 44 15.1 44 14V6C44 4.9 44.9 4 46 4C47.1 4 48 4.9 48 6V14C48 15.1 47.1 16 46 16Z" fill="url(#iconGradient)"/>
+<path d="M12 28H18V34H12V28Z" fill="url(#iconGradient)"/>
+<path d="M22 28H28V34H22V28Z" fill="url(#iconGradient)"/>
+<path d="M32 28H38V34H32V28Z" fill="url(#iconGradient)"/>
+<path d="M12 38H18V44H12V38Z" fill="url(#iconGradient)"/>
+<path d="M22 38H28V44H22V38Z" fill="url(#iconGradient)"/>
+<path d="M32 38H38V44H32V38Z" fill="url(#iconGradient)"/>
+<path d="M44.83 22.51L26.83 40.51C26.2 41.14 25.38 41.51 24.51 41.51C23.64 41.51 22.82 41.14 22.19 40.51L15.51 33.83C14.21 32.53 14.21 30.41 15.51 29.11C16.81 27.81 18.93 27.81 20.23 29.11L24.51 33.39L40.11 17.79C41.41 16.49 43.53 16.49 44.83 17.79C46.13 19.09 46.13 21.21 44.83 22.51Z" fill="url(#iconGradient)"/>
+<circle cx="58" cy="30" r="3" fill="url(#iconGradient)"/>
+<circle cx="58" cy="44" r="3" fill="url(#iconGradient)"/>
+<circle cx="46" cy="56" r="3" fill="url(#iconGradient)"/>
+<path d="M58 33V41" stroke="url(#iconGradient)" stroke-width="2" stroke-linecap="round"/>
+<path d="M55 44H49" stroke="url(#iconGradient)" stroke-width="2" stroke-linecap="round"/>
+<path d="M46 53V47" stroke="url(#iconGradient)" stroke-width="2" stroke-linecap="round"/>
+<path d="M49 47L55 41" stroke="url(#iconGradient)" stroke-width="2" stroke-linecap="round"/>
+</g>
+<text x="65" y="38" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="34" dominant-baseline="middle">
+<tspan fill="#0a558c">Book</tspan><tspan fill="#1cc3a3">Pro</tspan>
+</text>
+</svg>

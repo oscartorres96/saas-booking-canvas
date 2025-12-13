@@ -11,6 +11,7 @@ export interface Business {
   logoUrl?: string;
   email?: string;
   phone?: string;
+  language?: string; // e.g. 'es' | 'en'
   address?: string;
   subscriptionStatus?: string;
   createdAt?: string;

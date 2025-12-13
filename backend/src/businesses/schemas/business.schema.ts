@@ -38,6 +38,9 @@ export class Business {
   @Prop({ default: 'trial', enum: ['trial', 'active', 'inactive'] })
   subscriptionStatus?: string;
 
+  @Prop({ default: 'es', enum: ['es', 'en'] })
+  language?: string;
+
   @Prop({ type: Object })
   metadata?: Record<string, unknown>;
 

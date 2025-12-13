@@ -4,15 +4,23 @@ import { ServicesSection } from "../components/booking/ServicesSection";
 import { BookingCalendar } from "../components/booking/BookingCalendar";
 import { BookingForm } from "../components/booking/BookingForm";
 import { Footer } from "../components/booking/Footer";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useBusinessData } from "../hooks/useBusinessData";
+import { useTranslation } from "react-i18next";
 
 const BookingPage = () => {
     const { businessSlug } = useParams<{ businessSlug: string }>();
     const { data: businessData, isLoading } = useBusinessData(businessSlug);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
+    const { i18n } = useTranslation();
+
+    useEffect(() => {
+        if (businessData?.language) {
+            i18n.changeLanguage(businessData.language);
+        }
+    }, [businessData, i18n]);
 
     if (isLoading || !businessData) {
         return (

@@ -24,6 +24,7 @@ export interface BusinessData {
         facebook: string;
         instagram: string;
     };
+    language: string;
 }
 
 // Mock data inicial (fallback)
@@ -47,7 +48,8 @@ const defaultBusinessData: BusinessData = {
     businessSocials: {
         facebook: "https://facebook.com/sonrisas",
         instagram: "https://instagram.com/sonrisas"
-    }
+    },
+    language: "es" // Default fallback language
 };
 
 // Función para obtener datos de la API
@@ -85,7 +87,8 @@ const fetchBusinessData = async (businessSlug?: string): Promise<BusinessData> =
             businessSocials: {
                 facebook: "", // Not yet in backend
                 instagram: ""
-            }
+            },
+            language: business.language || "es" // Provide a default if undefined
         };
     } catch (error) {
         console.error("Error fetching business data:", error);

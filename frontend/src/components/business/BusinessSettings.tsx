@@ -15,6 +15,14 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { BusinessHoursForm, daysOfWeek } from "./BusinessHoursForm";
 import { ImageUpload } from "@/components/ImageUpload";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { useTranslation } from "react-i18next";
 
 const intervalSchema = z.object({
     startTime: z.string(),
@@ -23,6 +31,7 @@ const intervalSchema = z.object({
 
 const formSchema = z.object({
     businessName: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+    language: z.enum(["es", "en"]).default("es"),
     logoUrl: z.string().url("Debe ser una URL válida").optional().or(z.literal("")),
     primaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Color inválido").optional(),
     secondaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Color inválido").optional(),
@@ -72,6 +81,7 @@ const formSchema = z.object({
 
 export function BusinessSettings({ businessId }: { businessId: string }) {
     const { user } = useAuthContext();
+    const { t } = useTranslation();
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState("general");
@@ -80,6 +90,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
         resolver: zodResolver(formSchema),
         defaultValues: {
             businessName: "",
+            language: "es",
             logoUrl: "",
             primaryColor: "#000000",
             secondaryColor: "#ffffff",
@@ -101,6 +112,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                 const business = await getBusinessById(businessId);
                 form.reset({
                     businessName: business.businessName || business.name || "",
+                    language: (business.language as "es" | "en") || "es",
                     logoUrl: business.logoUrl || "",
                     primaryColor: business.settings?.primaryColor || "#000000",
                     secondaryColor: business.settings?.secondaryColor || "#ffffff",
@@ -142,7 +154,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
         if (activeTab === "general") {
             isValid = await form.trigger(["businessName", "logoUrl", "description", "language", "defaultServiceDuration"]);
         } else if (activeTab === "branding") {
-            isValid = await form.trigger(["primaryColor", "secondaryColor"]);
+            isValid = await form.trigger(["logoUrl", "primaryColor", "secondaryColor"]);
         } else if (activeTab === "hours") {
             isValid = await form.trigger(["businessHours"]);
         }
@@ -161,14 +173,15 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                 // General tab: name, logo, description, language, duration
                 dataToSubmit = {
                     businessName: values.businessName,
-                    logoUrl: values.logoUrl,
+                    language: values.language,
                     description: values.description,
                     language: values.language,
                     defaultServiceDuration: values.defaultServiceDuration,
                 };
             } else if (activeTab === "branding") {
-                // Branding tab: only colors
+                // Branding tab: colors and logo
                 dataToSubmit = {
+                    logoUrl: values.logoUrl,
                     primaryColor: values.primaryColor,
                     secondaryColor: values.secondaryColor,
                 };
@@ -180,9 +193,9 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
             }
 
             await updateBusinessSettings(businessId, dataToSubmit);
-            toast.success("Configuración guardada");
+            toast.success(t('settings.saved'));
         } catch (error) {
-            toast.error("Error al guardar");
+            toast.error(t('settings.error'));
         } finally {
             setIsSaving(false);
         }
@@ -207,25 +220,25 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
         <Form {...form}>
             <form onSubmit={handleFormSubmit} className="space-y-6">
                 <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-bold">Configuración del Negocio</h2>
+                    <h2 className="text-2xl font-bold">{t('settings.title')}</h2>
                     <Button type="submit" disabled={isSaving}>
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Guardar Cambios
+                        {t('settings.save')}
                     </Button>
                 </div>
 
                 <Tabs defaultValue="general" value={activeTab} onValueChange={setActiveTab} className="w-full">
                     <TabsList>
-                        <TabsTrigger value="general">General</TabsTrigger>
-                        <TabsTrigger value="branding">Marca</TabsTrigger>
-                        <TabsTrigger value="hours">Horarios</TabsTrigger>
+                        <TabsTrigger value="general">{t('settings.tabs.general')}</TabsTrigger>
+                        <TabsTrigger value="branding">{t('settings.tabs.branding')}</TabsTrigger>
+                        <TabsTrigger value="hours">{t('settings.tabs.hours')}</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="general">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Información General</CardTitle>
-                                <CardDescription>Detalles básicos de tu negocio visible para los clientes.</CardDescription>
+                                <CardTitle>{t('settings.general.title')}</CardTitle>
+                                <CardDescription>{t('settings.general.description')}</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <FormField
@@ -233,7 +246,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                     name="businessName"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Nombre del Negocio</FormLabel>
+                                            <FormLabel>{t('settings.general.name')}</FormLabel>
                                             <FormControl>
                                                 <Input {...field} />
                                             </FormControl>
@@ -243,10 +256,32 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                 />
                                 <FormField
                                     control={form.control}
+                                    name="language"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('settings.language')}</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="es">Español</SelectItem>
+                                                    <SelectItem value="en">English</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <p className="text-sm text-muted-foreground">{t('settings.language_desc')}</p>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
                                     name="description"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Descripción Corta</FormLabel>
+                                            <FormLabel>{t('settings.general.short_desc')}</FormLabel>
                                             <FormControl>
                                                 <Textarea {...field} />
                                             </FormControl>
@@ -259,7 +294,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                     name="defaultServiceDuration"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Duración por defecto de servicios (min)</FormLabel>
+                                            <FormLabel>{t('settings.general.default_duration')}</FormLabel>
                                             <FormControl>
                                                 <Input type="number" {...field} />
                                             </FormControl>
@@ -267,6 +302,17 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                         </FormItem>
                                     )}
                                 />
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="branding">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>{t('settings.branding.title')}</CardTitle>
+                                <CardDescription>{t('settings.branding.description')}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
                                 <FormField
                                     control={form.control}
                                     name="language"
@@ -294,7 +340,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                     name="logoUrl"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Logo del Negocio</FormLabel>
+                                            <FormLabel>{t('settings.general.logo')}</FormLabel>
                                             <FormControl>
                                                 <ImageUpload
                                                     value={field.value}
@@ -306,24 +352,13 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                         </FormItem>
                                     )}
                                 />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="branding">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Apariencia</CardTitle>
-                                <CardDescription>Personaliza los colores de tu página de reservas.</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <FormField
                                         control={form.control}
                                         name="primaryColor"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Color Primario</FormLabel>
+                                                <FormLabel>{t('settings.branding.primary')}</FormLabel>
                                                 <div className="flex gap-2">
                                                     <input type="color" className="w-12 h-10 p-1 rounded-md border border-input bg-background cursor-pointer" {...field} />
                                                     <Input {...field} placeholder="#000000" />
@@ -337,7 +372,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                         name="secondaryColor"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Color Secundario</FormLabel>
+                                                <FormLabel>{t('settings.branding.secondary')}</FormLabel>
                                                 <div className="flex gap-2">
                                                     <input type="color" className="w-12 h-10 p-1 rounded-md border border-input bg-background cursor-pointer" {...field} />
                                                     <Input {...field} placeholder="#ffffff" />
@@ -354,8 +389,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     <TabsContent value="hours">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Horarios de Atención</CardTitle>
-                                <CardDescription>Define los días y horas en que tu negocio está abierto.</CardDescription>
+                                <CardTitle>{t('settings.hours.title')}</CardTitle>
+                                <CardDescription>{t('settings.hours.description')}</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <BusinessHoursForm form={form} />
