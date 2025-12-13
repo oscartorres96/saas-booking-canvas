@@ -8,7 +8,8 @@ import { BookingsModule } from './bookings/bookings.module';
 import { ServicesModule } from './services/services.module';
 import { BusinessesModule } from './businesses/businesses.module';
 import { UploadsModule } from './uploads/uploads.module';
-import { WhatsappModule } from './whatsapp/whatsapp.module';
+// TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
+// import { WhatsappModule } from './whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
     ServicesModule,
     BusinessesModule,
     UploadsModule,
-    WhatsappModule,
+    // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
+    // WhatsappModule,
   ],
 })
 export class AppModule { }

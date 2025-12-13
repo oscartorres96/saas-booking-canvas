@@ -9,7 +9,8 @@ import { Booking, BookingSchema } from '../bookings/schemas/booking.schema';
 import { NotificationService } from './notification.service';
 import { CronService } from './cron.service';
 import { TestEmailController } from './test-email.controller';
-import { WhatsappModule } from '../whatsapp/whatsapp.module';
+// TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
+// import { WhatsappModule } from '../whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { WhatsappModule } from '../whatsapp/whatsapp.module';
       { name: Business.name, schema: BusinessSchema },
       { name: Booking.name, schema: BookingSchema },
     ]),
-    WhatsappModule,
+    // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
+    // WhatsappModule,
   ],
   controllers: [ServicesController, TestEmailController],
   providers: [ServicesService, JwtAuthGuard, NotificationService, CronService],

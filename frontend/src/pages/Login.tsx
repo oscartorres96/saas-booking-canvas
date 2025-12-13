@@ -91,9 +91,14 @@ const Login = () => {
               <CheckCircle2 className="h-5 w-5 text-primary" />
               <span className="text-slate-200">Gestión de citas automatizada</span>
             </div>
-            <div className="flex items-center gap-3">
+            {/* TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp */}
+            {/* <div className="flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-primary" />
               <span className="text-slate-200">Recordatorios por WhatsApp y Email</span>
+            </div> */}
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              <span className="text-slate-200">Recordatorios por Email</span>
             </div>
             <div className="flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-primary" />
