@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { es, enUS } from "date-fns/locale";
 import {
     Card,
     CardContent,
@@ -26,18 +26,26 @@ import { lookupBookings, cancelBookingPublic, type Booking } from "@/api/booking
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTranslation } from "react-i18next";
+import { ArrowLeft } from "lucide-react";
+import { getBusinessById } from "@/api/businessesApi";
 
-const lookupSchema = z.object({
-    clientEmail: z.string().email({ message: "Correo inválido" }),
-    accessCode: z.string().min(4, { message: "Ingresa tu código de acceso" }),
-    businessId: z.string().optional(),
-});
+
+
 
 const MyBookings = () => {
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const { t, i18n } = useTranslation();
+
+    // Create schema with dynamic translations
+    const lookupSchema = z.object({
+        clientEmail: z.string().email({ message: t("myBookings.search_card.validation.email_invalid") }),
+        accessCode: z.string().min(4, { message: t("myBookings.search_card.validation.access_code_required") }),
+        businessId: z.string().optional(),
+    });
 
     const form = useForm<z.infer<typeof lookupSchema>>({
         resolver: zodResolver(lookupSchema),
@@ -47,6 +55,25 @@ const MyBookings = () => {
             businessId: "",
         },
     });
+
+    // Load business language setting when accessed with businessId param
+    useEffect(() => {
+        const businessIdParam = searchParams.get("businessId");
+        if (businessIdParam) {
+            // Fetch business to get language settings
+            getBusinessById(businessIdParam)
+                .then((business) => {
+                    if (business?.settings?.language) {
+                        // Map locale to i18n language code (es_MX -> es, en_US -> en)
+                        const lang = business.settings.language.startsWith('es') ? 'es' : 'en';
+                        i18n.changeLanguage(lang);
+                    }
+                })
+                .catch(() => {
+                    console.log("Could not fetch business language settings");
+                });
+        }
+    }, [searchParams, i18n]);
 
     // Auto-search if params are present
     useEffect(() => {
@@ -76,14 +103,14 @@ const MyBookings = () => {
             setBookings(filtered);
         } catch (error: unknown) {
             setBookings([]);
-            form.setError("accessCode", { message: "No encontramos reservas con esos datos" });
+            form.setError("accessCode", { message: t("myBookings.search_card.validation.no_bookings_found") });
         } finally {
             setLoading(false);
         }
     };
 
     const handleCancel = async (bookingId: string) => {
-        if (!confirm("¿Estás seguro de que quieres cancelar esta reserva?")) return;
+        if (!confirm(t("myBookings.cancel_confirm"))) return;
 
         try {
             const values = form.getValues();
@@ -101,9 +128,14 @@ const MyBookings = () => {
             });
             setBookings(results);
         } catch (error) {
-            alert("Error al cancelar la reserva");
+            alert(t("myBookings.error_cancel"));
         }
     };
+
+    // Determine locale for date formatting
+    const dateLocale = i18n.language === 'es' ? es : enUS;
+
+
 
     return (
         <div className="min-h-screen bg-slate-50/60 dark:bg-slate-950 transition-colors duration-300">
@@ -111,20 +143,37 @@ const MyBookings = () => {
                 <div className="absolute top-4 right-4 md:top-12 md:right-8">
                     <ThemeToggle />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-4">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                            const businessIdParam = searchParams.get("businessId");
+                            if (businessIdParam) {
+                                navigate(`/business/${businessIdParam}/booking`);
+                            } else {
+                                navigate('/');
+                            }
+                        }}
+                        className="mb-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-50"
+                    >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        {t("myBookings.results_card.actions.back_to_booking")}
+                    </Button>
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
-                        BookPro
+                        {t("myBookings.brand")}
                     </p>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-50">Mis reservas</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-50">{t("myBookings.title")}</h1>
                     <p className="text-muted-foreground">
-                        Consulta tus citas con tu correo y el código de acceso que recibiste al reservar.
+                        {t("myBookings.subtitle")}
                     </p>
                 </div>
 
+
                 <Card className="dark:bg-slate-900/50 dark:border-slate-800">
                     <CardHeader>
-                        <CardTitle>Buscar reservas</CardTitle>
-                        <CardDescription>Introduce tus datos para ver tus citas.</CardDescription>
+                        <CardTitle>{t("myBookings.search_card.title")}</CardTitle>
+                        <CardDescription>{t("myBookings.search_card.description")}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <Form {...form}>
@@ -134,9 +183,9 @@ const MyBookings = () => {
                                     name="clientEmail"
                                     render={({ field }) => (
                                         <FormItem className="md:col-span-1">
-                                            <FormLabel>Correo</FormLabel>
+                                            <FormLabel>{t("myBookings.search_card.email_label")}</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="tu@email.com" {...field} className="dark:bg-slate-950" />
+                                                <Input placeholder={t("myBookings.search_card.email_placeholder")} {...field} className="dark:bg-slate-950" />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -148,11 +197,11 @@ const MyBookings = () => {
                                     render={({ field }) => (
                                         <FormItem className="md:col-span-1">
                                             <FormLabel>
-                                                Código de acceso{" "}
-                                                <span className="text-xs text-muted-foreground hidden sm:inline">(lo recibiste en el correo de confirmación)</span>
+                                                {t("myBookings.search_card.access_code_label")}{" "}
+                                                <span className="text-xs text-muted-foreground hidden sm:inline">{t("myBookings.search_card.access_code_hint")}</span>
                                             </FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Ej. 123456" {...field} className="dark:bg-slate-950" />
+                                                <Input placeholder={t("myBookings.search_card.access_code_placeholder")} {...field} className="dark:bg-slate-950" />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -163,9 +212,9 @@ const MyBookings = () => {
                                     name="businessId"
                                     render={({ field }) => (
                                         <FormItem className="md:col-span-2">
-                                            <FormLabel>ID de negocio (opcional)</FormLabel>
+                                            <FormLabel>{t("myBookings.search_card.business_id_label")}</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Deja en blanco para ver todos tus negocios" {...field} className="dark:bg-slate-950" />
+                                                <Input placeholder={t("myBookings.search_card.business_id_placeholder")} {...field} className="dark:bg-slate-950" />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -173,7 +222,7 @@ const MyBookings = () => {
                                 />
                                 <div className="md:col-span-2 flex justify-end">
                                     <Button type="submit" disabled={loading}>
-                                        {loading ? "Buscando..." : "Buscar reservas"}
+                                        {loading ? t("myBookings.search_card.submit_button_loading") : t("myBookings.search_card.submit_button")}
                                     </Button>
                                 </div>
                             </form>
@@ -181,37 +230,38 @@ const MyBookings = () => {
                     </CardContent>
                 </Card>
 
+
                 {bookings.length > 0 && (
                     <Card className="dark:bg-slate-900/50 dark:border-slate-800">
                         <CardHeader>
-                            <CardTitle>Resultados</CardTitle>
-                            <CardDescription>Tus próximas y pasadas reservas.</CardDescription>
+                            <CardTitle>{t("myBookings.results_card.title")}</CardTitle>
+                            <CardDescription>{t("myBookings.results_card.description")}</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {bookings.map((booking) => (
                                 <div key={booking._id} className="p-4 rounded-lg border bg-white dark:bg-slate-950 dark:border-slate-800 space-y-2">
                                     <div className="flex items-center justify-between">
                                         <div className="space-y-1">
-                                            <p className="font-semibold text-slate-900 dark:text-slate-50">{booking.serviceName || "Servicio"}</p>
+                                            <p className="font-semibold text-slate-900 dark:text-slate-50">{booking.serviceName || t("myBookings.results_card.service_label")}</p>
                                             <p className="text-sm text-muted-foreground">
-                                                {format(new Date(booking.scheduledAt), "PPPp", { locale: es })}
+                                                {format(new Date(booking.scheduledAt), "PPPp", { locale: dateLocale })}
                                             </p>
                                         </div>
                                         <Badge
                                             variant={booking.status === 'cancelled' ? 'destructive' : 'secondary'}
                                             className="capitalize"
                                         >
-                                            {booking.status === 'cancelled' ? 'Cancelada' : booking.status}
+                                            {booking.status === 'cancelled' ? t("myBookings.results_card.status.cancelled") : booking.status}
                                         </Badge>
                                     </div>
                                     <Separator className="dark:bg-slate-800" />
                                     <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
-                                        <p>Cliente: {booking.clientName}</p>
-                                        {booking.businessId && <p className="break-all">ID Negocio: {booking.businessId}</p>}
-                                        {booking.accessCode && <p>Código de acceso: {booking.accessCode}</p>}
+                                        <p>{t("myBookings.results_card.client_label")}: {booking.clientName}</p>
+                                        {booking.businessId && <p className="break-all">{t("myBookings.results_card.business_id_label")}: {booking.businessId}</p>}
+                                        {booking.accessCode && <p>{t("myBookings.results_card.access_code_label")}: {booking.accessCode}</p>}
                                         {booking.status === 'cancelled' && (
                                             <p className="text-xs text-muted-foreground">
-                                                Reserva cancelada (visible por 3 días desde su creación).
+                                                {t("myBookings.results_card.cancelled_note")}
                                             </p>
                                         )}
                                     </div>
@@ -222,7 +272,7 @@ const MyBookings = () => {
                                                 size="sm"
                                                 onClick={() => handleCancel(booking._id)}
                                             >
-                                                Cancelar reserva
+                                                {t("myBookings.results_card.actions.cancel_booking")}
                                             </Button>
                                         )}
                                         {(() => {
@@ -246,7 +296,7 @@ const MyBookings = () => {
                                                         navigate(`/business/${targetBusinessId}/booking${qs ? `?${qs}` : ''}`);
                                                     }}
                                                 >
-                                                    Volver a reservar
+                                                    {t("myBookings.results_card.actions.book_again")}
                                                 </Button>
                                             );
                                         })()}
@@ -259,7 +309,7 @@ const MyBookings = () => {
 
                 {bookings.length === 0 && !loading && (
                     <p className="text-sm text-muted-foreground text-center">
-                        No hay reservas para mostrar. Ingresa tu correo y código de acceso.
+                        {t("myBookings.empty_state")}
                     </p>
                 )}
             </div>

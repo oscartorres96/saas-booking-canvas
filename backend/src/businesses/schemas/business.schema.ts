@@ -57,6 +57,10 @@ export class Business {
       description: String,
       language: { type: String, default: 'es_MX' },
       defaultServiceDuration: { type: Number, default: 30 },
+      facebook: String,
+      instagram: String,
+      twitter: String,
+      website: String,
       businessHours: [{
         day: String,
         startTime: String,
@@ -74,6 +78,11 @@ export class Business {
     secondaryColor?: string;
     description?: string;
     language?: string;
+    defaultServiceDuration?: number;
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    website?: string;
     businessHours?: {
       day: string;
       startTime?: string;

@@ -229,6 +229,30 @@
         "complete": "Marcar como Completada",
         "cancel": "Cancelar"
       },
+      "details": {
+        "title": "Detalles de la Cita",
+        "modal_description": "Información completa de la reserva",
+        "client_info": "Información del Cliente",
+        "name": "Nombre",
+        "email": "Email",
+        "phone": "Teléfono",
+        "status": "Estado",
+        "service_info": "Información del Servicio",
+        "service_name": "Servicio",
+        "service_description": "Descripción",
+        "datetime_info": "Fecha y Hora",
+        "date": "Fecha",
+        "time": "Hora",
+        "created_at": "Reserva Creada",
+        "updated_at": "Última Actualización",
+        "notes": "Notas Adicionales"
+      },
+      "cancel_confirm": {
+        "title": "Confirmar Cancelación",
+        "description": "¿Estás seguro que deseas cancelar esta cita?",
+        "warning": "Esta acción notificará al cliente sobre la cancelación. Esta acción no se puede deshacer.",
+        "confirm_button": "Sí, cancelar cita"
+      },
       "toasts": {
         "status_updated": "Cita marcada como {{status}}",
         "error_update": "Error al actualizar el estado de la cita"
@@ -319,5 +343,48 @@
       "contact_text": "Para registros empresariales, por favor contacta a oscartorres0396@gmail.com",
       "coming_soon": "Funcionalidad de registro próximamente"
     }
+  },
+  "myBookings": {
+    "brand": "BookPro",
+    "title": "Mis reservas",
+    "subtitle": "Consulta tus citas con tu correo y el código de acceso que recibiste al reservar.",
+    "search_card": {
+      "title": "Buscar reservas",
+      "description": "Introduce tus datos para ver tus citas.",
+      "email_label": "Correo",
+      "email_placeholder": "tu@email.com",
+      "access_code_label": "Código de acceso",
+      "access_code_hint": "(lo recibiste en el correo de confirmación)",
+      "access_code_placeholder": "Ej. 123456",
+      "business_id_label": "ID de negocio (opcional)",
+      "business_id_placeholder": "Deja en blanco para ver todos tus negocios",
+      "submit_button": "Buscar reservas",
+      "submit_button_loading": "Buscando...",
+      "validation": {
+        "email_invalid": "Correo inválido",
+        "access_code_required": "Ingresa tu código de acceso",
+        "no_bookings_found": "No encontramos reservas con esos datos"
+      }
+    },
+    "results_card": {
+      "title": "Resultados",
+      "description": "Tus próximas y pasadas reservas.",
+      "service_label": "Servicio",
+      "client_label": "Cliente",
+      "business_id_label": "ID Negocio",
+      "access_code_label": "Código de acceso",
+      "cancelled_note": "Reserva cancelada (visible por 3 días desde su creación).",
+      "status": {
+        "cancelled": "Cancelada"
+      },
+      "actions": {
+        "cancel_booking": "Cancelar reserva",
+        "book_again": "Volver a reservar",
+        "back_to_booking": "Ir a reservas"
+      }
+    },
+    "empty_state": "No hay reservas para mostrar. Ingresa tu correo y código de acceso.",
+    "cancel_confirm": "¿Estás seguro de que quieres cancelar esta reserva?",
+    "error_cancel": "Error al cancelar la reserva"
   }
 }

@@ -104,8 +104,12 @@ const BusinessDashboard = () => {
     const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
     const [isEditServiceDialogOpen, setIsEditServiceDialogOpen] = useState(false);
     const [isDeleteServiceDialogOpen, setIsDeleteServiceDialogOpen] = useState(false);
+    const [isBookingDetailsDialogOpen, setIsBookingDetailsDialogOpen] = useState(false);
+    const [isCancelConfirmDialogOpen, setIsCancelConfirmDialogOpen] = useState(false);
     const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null);
     const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
+    const [bookingToView, setBookingToView] = useState<Booking | null>(null);
+    const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
     const [activeTab, setActiveTab] = useState("dashboard");
     const { t, i18n } = useTranslation();
 
@@ -296,6 +300,24 @@ const BusinessDashboard = () => {
         const message = t('dashboard.serviceLinkMessage', { serviceName: service.name, url });
         navigator.clipboard.writeText(message);
         toast.success(t('dashboard.services.toasts.link_copied'));
+    };
+
+    const openBookingDetails = (booking: Booking) => {
+        setBookingToView(booking);
+        setIsBookingDetailsDialogOpen(true);
+    };
+
+    const openCancelConfirmation = (booking: Booking) => {
+        setBookingToCancel(booking);
+        setIsCancelConfirmDialogOpen(true);
+    };
+
+    const handleConfirmCancel = async () => {
+        if (!bookingToCancel) return;
+        await onUpdateBookingStatus(bookingToCancel._id, 'cancelled');
+        setIsCancelConfirmDialogOpen(false);
+        setBookingToCancel(null);
+        setIsBookingDetailsDialogOpen(false);
     };
 
     const filteredBookings = bookings.filter(booking =>
@@ -824,7 +846,11 @@ const BusinessDashboard = () => {
                                                 {upcomingBookings.map((booking) => {
                                                     const service = services.find(s => s._id === booking.serviceId);
                                                     return (
-                                                        <TableRow key={booking._id}>
+                                                        <TableRow
+                                                            key={booking._id}
+                                                            className="cursor-pointer hover:bg-muted/50"
+                                                            onClick={() => openBookingDetails(booking)}
+                                                        >
                                                             <TableCell className="font-medium">
                                                                 <div className="flex flex-col">
                                                                     <span className="font-semibold">{booking.clientName}</span>
@@ -847,7 +873,7 @@ const BusinessDashboard = () => {
                                                                     {getStatusLabel(booking.status)}
                                                                 </Badge>
                                                             </TableCell>
-                                                            <TableCell className="text-right">
+                                                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                                                 <DropdownMenu>
                                                                     <DropdownMenuTrigger asChild>
                                                                         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -857,7 +883,7 @@ const BusinessDashboard = () => {
                                                                     </DropdownMenuTrigger>
                                                                     <DropdownMenuContent align="end">
                                                                         <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
-                                                                        <DropdownMenuItem>{t('dashboard.bookings.actions.view_details')}</DropdownMenuItem>
+                                                                        <DropdownMenuItem onClick={() => openBookingDetails(booking)}>{t('dashboard.bookings.actions.view_details')}</DropdownMenuItem>
                                                                         <DropdownMenuSeparator />
                                                                         {booking.status === 'pending' && (
                                                                             <DropdownMenuItem
@@ -878,7 +904,7 @@ const BusinessDashboard = () => {
                                                                         {booking.status !== 'cancelled' && booking.status !== 'completed' && (
                                                                             <DropdownMenuItem
                                                                                 className="text-red-600"
-                                                                                onClick={() => onUpdateBookingStatus(booking._id, 'cancelled')}
+                                                                                onClick={() => openCancelConfirmation(booking)}
                                                                             >
                                                                                 {t('dashboard.bookings.actions.cancel')}
                                                                             </DropdownMenuItem>
@@ -895,6 +921,207 @@ const BusinessDashboard = () => {
                                 )}
                             </CardContent>
                         </Card>
+
+                        {/* Booking Details Modal */}
+                        <Dialog open={isBookingDetailsDialogOpen} onOpenChange={setIsBookingDetailsDialogOpen}>
+                            <DialogContent className="sm:max-w-[600px]">
+                                <DialogHeader>
+                                    <DialogTitle>{t('dashboard.bookings.details.title')}</DialogTitle>
+                                    <DialogDescription>{t('dashboard.bookings.details.modal_description')}</DialogDescription>
+                                </DialogHeader>
+                                {bookingToView && (
+                                    <div className="space-y-6">
+                                        {/* Client Information */}
+                                        <div className="space-y-3">
+                                            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                                                {t('dashboard.bookings.details.client_info')}
+                                            </h3>
+                                            <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground mb-1">{t('dashboard.bookings.details.name')}</p>
+                                                    <p className="font-medium">{bookingToView.clientName}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground mb-1">{t('dashboard.bookings.details.email')}</p>
+                                                    <p className="font-medium text-sm">{bookingToView.clientEmail || 'N/A'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground mb-1">{t('dashboard.bookings.details.phone')}</p>
+                                                    <p className="font-medium">{bookingToView.clientPhone || 'N/A'}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground mb-1">{t('dashboard.bookings.details.status')}</p>
+                                                    <Badge className={getStatusColor(bookingToView.status)} variant="secondary">
+                                                        {getStatusLabel(bookingToView.status)}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Service Information */}
+                                        <div className="space-y-3">
+                                            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                                                {t('dashboard.bookings.details.service_info')}
+                                            </h3>
+                                            <div className="bg-muted/50 p-4 rounded-lg space-y-3">
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground mb-1">{t('dashboard.bookings.details.service_name')}</p>
+                                                    <p className="font-medium">
+                                                        {services.find(s => s._id === bookingToView.serviceId)?.name || bookingToView.serviceId}
+                                                    </p>
+                                                </div>
+                                                {services.find(s => s._id === bookingToView.serviceId)?.description && (
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground mb-1">{t('dashboard.bookings.details.service_description')}</p>
+                                                        <p className="text-sm">
+                                                            {services.find(s => s._id === bookingToView.serviceId)?.description}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* DateTime Information */}
+                                        <div className="space-y-3">
+                                            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                                                {t('dashboard.bookings.details.datetime_info')}
+                                            </h3>
+                                            <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground mb-1">{t('dashboard.bookings.details.date')}</p>
+                                                    <p className="font-medium">
+                                                        {format(new Date(bookingToView.scheduledAt), "PPP", { locale: i18n.language === 'en' ? enUS : es })}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground mb-1">{t('dashboard.bookings.details.time')}</p>
+                                                    <p className="font-medium">
+                                                        {format(new Date(bookingToView.scheduledAt), "p", { locale: i18n.language === 'en' ? enUS : es })}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-muted-foreground mb-1">{t('dashboard.bookings.details.created_at')}</p>
+                                                    <p className="text-sm">
+                                                        {format(new Date(bookingToView.createdAt), "PPp", { locale: i18n.language === 'en' ? enUS : es })}
+                                                    </p>
+                                                </div>
+                                                {bookingToView.updatedAt && bookingToView.updatedAt !== bookingToView.createdAt && (
+                                                    <div>
+                                                        <p className="text-xs text-muted-foreground mb-1">{t('dashboard.bookings.details.updated_at')}</p>
+                                                        <p className="text-sm">
+                                                            {format(new Date(bookingToView.updatedAt), "PPp", { locale: i18n.language === 'en' ? enUS : es })}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Notes */}
+                                        {bookingToView.notes && (
+                                            <div className="space-y-3">
+                                                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                                                    {t('dashboard.bookings.details.notes')}
+                                                </h3>
+                                                <div className="bg-muted/50 p-4 rounded-lg">
+                                                    <p className="text-sm whitespace-pre-wrap">{bookingToView.notes}</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Actions */}
+                                        <div className="flex gap-2 pt-4 border-t">
+                                            {bookingToView.status === 'pending' && (
+                                                <Button
+                                                    className="flex-1"
+                                                    variant="default"
+                                                    onClick={() => {
+                                                        onUpdateBookingStatus(bookingToView._id, 'confirmed');
+                                                        setIsBookingDetailsDialogOpen(false);
+                                                    }}
+                                                >
+                                                    {t('dashboard.bookings.actions.confirm')}
+                                                </Button>
+                                            )}
+                                            {bookingToView.status !== 'completed' && bookingToView.status !== 'cancelled' && (
+                                                <Button
+                                                    className="flex-1"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        onUpdateBookingStatus(bookingToView._id, 'completed');
+                                                        setIsBookingDetailsDialogOpen(false);
+                                                    }}
+                                                >
+                                                    {t('dashboard.bookings.actions.complete')}
+                                                </Button>
+                                            )}
+                                            {bookingToView.status !== 'cancelled' && bookingToView.status !== 'completed' && (
+                                                <Button
+                                                    className="flex-1"
+                                                    variant="destructive"
+                                                    onClick={() => openCancelConfirmation(bookingToView)}
+                                                >
+                                                    {t('dashboard.bookings.actions.cancel')}
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </DialogContent>
+                        </Dialog>
+
+                        {/* Cancel Confirmation Dialog */}
+                        <Dialog open={isCancelConfirmDialogOpen} onOpenChange={setIsCancelConfirmDialogOpen}>
+                            <DialogContent className="sm:max-w-[425px]">
+                                <DialogHeader>
+                                    <DialogTitle>{t('dashboard.bookings.cancel_confirm.title')}</DialogTitle>
+                                    <DialogDescription>
+                                        {t('dashboard.bookings.cancel_confirm.description')}
+                                    </DialogDescription>
+                                </DialogHeader>
+                                {bookingToCancel && (
+                                    <div className="space-y-4 py-4">
+                                        <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+                                            <div>
+                                                <span className="text-sm font-semibold">{t('dashboard.bookings.details.client_info')}: </span>
+                                                <span className="text-sm">{bookingToCancel.clientName}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-sm font-semibold">{t('dashboard.bookings.details.service_name')}: </span>
+                                                <span className="text-sm">
+                                                    {services.find(s => s._id === bookingToCancel.serviceId)?.name || bookingToCancel.serviceId}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="text-sm font-semibold">{t('dashboard.bookings.details.date')}: </span>
+                                                <span className="text-sm">
+                                                    {format(new Date(bookingToCancel.scheduledAt), "PPP", { locale: i18n.language === 'en' ? enUS : es })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                            {t('dashboard.bookings.cancel_confirm.warning')}
+                                        </p>
+                                    </div>
+                                )}
+                                <DialogFooter className="flex flex-row justify-end gap-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setIsCancelConfirmDialogOpen(false);
+                                            setBookingToCancel(null);
+                                        }}
+                                    >
+                                        {t('common.cancel')}
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        onClick={handleConfirmCancel}
+                                    >
+                                        {t('dashboard.bookings.cancel_confirm.confirm_button')}
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </TabsContent>
 
                     <TabsContent value="settings">

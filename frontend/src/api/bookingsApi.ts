@@ -14,6 +14,7 @@ export interface Booking {
     accessCode?: string;
     serviceName?: string;
     createdAt?: string;
+    updatedAt?: string;
 }
 
 export const getBookingsByBusiness = async (businessId: string): Promise<Booking[]> => {

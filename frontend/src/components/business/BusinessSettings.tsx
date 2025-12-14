@@ -15,13 +15,6 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { BusinessHoursForm, daysOfWeek } from "./BusinessHoursForm";
 import { ImageUpload } from "@/components/ImageUpload";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { useTranslation } from "react-i18next";
 
 const intervalSchema = z.object({
@@ -38,6 +31,10 @@ const formSchema = z.object({
     description: z.string().max(500, "Máximo 500 caracteres").optional(),
     communicationLanguage: z.string().optional(),
     defaultServiceDuration: z.coerce.number().min(5, "Mínimo 5 minutos").default(30),
+    facebook: z.string().url("Debe ser una URL válida").optional().or(z.literal("")),
+    instagram: z.string().url("Debe ser una URL válida").optional().or(z.literal("")),
+    twitter: z.string().url("Debe ser una URL válida").optional().or(z.literal("")),
+    website: z.string().url("Debe ser una URL válida").optional().or(z.literal("")),
     businessHours: z.array(z.object({
         day: z.string(),
         isOpen: z.boolean(),
@@ -97,6 +94,10 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
             description: "",
             communicationLanguage: "es_MX",
             defaultServiceDuration: 30,
+            facebook: "",
+            instagram: "",
+            twitter: "",
+            website: "",
             businessHours: daysOfWeek.map(d => ({
                 day: d.key,
                 isOpen: true,
@@ -119,6 +120,10 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     description: business.settings?.description || "",
                     communicationLanguage: business.settings?.language || "es_MX",
                     defaultServiceDuration: business.settings?.defaultServiceDuration || 30,
+                    facebook: business.settings?.facebook || "",
+                    instagram: business.settings?.instagram || "",
+                    twitter: business.settings?.twitter || "",
+                    website: business.settings?.website || "",
                     businessHours: business.settings?.businessHours?.length
                         ? business.settings.businessHours.map((bh) => ({
                             day: bh.day,
@@ -184,6 +189,10 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     primaryColor: values.primaryColor,
                     secondaryColor: values.secondaryColor,
                     language: values.communicationLanguage,
+                    facebook: values.facebook,
+                    instagram: values.instagram,
+                    twitter: values.twitter,
+                    website: values.website,
                 };
             } else if (activeTab === "hours") {
                 // Hours tab: only business hours
@@ -381,6 +390,66 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                             </FormItem>
                                         )}
                                     />
+                                </div>
+
+                                <div className="space-y-4 pt-4 border-t">
+                                    <h3 className="font-semibold text-sm">Redes Sociales</h3>
+                                    <p className="text-xs text-muted-foreground">Agrega tus redes sociales para mostrarse en la página de reservas</p>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="facebook"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Facebook</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="https://facebook.com/tu-pagina" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="instagram"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Instagram</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="https://instagram.com/tu-perfil" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="twitter"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Twitter/X</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="https://twitter.com/tu-cuenta" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="website"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Sitio Web</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="https://tu-sitio.com" {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>

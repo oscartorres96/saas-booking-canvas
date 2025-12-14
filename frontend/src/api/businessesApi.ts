@@ -24,6 +24,10 @@ export interface Business {
     description?: string;
     language?: string;
     defaultServiceDuration?: number;
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    website?: string;
     businessHours?: Array<{
       day: string;
       isOpen: boolean;

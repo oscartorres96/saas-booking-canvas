@@ -247,7 +247,6 @@ export class BusinessesService {
     if (settings.logoUrl) business.logoUrl = settings.logoUrl;
     if (settings.phone !== undefined) business.phone = settings.phone;
     if (settings.address !== undefined) business.address = settings.address;
-    if (settings.language) business.language = settings.language;
 
     // Update nested settings
     if (!business.settings) {

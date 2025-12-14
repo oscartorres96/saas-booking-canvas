@@ -319,5 +319,48 @@
             "contact_text": "For business registrations, please contact oscartorres0396@gmail.com",
             "coming_soon": "Registration feature coming soon"
         }
+    },
+    "myBookings": {
+        "brand": "BookPro",
+        "title": "My bookings",
+        "subtitle": "Check your appointments with your email and the access code you received when booking.",
+        "search_card": {
+            "title": "Search bookings",
+            "description": "Enter your details to view your appointments.",
+            "email_label": "Email",
+            "email_placeholder": "you@email.com",
+            "access_code_label": "Access code",
+            "access_code_hint": "(you received it in the confirmation email)",
+            "access_code_placeholder": "Ex. 123456",
+            "business_id_label": "Business ID (optional)",
+            "business_id_placeholder": "Leave blank to see all your businesses",
+            "submit_button": "Search bookings",
+            "submit_button_loading": "Searching...",
+            "validation": {
+                "email_invalid": "Invalid email",
+                "access_code_required": "Enter your access code",
+                "no_bookings_found": "No bookings found with those details"
+            }
+        },
+        "results_card": {
+            "title": "Results",
+            "description": "Your upcoming and past bookings.",
+            "service_label": "Service",
+            "client_label": "Client",
+            "business_id_label": "Business ID",
+            "access_code_label": "Access code",
+            "cancelled_note": "Cancelled booking (visible for 3 days since creation).",
+            "status": {
+                "cancelled": "Cancelled"
+            },
+            "actions": {
+                "cancel_booking": "Cancel booking",
+                "book_again": "Book again",
+                "back_to_booking": "Go to bookings"
+            }
+        },
+        "empty_state": "No bookings to display. Enter your email and access code.",
+        "cancel_confirm": "Are you sure you want to cancel this booking?",
+        "error_cancel": "Error cancelling booking"
     }
 }
