@@ -218,7 +218,16 @@ export default function Onboarding() {
 
             if (isCompleted) {
                 toast({ title: "¡Felicidades!", description: "Tu negocio está listo." });
-                navigate('/admin');
+
+                // Redirect based on user role
+                if (user.role === 'owner') {
+                    navigate('/admin');
+                } else if (user.businessId) {
+                    navigate(`/business/${user.businessId}/dashboard`);
+                } else {
+                    // Fallback to admin
+                    navigate('/admin');
+                }
             } else {
                 setCurrentStep(nextStep);
             }
