@@ -36,7 +36,7 @@ const formSchema = z.object({
     primaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Color inválido").optional(),
     secondaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Color inválido").optional(),
     description: z.string().max(500, "Máximo 500 caracteres").optional(),
-    language: z.string().optional(),
+    communicationLanguage: z.string().optional(),
     defaultServiceDuration: z.coerce.number().min(5, "Mínimo 5 minutos").default(30),
     businessHours: z.array(z.object({
         day: z.string(),
@@ -95,7 +95,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
             primaryColor: "#000000",
             secondaryColor: "#ffffff",
             description: "",
-            language: "es_MX",
+            communicationLanguage: "es_MX",
             defaultServiceDuration: 30,
             businessHours: daysOfWeek.map(d => ({
                 day: d.key,
@@ -117,7 +117,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     primaryColor: business.settings?.primaryColor || "#000000",
                     secondaryColor: business.settings?.secondaryColor || "#ffffff",
                     description: business.settings?.description || "",
-                    language: business.settings?.language || "es_MX",
+                    communicationLanguage: business.settings?.language || "es_MX",
                     defaultServiceDuration: business.settings?.defaultServiceDuration || 30,
                     businessHours: business.settings?.businessHours?.length
                         ? business.settings.businessHours.map((bh) => ({
@@ -175,15 +175,15 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     businessName: values.businessName,
                     language: values.language,
                     description: values.description,
-                    language: values.language,
                     defaultServiceDuration: values.defaultServiceDuration,
                 };
             } else if (activeTab === "branding") {
-                // Branding tab: colors and logo
+                // Branding tab: colors, logo, and communication language
                 dataToSubmit = {
                     logoUrl: values.logoUrl,
                     primaryColor: values.primaryColor,
                     secondaryColor: values.secondaryColor,
+                    language: values.communicationLanguage,
                 };
             } else if (activeTab === "hours") {
                 // Hours tab: only business hours
@@ -315,7 +315,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                             <CardContent className="space-y-4">
                                 <FormField
                                     control={form.control}
-                                    name="language"
+                                    name="communicationLanguage"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Idioma de Comunicación</FormLabel>
