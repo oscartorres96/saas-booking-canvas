@@ -257,6 +257,17 @@
         "status_updated": "Cita marcada como {{status}}",
         "error_update": "Error al actualizar el estado de la cita"
       }
+    },
+    "qr": {
+      "dialog_title": "Compartir Perfil",
+      "title": "Código QR para Reservas",
+      "description": "Comparte este código en tus historias o imprímelo para que tus clientes puedan escanear y reservar fácilmente.",
+      "download": "Descargar QR",
+      "copy_link": "Copiar Link para Bio",
+      "tip": "💡 Tip para Instagram: Agrega este link en tu bio.",
+      "toast_download": "Código QR descargado",
+      "toast_error": "Error al generar el código QR",
+      "toast_copy": "Enlace copiado al portapapeles"
     }
   },
   "theme": {
@@ -386,5 +397,366 @@
     "empty_state": "No hay reservas para mostrar. Ingresa tu correo y código de acceso.",
     "cancel_confirm": "¿Estás seguro de que quieres cancelar esta reserva?",
     "error_cancel": "Error al cancelar la reserva"
+  },
+  "manual": {
+    "header": {
+      "title": "Manual de Usuario",
+      "back": "Volver",
+      "version": "Versión 1.0"
+    },
+    "toc": {
+      "title": "Índice",
+      "introduction": "Introducción",
+      "getting_started": "Primeros Pasos",
+      "dashboard": "Panel de Control",
+      "services": "Gestión de Servicios",
+      "bookings": "Gestión de Reservas",
+      "settings": "Configuración",
+      "sharing": "Compartir Página",
+      "clients": "Guía para Clientes",
+      "faq": "Preguntas Frecuentes"
+    },
+    "introduction": {
+      "title": "Introducción",
+      "subtitle": "Guía completa para administradores de negocios",
+      "welcome_title": "Bienvenido a BookPro",
+      "welcome_desc": "Una plataforma completa para gestionar las citas y reservas de tu negocio de manera profesional y eficiente.",
+      "what_can_do": "¿Qué puedes hacer con este sistema?",
+      "features": {
+        "manage_services": "Gestionar servicios y sus precios",
+        "receive_bookings": "Recibir y administrar reservas en línea",
+        "customize_page": "Personalizar tu página de reservas con tu marca",
+        "configure_hours": "Configurar horarios de atención",
+        "send_confirmations": "Enviar confirmaciones automáticas por email",
+        "manage_status": "Gestionar el estado de las citas"
+      }
+    },
+    "getting_started": {
+      "title": "Primeros Pasos",
+      "access_title": "1. Acceso al Sistema",
+      "access_steps": {
+        "step1": "Abre tu navegador web y ve a la URL del sistema",
+        "step2": "Haz clic en \"Iniciar Sesión\"",
+        "step3": "Ingresa tu correo electrónico y contraseña",
+        "step4": "Haz clic en \"Iniciar Sesión\""
+      },
+      "tip_password": "Si olvidaste tu contraseña, haz clic en \"¿Olvidaste tu contraseña?\" para recuperarla.",
+      "onboarding_title": "2. Proceso de Onboarding (Primera vez)",
+      "onboarding_desc": "El sistema te guiará a través de 4 pasos sencillos",
+      "steps": {
+        "step1": {
+          "title": "Paso 1: Información del Negocio",
+          "items": {
+            "name": "Ingresa el nombre de tu negocio",
+            "description": "Agrega una descripción (opcional)",
+            "language": "Selecciona el idioma de tu panel"
+          }
+        },
+        "step2": {
+          "title": "Paso 2: Servicios",
+          "items": {
+            "add": "Agrega tus primeros servicios",
+            "define": "Define nombre, precio y duración"
+          }
+        },
+        "step3": {
+          "title": "Paso 3: Horarios de Atención",
+          "items": {
+            "configure": "Configura días y horarios",
+            "intervals": "Agrega múltiples intervalos por día",
+            "closed": "Marca días cerrados"
+          }
+        },
+        "step4": {
+          "title": "Paso 4: Personalización",
+          "items": {
+            "logo": "Sube el logo de tu negocio",
+            "colors": "Selecciona colores de marca",
+            "social": "Agrega redes sociales"
+          }
+        }
+      }
+    },
+    "dashboard": {
+      "title": "Panel de Control",
+      "subtitle": "El panel de control es tu centro de operaciones.",
+      "sections": {
+        "dashboard": {
+          "title": "Dashboard",
+          "items": {
+            "summary": "Resumen de citas próximas",
+            "services": "Servicios activos",
+            "actions": "Acciones rápidas"
+          }
+        },
+        "header": {
+          "title": "Barra Superior",
+          "items": {
+            "view_page": "Ver página de reservas",
+            "copy": "Copiar invitación",
+            "selectors": "Selector de idioma y tema"
+          }
+        }
+      }
+    },
+    "services": {
+      "title": "Gestión de Servicios",
+      "create_title": "Crear un Nuevo Servicio",
+      "create_steps": {
+        "step1": "En el Dashboard, haz clic en \"+ Nuevo Servicio\"",
+        "step2": "Completa el formulario:",
+        "step2_items": {
+          "name": "Nombre del servicio (ej: \"Corte de cabello\")",
+          "description": "Descripción (opcional)",
+          "price": "Precio (ej: 250)",
+          "duration": "Duración en minutos (ej: 30)"
+        },
+        "step3": "Haz clic en \"Crear Servicio\""
+      },
+      "edit_title": "Editar un Servicio",
+      "edit_steps": {
+        "step1": "Haz clic en el menú de tres puntos (⋮)",
+        "step2": "Selecciona \"Editar\"",
+        "step3": "Modifica los campos necesarios",
+        "step4": "Haz clic en \"Guardar Cambios\""
+      },
+      "delete_title": "Eliminar un Servicio",
+      "delete_steps": {
+        "step1": "Haz clic en el menú de tres puntos (⋮)",
+        "step2": "Selecciona \"Eliminar\"",
+        "step3": "Confirma la eliminación"
+      },
+      "delete_warning": "No puedes eliminar servicios con reservas activas"
+    },
+    "bookings": {
+      "title": "Gestión de Reservas",
+      "view_title": "Ver Detalles de una Reserva",
+      "view_desc": "Tienes dos formas de ver los detalles:",
+      "view_options": {
+        "option1": "Haz clic directamente en la fila de la reserva",
+        "option2": "Menú de tres puntos (⋮) → \"Ver detalles\""
+      },
+      "modal_shows": "El modal muestra:",
+      "modal_items": {
+        "client": "Información del cliente",
+        "service": "Servicio reservado",
+        "datetime": "Fecha y hora",
+        "notes": "Notas adicionales",
+        "status": "Estado de la reserva"
+      },
+      "states_title": "Estados de Reservas",
+      "states": {
+        "pending": {
+          "name": "Pendiente",
+          "desc": "Nueva reserva sin confirmar",
+          "color": "Amarillo"
+        },
+        "confirmed": {
+          "name": "Confirmada",
+          "desc": "Cita confirmada por ti",
+          "color": "Verde"
+        },
+        "completed": {
+          "name": "Completada",
+          "desc": "Servicio finalizado",
+          "color": "Azul"
+        },
+        "cancelled": {
+          "name": "Cancelada",
+          "desc": "Reserva cancelada",
+          "color": "Rojo"
+        }
+      },
+      "change_title": "Cambiar Estado de Reserva",
+      "confirm_booking": {
+        "title": "Confirmar una Cita",
+        "desc": "Haz clic en \"Confirmar\" para cambiar de Pendiente → Confirmada. El cliente recibirá una confirmación por email."
+      },
+      "complete_booking": {
+        "title": "Completar una Cita",
+        "desc": "Haz clic en \"Completar\" cuando el servicio termine para marcar como finalizada."
+      },
+      "cancel_booking": {
+        "title": "Cancelar una Cita",
+        "steps": {
+          "step1": "Haz clic en \"Cancelar\"",
+          "step2": "Aparecerá un diálogo de confirmación",
+          "step3": "Revisa los datos de la cita",
+          "step4": "Confirma con \"Sí, cancelar cita\""
+        },
+        "info": "La cancelación enviará una notificación al cliente automáticamente"
+      }
+    },
+    "settings": {
+      "title": "Configuración del Negocio",
+      "subtitle": "Accede haciendo clic en la pestaña \"Settings\"",
+      "general": {
+        "title": "General",
+        "basic_info": "Información Básica",
+        "business_name": "Nombre del negocio: El nombre que verán tus clientes",
+        "description": "Descripción: Describe brevemente tu negocio (máx. 500 caracteres)",
+        "duration": "Duración predeterminada: Para nuevos servicios",
+        "language_title": "Idioma del Panel",
+        "language_desc": "Selecciona entre Español o English. Esto solo afecta tu panel de administración."
+      },
+      "branding": {
+        "title": "Branding (Personalización)",
+        "comm_language": "Idioma de Comunicación",
+        "comm_language_info": "Este idioma afecta los correos y la bandera del selector de teléfono en la página de reservas",
+        "logo": {
+          "title": "Logo del Negocio",
+          "step1": "Haz clic en \"Choose File\" o arrastra tu logo",
+          "step2": "El logo debe ser cuadrado preferentemente (300x300px)",
+          "step3": "El sistema subirá el archivo automáticamente"
+        },
+        "colors": {
+          "title": "Colores Personalizados",
+          "primary": "Color Primario: Se usa en el encabezado de la página de reservas",
+          "secondary": "Color Secundario: Se usa de fondo con opacidad"
+        },
+        "social": {
+          "title": "Redes Sociales",
+          "desc": "Agrega los enlaces completos de tus redes:",
+          "facebook": "Facebook:",
+          "instagram": "Instagram:",
+          "twitter": "Twitter/X:",
+          "website": "Sitio Web:"
+        }
+      },
+      "hours": {
+        "title": "Hours (Horarios de Atención)",
+        "subtitle": "Configura tus horarios de atención por día:",
+        "example_title": "Ejemplo de Configuración:"
+      },
+      "save_warning": "Después de hacer cambios en Settings, haz clic en \"Save Changes\""
+    },
+    "sharing": {
+      "title": "Compartir Página de Reservas",
+      "options_title": "Opciones para Compartir",
+      "option1": {
+        "title": "Opción 1: Copiar Enlace Directo",
+        "steps": {
+          "step1": "Haz clic en \"Copy Invitation\" en la barra superior",
+          "step2": "Se copiará automáticamente el enlace",
+          "step3": "Pégalo donde quieras compartirlo"
+        }
+      },
+      "option2": {
+        "title": "Opción 2: Ver y Compartir Página",
+        "steps": {
+          "step1": "Haz clic en \"View booking page\"",
+          "step2": "Se abrirá tu página pública de reservas",
+          "step3": "Copia la URL del navegador"
+        }
+      },
+      "where_title": "Dónde Compartir",
+      "platforms": {
+        "whatsapp": {
+          "name": "WhatsApp",
+          "desc": "En tu estado o directamente"
+        },
+        "facebook": {
+          "name": "Facebook",
+          "desc": "En tu página de negocio"
+        },
+        "instagram": {
+          "name": "Instagram",
+          "desc": "En tu bio (no permite en posts)"
+        },
+        "email": {
+          "name": "Email",
+          "desc": "En tu firma de correo"
+        },
+        "website": {
+          "name": "Sitio Web",
+          "desc": "Como botón \"Reservar Ahora\""
+        },
+        "cards": {
+          "name": "Tarjetas",
+          "desc": "Como código QR"
+        }
+      }
+    },
+    "clients": {
+      "title": "Guía para Clientes",
+      "subtitle": "Cómo tus clientes harán una reserva",
+      "steps": {
+        "step1": {
+          "title": "Acceder al Enlace",
+          "desc": "El cliente hace clic en el enlace que compartiste"
+        },
+        "step2": {
+          "title": "Seleccionar Servicio",
+          "desc": "Ve todos los servicios con nombre, descripción, duración y precio. Hace clic en el deseado."
+        },
+        "step3": {
+          "title": "Seleccionar Fecha y Hora",
+          "desc": "Elige del calendario (días cerrados deshabilitados) y selecciona hora de los horarios disponibles."
+        },
+        "step4": {
+          "title": "Datos del Cliente",
+          "desc": "Completa: Nombre, Email, Teléfono y Notas opcionales"
+        },
+        "step5": {
+          "title": "Confirmar Reserva",
+          "desc": "Hace clic en \"Confirmar Reserva\" y recibe confirmación en pantalla y por email con código de acceso"
+        }
+      }
+    },
+    "faq": {
+      "title": "Preguntas Frecuentes",
+      "items": {
+        "q1": {
+          "q": "¿Cómo cambio mi contraseña?",
+          "a": "Por ahora, contacta al administrador del sistema. En futuras versiones habrá una opción en el perfil."
+        },
+        "q2": {
+          "q": "¿Puedo tener diferentes precios para el mismo servicio?",
+          "a": "Crea servicios separados (ej: \"Corte Niño\" y \"Corte Adulto\") con diferentes precios."
+        },
+        "q3": {
+          "q": "¿Qué pasa si dos clientes reservan al mismo tiempo?",
+          "a": "El sistema bloquea automáticamente los horarios ocupados. Solo uno podrá reservar."
+        },
+        "q4": {
+          "q": "¿Puedo eliminar una reserva completamente?",
+          "a": "Sí, en el menú de acciones. Pero es mejor cancelarla para mantener el historial."
+        },
+        "q5": {
+          "q": "¿Los clientes reciben correos automáticamente?",
+          "a": "Sí, reciben confirmación al crear la reserva, notificación si cancelas la cita, y recordatorio 24 horas antes (si está configurado)."
+        },
+        "q6": {
+          "q": "¿Puedo bloquear ciertos días como festivos?",
+          "a": "Sí, en la configuración de horarios, desmarca el checkbox de ese día específico."
+        },
+        "q7": {
+          "q": "¿Mi logo se ve borroso?",
+          "a": "Asegúrate de subir una imagen de al menos 300x300 píxeles en formato PNG o JPG."
+        },
+        "q8": {
+          "q": "¿Puedo cambiar los colores después?",
+          "a": "Sí, en cualquier momento desde Settings → Branding."
+        }
+      }
+    },
+    "checklist": {
+      "title": "Checklist de Inicio Rápido",
+      "subtitle": "Para empezar a recibir reservas hoy",
+      "items": {
+        "item1": "Completar Onboarding",
+        "item2": "Agregar al menos 1 servicio",
+        "item3": "Configurar horarios de atención",
+        "item4": "Subir logo (recomendado)",
+        "item5": "Personalizar colores",
+        "item6": "Probar haciendo una reserva de prueba",
+        "item7": "Compartir enlace en redes sociales",
+        "item8": "¡Recibir tu primera reserva real! 🎉"
+      }
+    },
+    "footer": {
+      "congrats": "¡Felicidades! Ya estás listo para gestionar las reservas de tu negocio de manera profesional.",
+      "updated": "Última actualización: Diciembre 2024 • Versión 1.0"
+    }
   }
 }

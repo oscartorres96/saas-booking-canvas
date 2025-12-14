@@ -9,6 +9,7 @@ import Login from '../pages/Login';
 import NotFound from '../pages/NotFound';
 import PrivateRoute from '../auth/PrivateRoute';
 import Onboarding from '../pages/Onboarding';
+import UserManual from '../pages/UserManual';
 
 const AppRouter = () => (
   <BrowserRouter
@@ -23,6 +24,7 @@ const AppRouter = () => (
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Login />} />
       <Route path="/my-bookings" element={<MyBookings />} />
+      <Route path="/manual" element={<UserManual />} />
 
       <Route
         path="/onboarding"

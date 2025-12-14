@@ -451,6 +451,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                         />
                                     </div>
                                 </div>
+
+
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -468,6 +470,6 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     </TabsContent>
                 </Tabs>
             </form>
-        </Form>
+        </Form >
     );
 }

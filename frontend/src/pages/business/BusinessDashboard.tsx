@@ -59,8 +59,11 @@ import {
     Filter,
     Package,
     LogOut,
-    Copy
+    Copy,
+    BookOpen,
+    QrCode
 } from "lucide-react";
+import { QRCodeGenerator } from "@/components/QRCodeGenerator";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -96,6 +99,10 @@ const BusinessDashboard = () => {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
 
+    // Read tab from URL query parameter
+    const searchParams = new URLSearchParams(window.location.search);
+    const tabParam = searchParams.get('tab');
+
     const [business, setBusiness] = useState<Business | null>(null);
     const [services, setServices] = useState<Service[]>([]);
     const [bookings, setBookings] = useState<Booking[]>([]);
@@ -110,7 +117,8 @@ const BusinessDashboard = () => {
     const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
     const [bookingToView, setBookingToView] = useState<Booking | null>(null);
     const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
-    const [activeTab, setActiveTab] = useState("dashboard");
+    const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState(tabParam === 'settings' ? 'settings' : 'dashboard');
     const { t, i18n } = useTranslation();
 
     const serviceForm = useForm<z.infer<typeof serviceFormSchema>>({
@@ -408,12 +416,28 @@ const BusinessDashboard = () => {
                                 {t('dashboard.viewBookingPage')}
                             </Button>
                             <Button
+                                variant="outline"
+                                className="w-full md:w-auto order-last md:order-first"
+                                onClick={() => navigate('/manual')}
+                            >
+                                <BookOpen className="mr-2 h-4 w-4" />
+                                Manual
+                            </Button>
+                            <Button
                                 variant="default"
                                 className="w-full md:w-auto order-last md:order-first"
                                 onClick={handleCopyInvitation}
                             >
                                 <Copy className="mr-2 h-4 w-4" />
                                 {t('dashboard.copyInvitation')}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="w-full md:w-auto order-last md:order-first"
+                                onClick={() => setIsQrDialogOpen(true)}
+                            >
+                                <QrCode className="mr-2 h-4 w-4" />
+                                QR
                             </Button>
                             <TabsList className="order-first md:order-none w-full md:w-auto">
                                 <TabsTrigger value="dashboard" className="flex-1 md:flex-none">{t('dashboard.tabs.dashboard')}</TabsTrigger>
@@ -778,6 +802,21 @@ const BusinessDashboard = () => {
                                         </DialogFooter>
                                     </form>
                                 </Form>
+                            </DialogContent>
+                        </Dialog>
+
+                        {/* QR Code Dialog */}
+                        <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
+                            <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle>{t('dashboard.qr.dialog_title')}</DialogTitle>
+                                </DialogHeader>
+                                <div className="flex justify-center py-4">
+                                    <QRCodeGenerator
+                                        url={`${window.location.origin}/business/${businessId}/booking`}
+                                        businessName={business?.businessName || ""}
+                                    />
+                                </div>
                             </DialogContent>
                         </Dialog>
 

@@ -233,6 +233,17 @@
                 "status_updated": "Appointment marked as {{status}}",
                 "error_update": "Error updating appointment status"
             }
+        },
+        "qr": {
+            "dialog_title": "Share Profile",
+            "title": "Booking QR Code",
+            "description": "Share this code on your stories or print it so your clients can scan and book easily.",
+            "download": "Download QR",
+            "copy_link": "Copy Link for Bio",
+            "tip": "💡 Instagram Tip: Add this link to your bio.",
+            "toast_download": "QR Code downloaded",
+            "toast_error": "Error generating QR code",
+            "toast_copy": "Link copied to clipboard"
         }
     },
     "theme": {
@@ -362,5 +373,117 @@
         "empty_state": "No bookings to display. Enter your email and access code.",
         "cancel_confirm": "Are you sure you want to cancel this booking?",
         "error_cancel": "Error cancelling booking"
+    },
+    "manual": {
+        "header": {
+            "title": "User Manual",
+            "back": "Back",
+            "version": "Version 1.0"
+        },
+        "toc": {
+            "title": "Table of Contents",
+            "introduction": "Introduction",
+            "getting_started": "Getting Started",
+            "dashboard": "Dashboard",
+            "services": "Services Management",
+            "bookings": "Bookings Management",
+            "settings": "Configuration",
+            "sharing": "Share Page",
+            "clients": "Client Guide",
+            "faq": "FAQ"
+        },
+        "introduction": {
+            "title": "Introduction",
+            "subtitle": "Complete guide for business administrators",
+            "welcome_title": "Welcome to BookPro",
+            "welcome_desc": "A complete platform to manage your business appointments and bookings professionally and efficiently.",
+            "what_can_do": "What can you do with this system?",
+            "features": {
+                "manage_services": "Manage services and their prices",
+                "receive_bookings": "Receive and manage online bookings",
+                "customize_page": "Customize your booking page with your brand",
+                "configure_hours": "Configure business hours",
+                "send_confirmations": "Send automatic email confirmations",
+                "manage_status": "Manage appointment status"
+            }
+        },
+        "getting_started": {
+            "title": "Getting Started",
+            "access_title": "1. System Access",
+            "access_steps": {
+                "step1": "Open your web browser and go to the system URL",
+                "step2": "Click on \"Sign In\"",
+                "step3": "Enter your email and password",
+                "step4": "Click \"Sign In\""
+            },
+            "tip_password": "If you forgot your password, click on \"Forgot your password?\" to recover it.",
+            "onboarding_title": "2. Onboarding Process (First time)",
+            "onboarding_desc": "The system will guide you through 4 simple steps"
+        },
+        "dashboard": {
+            "title": "Dashboard",
+            "subtitle": "The dashboard is your operations center."
+        },
+        "services": {
+            "title": "Services Management"
+        },
+        "bookings": {
+            "title": "Bookings Management",
+            "states_title": "Booking States",
+            "states": {
+                "pending": {
+                    "name": "Pending",
+                    "desc": "New booking not confirmed",
+                    "color": "Yellow"
+                },
+                "confirmed": {
+                    "name": "Confirmed",
+                    "desc": "Appointment confirmed by you",
+                    "color": "Green"
+                },
+                "completed": {
+                    "name": "Completed",
+                    "desc": "Service finished",
+                    "color": "Blue"
+                },
+                "cancelled": {
+                    "name": "Cancelled",
+                    "desc": "Booking cancelled",
+                    "color": "Red"
+                }
+            }
+        },
+        "settings": {
+            "title": "Business Configuration",
+            "subtitle": "Access by clicking on the \"Settings\" tab"
+        },
+        "sharing": {
+            "title": "Share Booking Page"
+        },
+        "clients": {
+            "title": "Client Guide",
+            "subtitle": "How your clients will make a booking"
+        },
+        "faq": {
+            "title": "Frequently Asked Questions"
+        },
+        "checklist": {
+            "title": "Quick Start Checklist",
+            "subtitle": "To start receiving bookings today",
+            "items": {
+                "item1": "Complete Onboarding",
+                "item2": "Add at least 1 service",
+                "item3": "Configure business hours",
+                "item4": "Upload logo (recommended)",
+                "item5": "Customize colors",
+                "item6": "Test by making a test booking",
+                "item7": "Share link on social media",
+                "item8": "Get your first real booking! 🎉"
+            }
+        },
+        "footer": {
+            "congrats": "Congratulations! You're ready to manage your business bookings professionally.",
+            "updated": "Last updated: December 2024  Version 1.0"
+        }
     }
 }
