@@ -413,6 +413,7 @@
       "bookings": "Gestión de Reservas",
       "settings": "Configuración",
       "sharing": "Compartir Página",
+      "qr": "Código QR",
       "clients": "Guía para Clientes",
       "faq": "Preguntas Frecuentes"
     },
@@ -674,6 +675,24 @@
         "cards": {
           "name": "Tarjetas",
           "desc": "Como código QR"
+        }
+      }
+    },
+    "qr": {
+      "title": "Código QR para Reservas",
+      "subtitle": "Facilita el acceso a tus clientes",
+      "desc": "El sistema genera automáticamente un código QR único para tu negocio.",
+      "uses": {
+        "print": "Material impreso (tarjetas, flyers, recepción)",
+        "digital": "Redes sociales y mensajería",
+        "access": "Tus clientes lo escanean y van directo a tu página de reservas"
+      },
+      "how_to": {
+        "title": "¿Cómo obtenerlo?",
+        "steps": {
+          "step1": "En el Dashboard, busca el botón \"Código QR\" (icono de QR)",
+          "step2": "Haz clic para abrir la ventana del código",
+          "step3": "Usa el botón \"Descargar QR\" para guardar la imagen"
         }
       }
     },

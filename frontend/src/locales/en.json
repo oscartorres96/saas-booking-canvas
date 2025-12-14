@@ -389,6 +389,7 @@
             "bookings": "Bookings Management",
             "settings": "Configuration",
             "sharing": "Share Page",
+            "qr": "QR Code",
             "clients": "Client Guide",
             "faq": "FAQ"
         },
@@ -459,6 +460,24 @@
         },
         "sharing": {
             "title": "Share Booking Page"
+        },
+        "qr": {
+            "title": "Booking QR Code",
+            "subtitle": "Easy access for your clients",
+            "desc": "The system automatically generates a unique QR code for your business.",
+            "uses": {
+                "print": "Printed material (cards, flyers, reception)",
+                "digital": "Social media and messaging",
+                "access": "Your clients scan it and go directly to your booking page"
+            },
+            "how_to": {
+                "title": "How to get it?",
+                "steps": {
+                    "step1": "In the Dashboard, look for the \"QR Code\" button (QR icon)",
+                    "step2": "Click to open the code window",
+                    "step3": "Use the \"Download QR\" button to save the image"
+                }
+            }
         },
         "clients": {
             "title": "Client Guide",

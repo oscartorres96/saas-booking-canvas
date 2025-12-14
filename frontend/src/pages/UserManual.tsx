@@ -25,8 +25,15 @@ import {
     Info,
     Lightbulb,
     ExternalLink,
-    Menu
+    Menu,
+    QrCode
 } from 'lucide-react';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion";
 import useAuth from '@/auth/useAuth';
 
 const UserManual = () => {
@@ -93,6 +100,7 @@ const UserManual = () => {
         { id: 'reservas', label: t('manual.toc.bookings'), icon: Calendar },
         { id: 'configuracion', label: t('manual.toc.settings'), icon: Settings },
         { id: 'compartir', label: t('manual.toc.sharing'), icon: Share2 },
+        { id: 'qr', label: t('manual.toc.qr'), icon: QrCode },
         { id: 'clientes', label: t('manual.toc.clients'), icon: Users },
         { id: 'faq', label: t('manual.toc.faq'), icon: HelpCircle },
     ];
@@ -185,6 +193,39 @@ const UserManual = () => {
 
                     {/* Main Content */}
                     <main className="space-y-12">
+                        {/* Mobile Table of Contents */}
+                        <div className="lg:hidden">
+                            <Accordion type="single" collapsible className="w-full bg-card rounded-lg border shadow-sm px-4">
+                                <AccordionItem value="toc" className="border-b-0">
+                                    <AccordionTrigger className="hover:no-underline py-4">
+                                        <div className="flex items-center gap-2">
+                                            <BookOpen className="h-5 w-5 text-primary" />
+                                            <span className="font-semibold">{t('manual.toc.title')}</span>
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <nav className="flex flex-col space-y-1 pb-4">
+                                            {tableOfContents.map((item) => {
+                                                const Icon = item.icon;
+                                                return (
+                                                    <button
+                                                        key={item.id}
+                                                        onClick={() => scrollToSection(item.id)}
+                                                        className={`w-full flex items-center gap-2 px-3 py-3 text-sm rounded-md transition-colors ${activeSection === item.id
+                                                            ? 'bg-primary/10 text-primary font-medium'
+                                                            : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                                                            }`}
+                                                    >
+                                                        <Icon className="h-4 w-4 flex-shrink-0" />
+                                                        <span className="truncate text-left">{item.label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </nav>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            </Accordion>
+                        </div>
                         {/* Introduction */}
                         <section id="introduccion">
                             <div className="space-y-6">
@@ -532,6 +573,45 @@ const UserManual = () => {
                                                 <li>{t('manual.sharing.option2.steps.step1')}</li>
                                                 <li>{t('manual.sharing.option2.steps.step2')}</li>
                                                 <li>{t('manual.sharing.option2.steps.step3')}</li>
+                                            </ol>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </section>
+
+                        {/* QR Code */}
+                        <section id="qr">
+                            <div className="space-y-6">
+                                <h2 className="text-3xl font-bold tracking-tight">{t('manual.qr.title')}</h2>
+                                <p className="text-muted-foreground">{t('manual.qr.subtitle')}</p>
+
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>{t('manual.qr.title')}</CardTitle>
+                                        <CardDescription>{t('manual.qr.desc')}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-6">
+                                        <div>
+                                            <h4 className="font-semibold mb-3">{t('manual.qr.uses.access')}</h4>
+                                            <div className="grid gap-2 text-sm text-muted-foreground">
+                                                <div className="flex items-center gap-2">
+                                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                                    {t('manual.qr.uses.print')}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                                                    {t('manual.qr.uses.digital')}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <h4 className="font-semibold mb-3">{t('manual.qr.how_to.title')}</h4>
+                                            <ol className="list-decimal list-inside text-sm space-y-1 text-muted-foreground">
+                                                <li>{t('manual.qr.how_to.steps.step1')}</li>
+                                                <li>{t('manual.qr.how_to.steps.step2')}</li>
+                                                <li>{t('manual.qr.how_to.steps.step3')}</li>
                                             </ol>
                                         </div>
                                     </CardContent>
