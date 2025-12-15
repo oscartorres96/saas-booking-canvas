@@ -281,6 +281,7 @@
   "settings": {
     "language": "Idioma de Comunicación",
     "language_desc": "Idioma para tu página de reservas pública y correos a clientes. (El idioma del dashboard se puede cambiar usando el selector en la parte superior derecha)",
+    "select_language_placeholder": "Selecciona idioma",
     "title": "Configuración del Negocio",
     "save": "Guardar Cambios",
     "saved": "Configuración guardada",
@@ -302,12 +303,45 @@
       "title": "Apariencia",
       "description": "Personaliza los colores de tu página de reservas.",
       "primary": "Color Primario",
-      "secondary": "Color Secundario"
+      "secondary": "Color Secundario",
+      "communication_language": "Idioma de Comunicación",
+      "language_hint": "Este idioma afecta los correos y la bandera del teléfono en la página de reservas"
     },
     "hours": {
       "title": "Horarios de Atención",
       "description": "Define los días y horas en que tu negocio está abierto.",
       "add_interval": "Agregar intervalo"
+    },
+    "validation": {
+      "name_min": "El nombre debe tener al menos 2 caracteres",
+      "url_invalid": "Debe ser una URL válida",
+      "color_invalid": "Color inválido",
+      "desc_max": "Máximo 500 caracteres",
+      "duration_min": "Mínimo 5 minutos",
+      "interval_required": "Agrega al menos un intervalo",
+      "start_before_end": "La hora de inicio debe ser antes que la de fin",
+      "intervals_overlap": "Los intervalos no pueden traslaparse"
+    },
+    "languages": {
+      "es": "Español",
+      "en": "English",
+      "es_mx": "Español (México) 🇲🇽",
+      "en_us": "English (USA) 🇺🇸"
+    },
+    "error_loading": "Error al cargar configuración",
+    "fix_errors": "Por favor corrige los errores en el formulario",
+    "form_errors": "Tienes {{count}} errores en el formulario. Revisa el campo: {{field}}",
+    "social": {
+      "title": "Redes Sociales",
+      "description": "Agrega tus redes sociales para mostrarse en la página de reservas",
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "twitter": "Twitter/X",
+      "website": "Sitio Web",
+      "facebook_placeholder": "https://facebook.com/tu-pagina",
+      "instagram_placeholder": "https://instagram.com/tu-perfil",
+      "twitter_placeholder": "https://twitter.com/tu-cuenta",
+      "website_placeholder": "https://tu-sitio.com"
     }
   },
   "onboarding": {

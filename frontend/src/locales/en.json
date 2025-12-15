@@ -257,6 +257,7 @@
     "settings": {
         "language": "Communication Language",
         "language_desc": "Language for your public booking page and client emails. (Dashboard language can be changed using the switcher at the top right)",
+        "select_language_placeholder": "Select language",
         "title": "Business Settings",
         "save": "Save Changes",
         "saved": "Settings saved",
@@ -278,12 +279,45 @@
             "title": "Appearance",
             "description": "Customize the colors of your booking page.",
             "primary": "Primary Color",
-            "secondary": "Secondary Color"
+            "secondary": "Secondary Color",
+            "communication_language": "Communication Language",
+            "language_hint": "This language affects emails and the phone flag on the booking page"
         },
         "hours": {
             "title": "Business Hours",
             "description": "Define the days and hours your business is open.",
             "add_interval": "Add interval"
+        },
+        "validation": {
+            "name_min": "Name must be at least 2 characters",
+            "url_invalid": "Must be a valid URL",
+            "color_invalid": "Invalid color",
+            "desc_max": "Max 500 characters",
+            "duration_min": "Minimum 5 minutes",
+            "interval_required": "Add at least one interval",
+            "start_before_end": "Start time must be before end time",
+            "intervals_overlap": "Intervals cannot overlap"
+        },
+        "languages": {
+            "es": "Spanish",
+            "en": "English",
+            "es_mx": "Spanish (Mexico) 🇲🇽",
+            "en_us": "English (USA) 🇺🇸"
+        },
+        "error_loading": "Error loading settings",
+        "fix_errors": "Please fix the errors in the form",
+        "form_errors": "You have {{count}} errors in the form. Check field: {{field}}",
+        "social": {
+            "title": "Social Media",
+            "description": "Add your social media links to show on the booking page",
+            "facebook": "Facebook",
+            "instagram": "Instagram",
+            "twitter": "Twitter/X",
+            "website": "Website",
+            "facebook_placeholder": "https://facebook.com/your-page",
+            "instagram_placeholder": "https://instagram.com/your-profile",
+            "twitter_placeholder": "https://twitter.com/your-account",
+            "website_placeholder": "https://your-site.com"
         }
     },
     "onboarding": {

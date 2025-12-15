@@ -17,28 +17,28 @@ import { BusinessHoursForm, daysOfWeek } from "./BusinessHoursForm";
 import { ImageUpload } from "@/components/ImageUpload";
 import { useTranslation } from "react-i18next";
 
-const intervalSchema = z.object({
+const intervalSchema = (t: any) => z.object({
     startTime: z.string(),
     endTime: z.string(),
 });
 
-const formSchema = z.object({
-    businessName: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+const createFormSchema = (t: any) => z.object({
+    businessName: z.string().min(2, t('settings.validation.name_min')),
     language: z.enum(["es", "en"]).default("es"),
-    logoUrl: z.string().url("Debe ser una URL válida").optional().or(z.literal("")),
-    primaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Color inválido").optional(),
-    secondaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, "Color inválido").optional(),
-    description: z.string().max(500, "Máximo 500 caracteres").optional(),
+    logoUrl: z.string().url(t('settings.validation.url_invalid')).optional().or(z.literal("")),
+    primaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, t('settings.validation.color_invalid')).optional(),
+    secondaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, t('settings.validation.color_invalid')).optional(),
+    description: z.string().max(500, t('settings.validation.desc_max')).optional(),
     communicationLanguage: z.string().optional(),
-    defaultServiceDuration: z.coerce.number().min(5, "Mínimo 5 minutos").default(30),
-    facebook: z.string().url("Debe ser una URL válida").optional().or(z.literal("")),
-    instagram: z.string().url("Debe ser una URL válida").optional().or(z.literal("")),
-    twitter: z.string().url("Debe ser una URL válida").optional().or(z.literal("")),
-    website: z.string().url("Debe ser una URL válida").optional().or(z.literal("")),
+    defaultServiceDuration: z.coerce.number().min(5, t('settings.validation.duration_min')).default(30),
+    facebook: z.string().url(t('settings.validation.url_invalid')).optional().or(z.literal("")),
+    instagram: z.string().url(t('settings.validation.url_invalid')).optional().or(z.literal("")),
+    twitter: z.string().url(t('settings.validation.url_invalid')).optional().or(z.literal("")),
+    website: z.string().url(t('settings.validation.url_invalid')).optional().or(z.literal("")),
     businessHours: z.array(z.object({
         day: z.string(),
         isOpen: z.boolean(),
-        intervals: z.array(intervalSchema),
+        intervals: z.array(intervalSchema(t)),
     })).superRefine((val, ctx) => {
         val.forEach((day, idx) => {
             if (!day.isOpen) return;
@@ -46,7 +46,7 @@ const formSchema = z.object({
             if (day.intervals.length === 0) {
                 ctx.addIssue({
                     code: z.ZodIssueCode.custom,
-                    message: "Agrega al menos un intervalo",
+                    message: t('settings.validation.interval_required'),
                     path: ["businessHours", idx, "intervals"],
                 });
             }
@@ -57,7 +57,7 @@ const formSchema = z.object({
                 if (startTime >= endTime) {
                     ctx.addIssue({
                         code: z.ZodIssueCode.custom,
-                        message: "La hora de inicio debe ser antes que la de fin",
+                        message: t('settings.validation.start_before_end'),
                         path: ["businessHours", idx, "intervals", i, "startTime"],
                     });
                 }
@@ -66,7 +66,7 @@ const formSchema = z.object({
                     if (startTime < prev.endTime) {
                         ctx.addIssue({
                             code: z.ZodIssueCode.custom,
-                            message: "Los intervalos no pueden traslaparse",
+                            message: t('settings.validation.intervals_overlap'),
                             path: ["businessHours", idx, "intervals", i, "startTime"],
                         });
                     }
@@ -83,6 +83,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState("general");
 
+    const formSchema = createFormSchema(t);
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -142,7 +143,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                         }))
                 });
             } catch (error) {
-                toast.error("Error al cargar configuración");
+                toast.error(t('settings.error_loading'));
             } finally {
                 setIsLoading(false);
             }
@@ -165,7 +166,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
         }
 
         if (!isValid) {
-            toast.error("Por favor corrige los errores en el formulario");
+            toast.error(t('settings.fix_errors'));
             return;
         }
 
@@ -216,7 +217,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
         console.log("Form errors:", errors);
         const errorCount = Object.keys(errors).length;
         const firstErrorField = Object.keys(errors)[0];
-        toast.error(`Tienes ${errorCount} errores en el formulario. Revisa el campo: ${firstErrorField}`);
+        toast.error(t('settings.form_errors', { count: errorCount, field: firstErrorField }));
     };
 
     const handleFormSubmit = async (e: React.FormEvent) => {
@@ -276,8 +277,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="es">Español</SelectItem>
-                                                    <SelectItem value="en">English</SelectItem>
+                                                    <SelectItem value="es">{t('settings.languages.es')}</SelectItem>
+                                                    <SelectItem value="en">{t('settings.languages.en')}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <p className="text-sm text-muted-foreground">{t('settings.language_desc')}</p>
@@ -327,19 +328,19 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                     name="communicationLanguage"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Idioma de Comunicación</FormLabel>
+                                            <FormLabel>{t('settings.branding.communication_language')}</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="Selecciona idioma" />
+                                                        <SelectValue placeholder={t('settings.branding.select_language_placeholder')} />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="es_MX">Español (México) 🇲🇽</SelectItem>
-                                                    <SelectItem value="en_US">English (USA) 🇺🇸</SelectItem>
+                                                    <SelectItem value="es_MX">{t('settings.languages.es_mx')}</SelectItem>
+                                                    <SelectItem value="en_US">{t('settings.languages.en_us')}</SelectItem>
                                                 </SelectContent>
                                             </Select>
-                                            <p className="text-xs text-muted-foreground">Este idioma afecta los correos y la bandera del teléfono en la página de reservas</p>
+                                            <p className="text-xs text-muted-foreground">{t('settings.branding.language_hint')}</p>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -393,8 +394,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                 </div>
 
                                 <div className="space-y-4 pt-4 border-t">
-                                    <h3 className="font-semibold text-sm">Redes Sociales</h3>
-                                    <p className="text-xs text-muted-foreground">Agrega tus redes sociales para mostrarse en la página de reservas</p>
+                                    <h3 className="font-semibold text-sm">{t('settings.social.title')}</h3>
+                                    <p className="text-xs text-muted-foreground">{t('settings.social.description')}</p>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <FormField
@@ -402,9 +403,9 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                             name="facebook"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Facebook</FormLabel>
+                                                    <FormLabel>{t('settings.social.facebook')}</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="https://facebook.com/tu-pagina" {...field} />
+                                                        <Input placeholder={t('settings.social.facebook_placeholder')} {...field} />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -415,9 +416,9 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                             name="instagram"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Instagram</FormLabel>
+                                                    <FormLabel>{t('settings.social.instagram')}</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="https://instagram.com/tu-perfil" {...field} />
+                                                        <Input placeholder={t('settings.social.instagram_placeholder')} {...field} />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -428,9 +429,9 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                             name="twitter"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Twitter/X</FormLabel>
+                                                    <FormLabel>{t('settings.social.twitter')}</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="https://twitter.com/tu-cuenta" {...field} />
+                                                        <Input placeholder={t('settings.social.twitter_placeholder')} {...field} />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
@@ -441,9 +442,9 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                             name="website"
                                             render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Sitio Web</FormLabel>
+                                                    <FormLabel>{t('settings.social.website')}</FormLabel>
                                                     <FormControl>
-                                                        <Input placeholder="https://tu-sitio.com" {...field} />
+                                                        <Input placeholder={t('settings.social.website_placeholder')} {...field} />
                                                     </FormControl>
                                                     <FormMessage />
                                                 </FormItem>
