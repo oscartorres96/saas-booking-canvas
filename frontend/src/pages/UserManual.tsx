@@ -26,7 +26,8 @@ import {
     Lightbulb,
     ExternalLink,
     Menu,
-    QrCode
+    QrCode,
+    MessageCircle
 } from 'lucide-react';
 import {
     Accordion,
@@ -101,6 +102,7 @@ const UserManual = () => {
         { id: 'configuracion', label: t('manual.toc.settings'), icon: Settings },
         { id: 'compartir', label: t('manual.toc.sharing'), icon: Share2 },
         { id: 'qr', label: t('manual.toc.qr'), icon: QrCode },
+        { id: 'whatsapp', label: t('manual.toc.whatsapp'), icon: MessageCircle },
         { id: 'clientes', label: t('manual.toc.clients'), icon: Users },
         { id: 'faq', label: t('manual.toc.faq'), icon: HelpCircle },
     ];
@@ -613,6 +615,63 @@ const UserManual = () => {
                                                 <li>{t('manual.qr.how_to.steps.step2')}</li>
                                                 <li>{t('manual.qr.how_to.steps.step3')}</li>
                                             </ol>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </section>
+
+                        {/* WhatsApp */}
+                        <section id="whatsapp">
+                            <div className="space-y-6">
+                                <h2 className="text-3xl font-bold tracking-tight">{t('manual.whatsapp.title')}</h2>
+                                <p className="text-muted-foreground">{t('manual.whatsapp.subtitle')}</p>
+
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <MessageCircle className="h-5 w-5 text-green-600" />
+                                            {t('manual.whatsapp.title')}
+                                        </CardTitle>
+                                        <CardDescription>{t('manual.whatsapp.desc')}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-6">
+                                        <div>
+                                            <h4 className="font-semibold mb-3">{t('manual.whatsapp.features_title')}</h4>
+                                            <div className="grid gap-2 text-sm">
+                                                <div className="flex items-start gap-2">
+                                                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
+                                                    <span>{t('manual.whatsapp.features.confirmation')}</span>
+                                                </div>
+                                                <div className="flex items-start gap-2">
+                                                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
+                                                    <span>{t('manual.whatsapp.features.reminder')}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid md:grid-cols-2 gap-6">
+                                            <div className="bg-muted/50 p-4 rounded-lg">
+                                                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                                    <AlertCircle className="h-4 w-4" />
+                                                    {t('manual.whatsapp.requirements_title')}
+                                                </h4>
+                                                <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
+                                                    <li>{t('manual.whatsapp.requirements.phone')}</li>
+                                                    <li>{t('manual.whatsapp.requirements.optin')}</li>
+                                                </ul>
+                                            </div>
+
+                                            <div className="bg-muted/50 p-4 rounded-lg">
+                                                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                                                    <HelpCircle className="h-4 w-4" />
+                                                    {t('manual.whatsapp.troubleshooting_title')}
+                                                </h4>
+                                                <ul className="list-disc list-inside text-sm space-y-1 text-muted-foreground">
+                                                    <li>{t('manual.whatsapp.troubleshooting_steps.step1')}</li>
+                                                    <li>{t('manual.whatsapp.troubleshooting_steps.step2')}</li>
+                                                </ul>
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>

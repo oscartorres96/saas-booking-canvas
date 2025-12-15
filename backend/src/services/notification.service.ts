@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { sendEmail } from '../utils/email';
 // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
-// import { WhatsappService } from '../whatsapp/whatsapp.service';
+import { WhatsappService } from '../whatsapp/whatsapp.service';
 import {
   appointmentReminderTemplate,
   businessNewBookingTemplate,
@@ -19,7 +19,7 @@ export class NotificationService {
   constructor(
     @InjectModel(Business.name) private readonly businessModel: Model<BusinessDocument>,
     // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
-    // private readonly whatsappService: WhatsappService,
+    private readonly whatsappService: WhatsappService,
   ) { }
 
   /** Obtiene la informacion del negocio */
@@ -49,6 +49,14 @@ export class NotificationService {
       target.getMonth() === now.getMonth() &&
       target.getDate() === now.getDate()
     );
+  }
+
+  /** Determina el nombre del template de WhatsApp basado en el idioma */
+  private getWhatsappTemplateName(baseTemplate: string, language: string): string {
+    if (language === 'en_US') {
+      return `${baseTemplate}_en`;
+    }
+    return baseTemplate;
   }
 
   /** Envia notificaciones de nueva reserva al cliente y al negocio */
@@ -107,27 +115,29 @@ export class NotificationService {
 
       // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
       // --- WhatsApp Notification ---
-      /* if (booking.clientPhone) {
+      if (booking.clientPhone) {
         try {
           // Basic phone number cleaning (remove + and spaces)
           const cleanPhone = booking.clientPhone.replace(/[\+\s]/g, '');
+          const waLanguage = business?.settings?.language || 'es_MX';
+          const templateName = this.getWhatsappTemplateName('booking_confirmation', waLanguage);
 
           await this.whatsappService.sendTemplateMessage(
             cleanPhone,
-            'booking_confirmation', // Template name in Meta
+            templateName,
             [
               booking.clientName,   // Variable {{1}}: Client Name
               businessName,         // Variable {{2}}: Business Name
               booking.serviceName || 'Servicio', // Variable {{3}}: Service
               scheduledAt           // Variable {{4}}: Date & Time
             ],
-            business?.settings?.language || 'es_MX'
+            waLanguage
           );
         } catch (waError: any) {
           console.error('Error enviando WhatsApp de confirmación:', waError.message);
           // Don't block the flow if WhatsApp fails
         }
-      } */
+      }
     } catch (error) {
       console.error('Error al enviar confirmacion de reserva:', error);
     }
@@ -212,25 +222,27 @@ export class NotificationService {
 
       // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
       // --- WhatsApp Reminder ---
-      /* if (booking.clientPhone) {
+      if (booking.clientPhone) {
         try {
           const cleanPhone = booking.clientPhone.replace(/[\+\s]/g, '');
+          const waLanguage = business?.settings?.language || 'es_MX';
+          const templateName = this.getWhatsappTemplateName('appointment_reminder', waLanguage);
 
           await this.whatsappService.sendTemplateMessage(
             cleanPhone,
-            'appointment_reminder', // Template name in Meta
+            templateName,
             [
               booking.clientName,   // Variable {{1}}: Client Name
               businessName,         // Variable {{2}}: Business Name
               booking.serviceName || 'Servicio', // Variable {{3}}: Service
               scheduledAt           // Variable {{4}}: Date & Time
             ],
-            business?.settings?.language || 'es_MX'
+            waLanguage
           );
         } catch (waError: any) {
           console.error('Error enviando WhatsApp de recordatorio:', waError.message);
         }
-      } */
+      }
 
     } catch (error) {
       console.error('Error al enviar recordatorio:', error);

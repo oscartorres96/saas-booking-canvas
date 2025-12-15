@@ -414,6 +414,7 @@
       "settings": "Configuración",
       "sharing": "Compartir Página",
       "qr": "Código QR",
+      "whatsapp": "Notificaciones WhatsApp",
       "clients": "Guía para Clientes",
       "faq": "Preguntas Frecuentes"
     },
@@ -694,6 +695,26 @@
           "step2": "Haz clic para abrir la ventana del código",
           "step3": "Usa el botón \"Descargar QR\" para guardar la imagen"
         }
+      }
+    },
+    "whatsapp": {
+      "title": "Notificaciones por WhatsApp",
+      "subtitle": "Mantén a tus clientes informados automáticamente",
+      "desc": "El sistema envía notificaciones automáticas por WhatsApp a tus clientes para confirmar sus citas.",
+      "features_title": "¿Qué notificaciones se envían?",
+      "features": {
+        "confirmation": "Confirmación de reserva: Se envía inmediatamente después de reservar.",
+        "reminder": "Recordatorio: Se envía 24 horas antes de la cita."
+      },
+      "requirements_title": "Requisitos",
+      "requirements": {
+        "phone": "El cliente debe proporcionar un número de celular válido.",
+        "optin": "Mensajes automáticos seguros."
+      },
+      "troubleshooting_title": "Solución de problemas",
+      "troubleshooting_steps": {
+        "step1": "Verifica que el número sea correcto.",
+        "step2": "Asegúrate de que no sea un teléfono fijo local."
       }
     },
     "clients": {

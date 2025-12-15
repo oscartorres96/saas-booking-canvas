@@ -42,6 +42,16 @@ import {
     CheckCircle2,
     Building2
 } from "lucide-react";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import useAuth from "@/auth/useAuth";
 import { getBusinessById, type Business } from "@/api/businessesApi";
 import { getServicesByBusiness, type Service } from "@/api/servicesApi";
@@ -74,6 +84,11 @@ const BusinessBookingPage = () => {
     const [loading, setLoading] = useState(true);
     const [selectedService, setSelectedService] = useState<Service | null>(null);
     const [bookingSuccess, setBookingSuccess] = useState(false);
+    const [conflictError, setConflictError] = useState<{
+        message: string;
+        accessCode?: string;
+        clientEmail: string;
+    } | null>(null);
     const { theme, setTheme } = useTheme();
     const { t, i18n } = useTranslation();
 
@@ -254,16 +269,10 @@ const BusinessBookingPage = () => {
         } catch (error: any) {
             const errData = error?.response?.data;
             if (errData?.code === "BOOKING_ALREADY_EXISTS") {
-                const params = new URLSearchParams({
-                    email: values.clientEmail,
-                    ...(errData.accessCode ? { code: errData.accessCode } : {}),
-                    ...(businessId ? { businessId } : {}),
-                });
-                toast.error(t('booking.form.toasts.error_desc'), {
-                    action: {
-                        label: t('booking.form.check_booking'),
-                        onClick: () => navigate(`/my-bookings?${params.toString()}`),
-                    },
+                setConflictError({
+                    message: errData.message,
+                    accessCode: errData.accessCode,
+                    clientEmail: values.clientEmail
                 });
                 return;
             }
@@ -774,6 +783,29 @@ const BusinessBookingPage = () => {
                     </div>
                 </div>
             )}
+            <AlertDialog open={!!conflictError} onOpenChange={(open) => !open && setConflictError(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('dashboard.bookings.details.title')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {conflictError?.message}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => {
+                            const params = new URLSearchParams({
+                                email: conflictError?.clientEmail || '',
+                                ...(conflictError?.accessCode ? { code: conflictError.accessCode } : {}),
+                                ...(businessId ? { businessId } : {}),
+                            });
+                            navigate(`/my-bookings?${params.toString()}`);
+                        }}>
+                            {t('booking.form.check_booking')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

@@ -9,7 +9,7 @@ import { ServicesModule } from './services/services.module';
 import { BusinessesModule } from './businesses/businesses.module';
 import { UploadsModule } from './uploads/uploads.module';
 // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
-// import { WhatsappModule } from './whatsapp/whatsapp.module';
+import { WhatsappModule } from './whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -25,7 +25,7 @@ import { UploadsModule } from './uploads/uploads.module';
     BusinessesModule,
     UploadsModule,
     // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
-    // WhatsappModule,
+    WhatsappModule,
   ],
 })
 export class AppModule { }

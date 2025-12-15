@@ -10,7 +10,7 @@ import { NotificationService } from './notification.service';
 import { CronService } from './cron.service';
 import { TestEmailController } from './test-email.controller';
 // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
-// import { WhatsappModule } from '../whatsapp/whatsapp.module';
+import { WhatsappModule } from '../whatsapp/whatsapp.module';
 
 @Module({
   imports: [
@@ -20,7 +20,7 @@ import { TestEmailController } from './test-email.controller';
       { name: Booking.name, schema: BookingSchema },
     ]),
     // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
-    // WhatsappModule,
+    WhatsappModule,
   ],
   controllers: [ServicesController, TestEmailController],
   providers: [ServicesService, JwtAuthGuard, NotificationService, CronService],

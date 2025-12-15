@@ -390,6 +390,7 @@
             "settings": "Configuration",
             "sharing": "Share Page",
             "qr": "QR Code",
+            "whatsapp": "WhatsApp Notifications",
             "clients": "Client Guide",
             "faq": "FAQ"
         },
@@ -477,6 +478,26 @@
                     "step2": "Click to open the code window",
                     "step3": "Use the \"Download QR\" button to save the image"
                 }
+            }
+        },
+        "whatsapp": {
+            "title": "WhatsApp Notifications",
+            "subtitle": "Keep your clients informed automatically",
+            "desc": "The system sends automatic WhatsApp notifications to your clients to confirm their bookings.",
+            "features_title": "What notifications are sent?",
+            "features": {
+                "confirmation": "Booking Confirmation: Sent immediately after booking.",
+                "reminder": "Reminder: Sent 24 hours before the appointment."
+            },
+            "requirements_title": "Requirements",
+            "requirements": {
+                "phone": "Client must be provide a valid mobile number.",
+                "optin": "Secure automated messages."
+            },
+            "troubleshooting_title": "Troubleshooting",
+            "troubleshooting_steps": {
+                "step1": "Verify number format.",
+                "step2": "Ensure it is not a landline."
             }
         },
         "clients": {

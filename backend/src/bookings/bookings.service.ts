@@ -111,7 +111,10 @@ export class BookingsService {
       throw new ForbiddenException('Service is inactive');
     }
 
-    const booking = new this.bookingModel(payload);
+    const booking = new this.bookingModel({
+      ...payload,
+      serviceName: service.name,
+    });
     const savedBooking = await booking.save();
 
     // Enviar notificaciones por email
