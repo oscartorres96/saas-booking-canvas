@@ -90,7 +90,8 @@
         "confirmed_title": "Reserva confirmada",
         "confirmed_desc": "Tu reserva ha sido creada exitosamente. Redirigiendo a tus reservas...",
         "error_title": "Error al crear reserva",
-        "error_desc": "Hubo un problema al procesar tu reserva. Por favor intenta de nuevo."
+        "error_desc": "Hubo un problema al procesar tu reserva. Por favor intenta de nuevo.",
+        "booking_conflict_error": "Ya tienes una cita programada para este día con este negocio."
       }
     },
     "calendar": {

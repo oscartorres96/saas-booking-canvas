@@ -90,7 +90,8 @@
                 "confirmed_title": "Booking confirmed",
                 "confirmed_desc": "Your booking was successfully created. Redirecting to your bookings...",
                 "error_title": "Error creating booking",
-                "error_desc": "There was a problem processing your booking. Please try again."
+                "error_desc": "There was a problem processing your booking. Please try again.",
+                "booking_conflict_error": "You already have an appointment scheduled for this day with this business."
             }
         },
         "calendar": {
