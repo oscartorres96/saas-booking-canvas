@@ -51,6 +51,200 @@
       "load_businesses": "No se pudieron cargar los negocios"
     }
   },
+  "landing": {
+    "nav": {
+      "features": "Características",
+      "benefits": "Beneficios",
+      "how_it_works": "Cómo Funciona",
+      "pricing": "Precios",
+      "login": "Iniciar Sesión",
+      "demo": "Solicitar Demo"
+    },
+    "demo_modal": {
+      "title": "Solicitar Demo",
+      "subtitle": "Déjanos tus datos y te contactaremos a la brevedad.",
+      "name_label": "Nombre Completo",
+      "name_placeholder": "Tu nombre",
+      "email_label": "Email Corporativo",
+      "email_placeholder": "nombre@empresa.com",
+      "phone_label": "Teléfono",
+      "phone_placeholder": "+52 55 1234 5678",
+      "company_label": "Empresa",
+      "company_placeholder": "Nombre de tu empresa",
+      "message_label": "Mensaje (Opcional)",
+      "message_placeholder": "¿Qué te gustaría saber?",
+      "submit_btn": "Solicitar Demo",
+      "success_title": "¡Solicitud Enviada!",
+      "success_desc": "Gracias por tu interés. Te contactaremos pronto.",
+      "error_title": "Error",
+      "error_desc": "Hubo un problema al enviar tu solicitud. Intenta de nuevo."
+    },
+    "hero": {
+      "headline": "Gestiona las reservas de tu negocio sin complicaciones",
+      "subheadline": "BookPro es la plataforma SaaS que necesitas para automatizar tus citas, impresionar a tus clientes y hacer crecer tu negocio.",
+      "cta_primary": "Empezar ahora",
+      "cta_secondary": "Ver cómo funciona",
+      "badge": "14 días de prueba gratis",
+      "trust_indicator_1": "Pagos 100% seguros",
+      "trust_indicator_2": "Configuración en minutos"
+    },
+    "what_is": {
+      "title": "¿Qué es BookPro?",
+      "subtitle": "La solución completa para profesionales y negocios que trabajan con citas",
+      "description": "BookPro te permite crear tu propia página de reservas personalizada, gestionar tus servicios, horarios y citas desde un solo lugar. Olvídate de las hojas de papel, mensajes perdidos y dobles reservas.",
+      "video_alt": "Demo de BookPro"
+    },
+    "benefits": {
+      "title": "Beneficios que transforman tu negocio",
+      "subtitle": "No solo gestionas citas, mejoras toda tu operación",
+      "items": {
+        "time": {
+          "title": "Ahorra tiempo valioso",
+          "description": "Automatiza las reservas y dedica tu tiempo a lo que realmente importa: atender a tus clientes."
+        },
+        "clients": {
+          "title": "Atrae más clientes",
+          "description": "Una página profesional de reservas mejora tu imagen y facilita que nuevos clientes te encuentren."
+        },
+        "errors": {
+          "title": "Elimina errores",
+          "description": "Sistema inteligente que previene dobles reservas y conflictos de horarios automáticamente."
+        },
+        "professional": {
+          "title": "Imagen profesional",
+          "description": "Transmite confianza con una plataforma moderna, personalizada con tu marca."
+        }
+      }
+    },
+    "how_it_works": {
+      "title": "Cómo funciona",
+      "subtitle": "En 4 pasos simples estarás recibiendo reservas",
+      "steps": {
+        "step1": {
+          "title": "Crea tu cuenta",
+          "description": "Regístrate en segundos y accede a tu panel de control personalizado."
+        },
+        "step2": {
+          "title": "Configura tus servicios",
+          "description": "Agrega tus servicios, precios, duración y horarios de atención."
+        },
+        "step3": {
+          "title": "Personaliza tu marca",
+          "description": "Sube tu logo, elige tus colores y haz que la página sea 100% tuya."
+        },
+        "step4": {
+          "title": "Comparte y recibe reservas",
+          "description": "Comparte tu enlace o código QR y empieza a recibir citas automáticamente."
+        }
+      }
+    },
+    "use_cases": {
+      "title": "Perfecto para tu tipo de negocio",
+      "subtitle": "Miles de profesionales ya confían en BookPro",
+      "items": {
+        "gym": {
+          "title": "Gimnasios y Estudios",
+          "description": "Gestiona clases, entrenamientos personales y horarios grupales."
+        },
+        "medical": {
+          "title": "Consultorios Médicos",
+          "description": "Organiza consultas, nutrición, terapias y seguimientos de pacientes."
+        },
+        "beauty": {
+          "title": "Estudios de Belleza",
+          "description": "Reservas para peluquería, uñas, pestañas, maquillaje y más."
+        },
+        "professionals": {
+          "title": "Profesionales Independientes",
+          "description": "Ideal para coaches, consultores, fotógrafos y freelancers."
+        }
+      }
+    },
+    "features": {
+      "title": "Todo lo que necesitas en un solo lugar",
+      "subtitle": "Características que hacen la diferencia",
+      "items": {
+        "booking_page": {
+          "title": "Página de Reservas Pública",
+          "description": "Tu propia página web lista para compartir con tus clientes."
+        },
+        "dashboard": {
+          "title": "Dashboard Profesional",
+          "description": "Panel completo para gestionar servicios, horarios y citas."
+        },
+        "customization": {
+          "title": "Personalización Total",
+          "description": "Logo, colores y marca 100% personalizable."
+        },
+        "notifications": {
+          "title": "Notificaciones Automáticas",
+          "description": "Emails de confirmación y recordatorios para tus clientes."
+        },
+        "multilingual": {
+          "title": "Multi-idioma",
+          "description": "Soporte completo en Español e Inglés."
+        },
+        "dark_mode": {
+          "title": "Modo Claro/Oscuro",
+          "description": "Tema adaptable para cualquier preferencia."
+        },
+        "qr_code": {
+          "title": "Código QR",
+          "description": "Genera tu código QR para compartir en redes sociales."
+        },
+        "realtime": {
+          "title": "Tiempo Real",
+          "description": "Disponibilidad actualizada al instante, sin conflictos."
+        }
+      }
+    },
+    "cta": {
+      "title": "¿Listo para transformar tu negocio?",
+      "subtitle": "Únete a cientos de profesionales que ya están creciendo con BookPro",
+      "button": "Solicitar Demo",
+      "note": "Agenda una demostración personalizada"
+    },
+    "demo": {
+      "title": "Solicita una Demo",
+      "subtitle": "Déjanos tus datos y te contactaremos para mostrarte cómo BookPro puede ayudar a tu negocio.",
+      "name_label": "Nombre Completo",
+      "name_placeholder": "Tu nombre",
+      "email_label": "Email Profesional",
+      "email_placeholder": "tu@empresa.com",
+      "phone_label": "Teléfono",
+      "phone_placeholder": "+52 ...",
+      "message_label": "Mensaje (Opcional)",
+      "message_placeholder": "Cuéntanos sobre tu negocio...",
+      "submit_btn": "Solicitar Demo",
+      "success": "¡Gracias! Te contactaremos pronto."
+    },
+    "footer": {
+      "tagline": "La forma más simple de gestionar tus reservas",
+      "product": {
+        "title": "Producto",
+        "features": "Características",
+        "pricing": "Precios",
+        "demo": "Solicitar Demo"
+      },
+      "company": {
+        "title": "Empresa",
+        "about": "Acerca de",
+        "contact": "Contacto",
+        "blog": "Blog"
+      },
+      "legal": {
+        "title": "Legal",
+        "privacy": "Privacidad",
+        "terms": "Términos",
+        "cookies": "Cookies"
+      },
+      "contact": {
+        "title": "Contacto",
+        "email": "oscartorres0396@gmail.com"
+      },
+      "copyright": "© 2026 BookPro. Todos los derechos reservados."
+    }
+  },
   "booking": {
     "form": {
       "title": "Agendar Cita",
@@ -367,7 +561,7 @@
     "copyright": "Todos los derechos reservados.",
     "tabs": {
       "login": "Iniciar Sesión",
-      "register": "Registrar Negocio"
+      "demo": "Solicitar Demo"
     },
     "form": {
       "title": "Acceso",
@@ -383,11 +577,53 @@
     },
     "register": {
       "title": "Nuevo Negocio",
-      "description": "Comienza tu prueba gratuita de 14 días.",
-      "business_button": "Soy un Negocio (Nutriólogo, Dentista...)",
-      "or_label": "O contáctanos",
-      "contact_text": "Para registros empresariales, por favor contacta a oscartorres0396@gmail.com",
-      "coming_soon": "Funcionalidad de registro próximamente"
+      "description": "Completa el formulario para registrar tu negocio.",
+      "form_title": "Información del Negocio",
+      "form_subtitle": "Proporciona los datos necesarios para dar de alta tu negocio",
+      "name_label": "Nombre Completo",
+      "name_placeholder": "Tu nombre",
+      "email_label": "Email Profesional",
+      "email_placeholder": "tu@empresa.com",
+      "phone_label": "Teléfono",
+      "phone_placeholder": "+52 ...",
+      "business_name_label": "Nombre del Negocio",
+      "business_name_placeholder": "Ej. Mi Clínica Dental",
+      "business_type_label": "Tipo de Negocio",
+      "business_type_placeholder": "Ej. Nutrición, Estética, Dentista...",
+      "message_label": "Mensaje (Opcional)",
+      "message_placeholder": "Cuéntanos sobre tu negocio...",
+      "submit_button": "Enviar Solicitud",
+      "submitting": "Enviando...",
+      "success_title": "¡Solicitud Enviada!",
+      "success_message": "Gracias por tu interés. Te contactaremos pronto para completar tu registro.",
+      "error_title": "Error al enviar",
+      "error_message": "Hubo un problema al enviar tu solicitud. Por favor intenta de nuevo.",
+      "validation": {
+        "name_required": "El nombre es requerido",
+        "email_invalid": "Email inválido",
+        "phone_required": "El teléfono es requerido",
+        "business_name_required": "El nombre del negocio es requerido"
+      }
+    },
+    "demo": {
+      "title": "Solicitar Demo",
+      "description": "Déjanos tus datos y te contactaremos a la brevedad.",
+      "name_label": "Nombre Completo",
+      "name_placeholder": "Tu nombre",
+      "email_label": "Email Corporativo",
+      "email_placeholder": "nombre@empresa.com",
+      "phone_label": "Teléfono (Opcional)",
+      "phone_placeholder": "+52 55 1234 5678",
+      "company_label": "Empresa (Opcional)",
+      "company_placeholder": "Nombre de tu empresa",
+      "message_label": "Mensaje (Opcional)",
+      "message_placeholder": "¿Qué te gustaría saber?",
+      "submit_button": "Solicitar Demo",
+      "submitting": "Enviando...",
+      "success_title": "¡Solicitud Enviada!",
+      "success_description": "Gracias por tu interés. Te contactaremos pronto.",
+      "error_title": "Error al enviar",
+      "error_description": "Hubo un problema al enviar tu solicitud. Por favor intenta de nuevo."
     }
   },
   "myBookings": {
@@ -810,7 +1046,7 @@
     },
     "footer": {
       "congrats": "¡Felicidades! Ya estás listo para gestionar las reservas de tu negocio de manera profesional.",
-      "updated": "Última actualización: Diciembre 2024 • Versión 1.0"
+      "updated": "Última actualización: Diciembre 2026 • Versión 1.0"
     }
   }
 }

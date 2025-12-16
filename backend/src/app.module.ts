@@ -8,6 +8,7 @@ import { BookingsModule } from './bookings/bookings.module';
 import { ServicesModule } from './services/services.module';
 import { BusinessesModule } from './businesses/businesses.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { LeadsModule } from './leads/leads.module';
 // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
 // import { WhatsappModule } from './whatsapp/whatsapp.module';
 
@@ -24,6 +25,7 @@ import { UploadsModule } from './uploads/uploads.module';
     ServicesModule,
     BusinessesModule,
     UploadsModule,
+    LeadsModule,
     // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
     // WhatsappModule,
   ],
