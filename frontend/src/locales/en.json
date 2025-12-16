@@ -505,5 +505,68 @@
             "congrats": "Congratulations! You're ready to manage your business bookings professionally.",
             "updated": "Last updated: December 2024  Version 1.0"
         }
+    },
+    "pricing": {
+        "title": "Plans & Pricing",
+        "subtitle": "Choose the perfect plan for your business",
+        "plan": {
+            "name": "BookPro – Monthly Plan",
+            "price": "$299",
+            "currency": "MXN",
+            "period": "month",
+            "cta": "Get started",
+            "features": {
+                "title": "Everything you need:",
+                "feature1": "Unlimited bookings",
+                "feature2": "Customized booking page",
+                "feature3": "Automatic email notifications",
+                "feature4": "Service and schedule management",
+                "feature5": "Complete admin panel",
+                "feature6": "QR code for sharing",
+                "feature7": "Priority support",
+                "feature8": "No setup fee"
+            },
+            "badge": "Most Popular"
+        },
+        "faq": {
+            "title": "Frequently Asked Questions",
+            "q1": {
+                "q": "Can I cancel anytime?",
+                "a": "Yes, you can cancel your subscription at any time without penalty."
+            },
+            "q2": {
+                "q": "Is there a booking limit?",
+                "a": "No, with BookPro you can receive unlimited bookings."
+            },
+            "q3": {
+                "q": "Do I need a credit card?",
+                "a": "Yes, we process payments securely through Stripe."
+            }
+        }
+    },
+    "payment": {
+        "success": {
+            "title": "Payment Successful!",
+            "subtitle": "Thank you for subscribing to BookPro",
+            "message": "Your payment has been processed successfully. Your subscription is now active.",
+            "next_steps": "Next Steps:",
+            "step1": "Complete your business setup",
+            "step2": "Add your services",
+            "step3": "Customize your booking page",
+            "step4": "Start receiving clients!",
+            "cta": "Go to Dashboard",
+            "session_id": "Session ID"
+        },
+        "cancel": {
+            "title": "Payment Cancelled",
+            "subtitle": "No charge was made",
+            "message": "Your payment was cancelled. No charge has been made to your card.",
+            "help": "Need help?",
+            "contact": "If you have any questions or need assistance, please don't hesitate to contact us.",
+            "retry": "Try Again",
+            "back": "Back to Home"
+        },
+        "processing": "Processing payment...",
+        "redirect": "Redirecting to Stripe..."
     }
 }

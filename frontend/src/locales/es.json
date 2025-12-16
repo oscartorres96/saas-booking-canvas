@@ -778,5 +778,68 @@
       "congrats": "¡Felicidades! Ya estás listo para gestionar las reservas de tu negocio de manera profesional.",
       "updated": "Última actualización: Diciembre 2024 • Versión 1.0"
     }
+  },
+  "pricing": {
+    "title": "Planes y Precios",
+    "subtitle": "Elige el plan perfecto para tu negocio",
+    "plan": {
+      "name": "BookPro – Plan Mensual",
+      "price": "$299",
+      "currency": "MXN",
+      "period": "mes",
+      "cta": "Comenzar ahora",
+      "features": {
+        "title": "Todo lo que necesitas:",
+        "feature1": "Reservas ilimitadas",
+        "feature2": "Página de reservas personalizada",
+        "feature3": "Notificaciones por email automáticas",
+        "feature4": "Gestión de servicios y horarios",
+        "feature5": "Panel de administración completo",
+        "feature6": "Código QR para compartir",
+        "feature7": "Soporte prioritario",
+        "feature8": "Sin costo de instalación"
+      },
+      "badge": "Más Popular"
+    },
+    "faq": {
+      "title": "Preguntas Frecuentes",
+      "q1": {
+        "q": "¿Puedo cancelar en cualquier momento?",
+        "a": "Sí, puedes cancelar tu suscripción en cualquier momento sin penalización."
+      },
+      "q2": {
+        "q": "¿Hay límite de reservas?",
+        "a": "No, con BookPro puedes recibir reservas ilimitadas."
+      },
+      "q3": {
+        "q": "¿Necesito tarjeta de crédito?",
+        "a": "Sí, procesamos pagos de forma segura a través de Stripe."
+      }
+    }
+  },
+  "payment": {
+    "success": {
+      "title": "¡Pago Exitoso!",
+      "subtitle": "Gracias por suscribirte a BookPro",
+      "message": "Tu pago ha sido procesado exitosamente. Tu suscripción está ahora activa.",
+      "next_steps": "Próximos Pasos:",
+      "step1": "Completa la configuración de tu negocio",
+      "step2": "Agrega tus servicios",
+      "step3": "Personaliza tu página de reservas",
+      "step4": "¡Comienza a recibir clientes!",
+      "cta": "Ir al Panel de Control",
+      "session_id": "ID de Sesión"
+    },
+    "cancel": {
+      "title": "Pago Cancelado",
+      "subtitle": "No se realizó ningún cargo",
+      "message": "Tu pago fue cancelado. No se ha realizado ningún cargo a tu tarjeta.",
+      "help": "¿Necesitas ayuda?",
+      "contact": "Si tienes alguna pregunta o necesitas asistencia, no dudes en contactarnos.",
+      "retry": "Intentar de Nuevo",
+      "back": "Volver al Inicio"
+    },
+    "processing": "Procesando pago...",
+    "redirect": "Redirigiendo a Stripe..."
   }
 }

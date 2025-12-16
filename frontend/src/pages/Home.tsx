@@ -16,6 +16,7 @@ import { getAllBusinesses, type Business } from "@/api/businessesApi";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { PricingSection } from "@/components/PricingSection";
 
 type HomeCard = {
   id: string;
@@ -189,6 +190,9 @@ const Home = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Pricing Section */}
+      <PricingSection />
     </div>
   );
 };

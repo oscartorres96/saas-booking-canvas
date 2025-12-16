@@ -10,6 +10,8 @@ import NotFound from '../pages/NotFound';
 import PrivateRoute from '../auth/PrivateRoute';
 import Onboarding from '../pages/Onboarding';
 import UserManual from '../pages/UserManual';
+import PaymentSuccess from '../pages/PaymentSuccess';
+import PaymentCancel from '../pages/PaymentCancel';
 
 const AppRouter = () => (
   <BrowserRouter
@@ -25,6 +27,8 @@ const AppRouter = () => (
       <Route path="/register" element={<Login />} />
       <Route path="/my-bookings" element={<MyBookings />} />
       <Route path="/manual" element={<UserManual />} />
+      <Route path="/payment/success" element={<PaymentSuccess />} />
+      <Route path="/payment/cancel" element={<PaymentCancel />} />
 
       <Route
         path="/onboarding"
