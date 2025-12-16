@@ -111,7 +111,7 @@ const Admin = () => {
                     </div>
                 </div>
 
-                <Tabs defaultValue="requests" className="w-full">
+                <Tabs defaultValue="businesses" className="w-full">
                     <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
                         <TabsTrigger value="requests">Solicitudes</TabsTrigger>
                         <TabsTrigger value="businesses">Negocios</TabsTrigger>

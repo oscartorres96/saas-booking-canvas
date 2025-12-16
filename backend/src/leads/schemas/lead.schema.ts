@@ -20,10 +20,10 @@ export class Lead {
     @Prop()
     message?: string;
 
-    @Prop({ required: true, enum: ['demo', 'registration'] })
+    @Prop({ required: true, enum: ['demo', 'registration', 'direct_purchase'] })
     type!: string;
 
-    @Prop({ default: 'pending', enum: ['pending', 'approved', 'rejected', 'contacted', 'converted'] })
+    @Prop({ default: 'pending', enum: ['pending', 'new', 'approved', 'rejected', 'contacted', 'converted'] })
     status!: string;
 
     @Prop()
@@ -43,6 +43,25 @@ export class Lead {
 
     @Prop()
     language?: string;
+
+    // Stripe tracking fields (for direct_purchase type)
+    @Prop()
+    stripeSessionId?: string; // Checkout session ID
+
+    @Prop()
+    stripeCustomerId?: string; // Stripe customer ID
+
+    @Prop()
+    stripeSubscriptionId?: string; // Subscription ID
+
+    @Prop()
+    purchaseCompletedAt?: Date; // When the purchase was completed
 }
 
 export const LeadSchema = SchemaFactory.createForClass(Lead);
+
+// Add indexes for better query performance
+LeadSchema.index({ type: 1, status: 1 });
+LeadSchema.index({ email: 1 });
+LeadSchema.index({ createdAt: -1 });
+LeadSchema.index({ stripeSessionId: 1 });

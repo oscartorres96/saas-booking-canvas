@@ -20,7 +20,8 @@
         "saved": "Saved",
         "closed": "Closed",
         "to": "to",
-        "minutes": "minutes"
+        "minutes": "minutes",
+        "optional": "(Optional)"
     },
     "home": {
         "header": {
@@ -512,6 +513,18 @@
         "language": "Communication Language",
         "languageHelp": "Language for your public booking page and client emails. (Change dashboard language using the switcher above)"
     },
+    "demo": {
+        "form": {
+            "name": "Full name",
+            "name_placeholder": "John Doe",
+            "email": "Email",
+            "email_placeholder": "john@example.com",
+            "phone": "Phone",
+            "phone_placeholder": "+1 555 123 4567",
+            "company": "Business name",
+            "company_placeholder": "My Business"
+        }
+    },
     "login": {
         "welcome": "Welcome",
         "subtitle": "Access your dashboard to manage your business.",
@@ -765,11 +778,19 @@
     "pricing": {
         "title": "Plans & Pricing",
         "subtitle": "Choose the perfect plan for your business",
+        "billing": {
+            "monthly": "Monthly",
+            "annual": "Annual",
+            "save_badge": "Save 1 month"
+        },
         "plan": {
             "name": "BookPro – Monthly Plan",
+            "name_annual": "BookPro – Annual Plan",
             "price": "$299",
             "currency": "MXN",
             "period": "month",
+            "period_annual": "year",
+            "annual_savings": "Equivalent to 11 months! Save $299 MXN",
             "cta": "Get started",
             "features": {
                 "title": "Everything you need:",
@@ -798,6 +819,11 @@
                 "q": "Do I need a credit card?",
                 "a": "Yes, we process payments securely through Stripe."
             }
+        },
+        "purchase": {
+            "title": "Get Started with BookPro",
+            "subtitle": "Complete your details to proceed to payment",
+            "cta": "Proceed to Payment"
         }
     },
     "payment": {

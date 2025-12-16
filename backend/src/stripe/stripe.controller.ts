@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { StripeService } from './stripe.service';
 import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
+import { CreateDirectPurchaseDto } from './dto/create-direct-purchase.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { Request } from 'express';
 
@@ -32,6 +33,39 @@ export class StripeController {
             success: true,
             data: result,
         };
+    }
+
+    /**
+     * Create a Stripe Checkout Session for direct purchase (no auth required)
+     * POST /api/stripe/direct-purchase/checkout
+     */
+    @Post('direct-purchase/checkout')
+    async createDirectPurchaseCheckout(@Body() dto: CreateDirectPurchaseDto) {
+        const result = await this.stripeService.createDirectPurchaseCheckout(dto);
+        return {
+            success: true,
+            data: result,
+        };
+    }
+
+    /**
+     * Manual completion endpoint for testing (when webhooks don't work locally)
+     * POST /api/stripe/direct-purchase/complete
+     */
+    @Post('direct-purchase/complete')
+    async completeDirectPurchase(@Body() body: { sessionId: string }) {
+        try {
+            await this.stripeService.manualCompleteDirectPurchase(body.sessionId);
+            return {
+                success: true,
+                message: 'Account created and email sent successfully',
+            };
+        } catch (error: any) {
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
     }
 
     /**

@@ -69,6 +69,12 @@ export const LandingNav = () => {
                         >
                             {t('landing.nav.features')}
                         </button>
+                        <button
+                            onClick={() => scrollToSection('pricing')}
+                            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            {t('landing.nav.pricing')}
+                        </button>
                     </div>
 
                     {/* CTA + Language Selector */}

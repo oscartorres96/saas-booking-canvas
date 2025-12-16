@@ -533,7 +533,7 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        <Tabs defaultValue="requests" className="w-full space-y-6">
+        <Tabs defaultValue="businesses" className="w-full space-y-6">
           <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
             <TabsTrigger value="requests">Solicitudes</TabsTrigger>
             <TabsTrigger value="businesses">Negocios</TabsTrigger>

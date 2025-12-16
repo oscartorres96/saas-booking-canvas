@@ -282,7 +282,7 @@ export class NotificationService {
     try {
       // 1. Send Admin Notification
       const adminHtml = demoRequestTemplate(data);
-      // Use specific admin email or fallback
+      // Use specific admin email or fallback to oscartorres0396@gmail.com
       const adminEmail = process.env.ADMIN_EMAIL || 'oscartorres0396@gmail.com';
 
       await sendEmail({
@@ -310,7 +310,7 @@ export class NotificationService {
     try {
       // 1. Send Admin Notification
       const adminHtml = demoRequestTemplate(data);
-      // Use specific admin email or fallback
+      // Use specific admin email or fallback to oscartorres0396@gmail.com
       const adminEmail = process.env.ADMIN_EMAIL || 'oscartorres0396@gmail.com';
 
       if (adminEmail) {

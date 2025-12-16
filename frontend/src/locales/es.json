@@ -20,7 +20,8 @@
     "saved": "Guardado",
     "closed": "Cerrado",
     "to": "a",
-    "minutes": "minutos"
+    "minutes": "minutos",
+    "optional": "(Opcional)"
   },
   "home": {
     "header": {
@@ -550,6 +551,18 @@
     "language": "Idioma de Comunicación",
     "languageHelp": "Idioma para tu página de reservas pública y correos a clientes. (Cambia el idioma del dashboard usando el selector arriba)"
   },
+  "demo": {
+    "form": {
+      "name": "Nombre completo",
+      "name_placeholder": "Juan Pérez",
+      "email": "Email",
+      "email_placeholder": "juan@ejemplo.com",
+      "phone": "Teléfono",
+      "phone_placeholder": "+52 55 1234 5678",
+      "company": "Nombre del negocio",
+      "company_placeholder": "Mi Negocio"
+    }
+  },
   "login": {
     "welcome": "Bienvenido",
     "subtitle": "Ingresa a tu panel de control para gestionar tu negocio.",
@@ -1052,11 +1065,19 @@
   "pricing": {
     "title": "Planes y Precios",
     "subtitle": "Elige el plan perfecto para tu negocio",
+    "billing": {
+      "monthly": "Mensual",
+      "annual": "Anual",
+      "save_badge": "Ahorra 1 mes"
+    },
     "plan": {
       "name": "BookPro – Plan Mensual",
+      "name_annual": "BookPro – Plan Anual",
       "price": "$299",
       "currency": "MXN",
       "period": "mes",
+      "period_annual": "año",
+      "annual_savings": "¡Equivalente a 11 meses! Ahorra $299 MXN",
       "cta": "Comenzar ahora",
       "features": {
         "title": "Todo lo que necesitas:",
@@ -1085,6 +1106,11 @@
         "q": "¿Necesito tarjeta de crédito?",
         "a": "Sí, procesamos pagos de forma segura a través de Stripe."
       }
+    },
+    "purchase": {
+      "title": "Comenzar con BookPro",
+      "subtitle": "Completa tus datos para proceder al pago",
+      "cta": "Proceder al pago"
     }
   },
   "payment": {

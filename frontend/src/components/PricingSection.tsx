@@ -1,14 +1,22 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check } from 'lucide-react';
+import { DirectPurchaseDialog } from './landing/DirectPurchaseDialog';
 
 export function PricingSection() {
     const { t } = useTranslation();
+    const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
+    const [isAnnual, setIsAnnual] = useState(false);
+
+    const monthlyPrice = 299;
+    const annualPrice = monthlyPrice * 11; // 11 meses (1 mes gratis)
+    const displayPrice = isAnnual ? annualPrice : monthlyPrice;
 
     const handleGetStarted = () => {
-        document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
+        setPurchaseDialogOpen(true);
     };
 
     const features = [
@@ -33,6 +41,35 @@ export function PricingSection() {
                     <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                         {t('pricing.subtitle')}
                     </p>
+
+                    {/* Billing Period Toggle */}
+                    <div className="flex items-center justify-center gap-4 mt-8">
+                        <div className="inline-flex items-center gap-3 bg-muted/50 p-1.5 rounded-lg">
+                            <button
+                                onClick={() => setIsAnnual(false)}
+                                className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${!isAnnual
+                                    ? 'bg-background shadow-sm text-foreground'
+                                    : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                            >
+                                {t('pricing.billing.monthly')}
+                            </button>
+                            <button
+                                onClick={() => setIsAnnual(true)}
+                                className={`px-6 py-2 rounded-md text-sm font-medium transition-all relative ${isAnnual
+                                    ? 'bg-background shadow-sm text-foreground'
+                                    : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                            >
+                                {t('pricing.billing.annual')}
+                                {isAnnual && (
+                                    <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
+                                        {t('pricing.billing.save_badge')}
+                                    </span>
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Pricing Card */}
@@ -47,20 +84,25 @@ export function PricingSection() {
 
                         <CardHeader className="text-center pt-8 pb-4">
                             <CardTitle className="text-2xl font-bold">
-                                {t('pricing.plan.name')}
+                                {isAnnual ? t('pricing.plan.name_annual') : t('pricing.plan.name')}
                             </CardTitle>
                             <CardDescription className="mt-4">
                                 <div className="flex items-baseline justify-center gap-1">
                                     <span className="text-5xl font-bold text-foreground">
-                                        {t('pricing.plan.price')}
+                                        ${displayPrice.toLocaleString()}
                                     </span>
                                     <span className="text-xl text-muted-foreground ml-1">
                                         {t('pricing.plan.currency')}
                                     </span>
                                     <span className="text-muted-foreground">
-                                        / {t('pricing.plan.period')}
+                                        / {isAnnual ? t('pricing.plan.period_annual') : t('pricing.plan.period')}
                                     </span>
                                 </div>
+                                {isAnnual && (
+                                    <p className="text-sm text-primary mt-2 font-medium">
+                                        {t('pricing.plan.annual_savings')}
+                                    </p>
+                                )}
                             </CardDescription>
                         </CardHeader>
 
@@ -115,6 +157,12 @@ export function PricingSection() {
                     </div>
                 </div>
             </div>
+
+            <DirectPurchaseDialog
+                open={purchaseDialogOpen}
+                onOpenChange={setPurchaseDialogOpen}
+                billingPeriod={isAnnual ? 'annual' : 'monthly'}
+            />
         </section>
     );
 }

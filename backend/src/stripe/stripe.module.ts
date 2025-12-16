@@ -5,6 +5,9 @@ import { StripeService } from './stripe.service';
 import { Subscription, SubscriptionSchema } from './schemas/subscription.schema';
 import { Payment, PaymentSchema } from './schemas/payment.schema';
 import { Business, BusinessSchema } from '../businesses/schemas/business.schema';
+import { Lead, LeadSchema } from '../leads/schemas/lead.schema';
+import { User, UserSchema } from '../users/schemas/user.schema';
+import { NotificationService } from '../services/notification.service';
 
 @Module({
     imports: [
@@ -12,10 +15,12 @@ import { Business, BusinessSchema } from '../businesses/schemas/business.schema'
             { name: Subscription.name, schema: SubscriptionSchema },
             { name: Payment.name, schema: PaymentSchema },
             { name: Business.name, schema: BusinessSchema },
+            { name: Lead.name, schema: LeadSchema },
+            { name: User.name, schema: UserSchema },
         ]),
     ],
     controllers: [StripeController],
-    providers: [StripeService],
+    providers: [StripeService, NotificationService],
     exports: [StripeService],
 })
 export class StripeModule { }
