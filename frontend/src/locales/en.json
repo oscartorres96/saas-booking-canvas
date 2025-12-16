@@ -824,5 +824,70 @@
         },
         "processing": "Processing payment...",
         "redirect": "Redirecting to Stripe..."
+    },
+    "get_started": {
+        "title": "Congratulations! Your account is ready",
+        "subtitle": "Choose how you want to start with BookPro",
+        "trial": {
+            "title": "Start with Trial",
+            "subtitle": "Try BookPro free for 14 days",
+            "features_title": "What's included:",
+            "feature1": "Full access to all features",
+            "feature2": "Unlimited bookings during trial",
+            "feature3": "No credit card required",
+            "feature4": "Cancel anytime",
+            "cta": "Start Free Trial",
+            "note": "No credit card required"
+        },
+        "subscribe": {
+            "title": "Subscribe Now",
+            "subtitle": "Activate your account and start receiving clients",
+            "badge": "Recommended",
+            "period": "month",
+            "features_title": "All of the above, plus:",
+            "feature1": "No time limitations",
+            "feature2": "Priority support",
+            "feature3": "Automatic updates",
+            "feature4": "Satisfaction guarantee",
+            "cta": "Subscribe for $299 MXN/month",
+            "note": "Secure payment with Stripe • Cancel anytime"
+        },
+        "help_text": "Have questions? You can start with the trial and subscribe later.",
+        "error_auth": "You must be logged in",
+        "error_subscribe": "Error starting payment process. Please try again."
+    },
+    "activate": {
+        "title": "Activate Account",
+        "subtitle": "Set your password to access BookPro",
+        "success_title": "Account Activated!",
+        "success_subtitle": "Redirecting to setup process...",
+        "password_label": "New Password",
+        "confirm_password_label": "Confirm Password",
+        "submit_button": "Activate Account",
+        "submitting": "Activating...",
+        "errors": {
+            "password_min": "Password must be at least 6 characters",
+            "password_match": "Passwords do not match",
+            "generic": "Error activating account"
+        }
+    },
+    "admin": {
+        "leads": {
+            "title": "Pending Requests",
+            "status": "Status",
+            "actions": "Actions",
+            "approve": "Approve",
+            "reject": "Reject",
+            "approve_dialog": {
+                "title": "Approve Request",
+                "description": "Select access type for {{name}}.",
+                "trial": "Free Trial (14 days)",
+                "paid": "Paid Subscription (Requires payment)",
+                "confirm": "Confirm Approval"
+            },
+            "empty": "No pending requests",
+            "success_approve": "Lead approved successfully",
+            "success_reject": "Lead rejected"
+        }
     }
 }

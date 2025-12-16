@@ -95,9 +95,12 @@ const serviceFormSchema = z.object({
 });
 
 const BusinessDashboard = () => {
-    const { businessId } = useParams<{ businessId: string }>();
+    const { businessId: paramBusinessId } = useParams<{ businessId: string }>();
     const navigate = useNavigate();
     const { user, logout } = useAuth();
+
+    // Determine the effective business ID: URL param takes precedence, then user's businessId
+    const businessId = paramBusinessId || user?.businessId;
 
     // Read tab from URL query parameter
     const searchParams = new URLSearchParams(window.location.search);
@@ -152,8 +155,16 @@ const BusinessDashboard = () => {
             return;
         }
 
+        // Si no hay businessId disponible ni en URL ni en usuario
+        if (!businessId) {
+            setLoading(false);
+            return;
+        }
+
         // Owner can access any business, business role must match businessId
-        if (user.role === "business" && user.businessId !== businessId) {
+        // Solo verificamos mismatch si AMBOS existen y son diferentes.
+        // Si entramos por /dashboard (paramBusinessId es null), no hay mismatch con user.businessId.
+        if (paramBusinessId && user.role === "business" && user.businessId !== paramBusinessId) {
             toast.error(t('common.access_denied'));
             navigate("/");
             return;
@@ -167,8 +178,10 @@ const BusinessDashboard = () => {
 
         if (businessId) {
             loadData();
+        } else {
+            setLoading(false);
         }
-    }, [user, businessId, navigate]);
+    }, [user, businessId, paramBusinessId, navigate]);
 
     useEffect(() => {
         if (business?.settings?.defaultServiceDuration) {
@@ -181,7 +194,10 @@ const BusinessDashboard = () => {
     }, [business, serviceForm]);
 
     const loadData = async () => {
-        if (!businessId) return;
+        if (!businessId) {
+            setLoading(false);
+            return;
+        }
 
         try {
             setLoading(true);

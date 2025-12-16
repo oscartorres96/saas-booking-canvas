@@ -45,6 +45,9 @@ import {
   SelectValue
 } from "@/components/ui/select";
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LeadsPanel } from "@/components/admin/LeadsPanel";
+
 import {
   Search,
   Plus,
@@ -153,11 +156,18 @@ const AdminDashboard = () => {
   // -------------------------------------------------------------------
 
   useEffect(() => {
-    if (user?.role !== "owner") {
-      navigate("/");
+    // Restringir acceso solo al Super Admin
+    const ALLOWED_ADMINS = ['oscartorres0396@gmail.com', 'owner@bookpro.com'];
+
+    if (user && !ALLOWED_ADMINS.includes(user.email || '')) {
+      toast.error('Acceso denegado. Solo administradores.');
+      navigate("/dashboard");
       return;
     }
-    loadData();
+
+    if (user) {
+      loadData();
+    }
   }, [user, navigate]);
 
   const loadData = async () => {
@@ -523,171 +533,184 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Estadísticas */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Negocios</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalBusinesses}</div>
-              <p className="text-xs text-muted-foreground">Registrados en la plataforma</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Suscripciones Activas</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.activeBusinesses}</div>
-              <p className="text-xs text-muted-foreground">Negocios activos</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Usuarios Totales</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalUsers || "N/A"}</div>
-              <p className="text-xs text-muted-foreground">En toda la plataforma</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Reservas</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalBookings || "N/A"}</div>
-              <p className="text-xs text-muted-foreground">Citas agendadas</p>
-            </CardContent>
-          </Card>
-        </div>
+        <Tabs defaultValue="requests" className="w-full space-y-6">
+          <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+            <TabsTrigger value="requests">Solicitudes</TabsTrigger>
+            <TabsTrigger value="businesses">Negocios</TabsTrigger>
+          </TabsList>
 
-        {/* Tabla de negocios */}
-        <Card className="border-none shadow-md">
-          <CardHeader>
-            <div className="flex flex-col gap-4">
-              <div>
-                <CardTitle>Negocios Registrados</CardTitle>
-                <CardDescription className="text-sm">Lista de todos los clientes y sus detalles.</CardDescription>
-              </div>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <div className="relative flex-1 sm:max-w-xs">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar negocio..."
-                    className="pl-8 w-full"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+          <TabsContent value="requests">
+            <LeadsPanel />
+          </TabsContent>
+
+          <TabsContent value="businesses" className="space-y-6">
+            {/* Estadísticas */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Negocios</CardTitle>
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalBusinesses}</div>
+                  <p className="text-xs text-muted-foreground">Registrados en la plataforma</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Suscripciones Activas</CardTitle>
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.activeBusinesses}</div>
+                  <p className="text-xs text-muted-foreground">Negocios activos</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Usuarios Totales</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalUsers || "N/A"}</div>
+                  <p className="text-xs text-muted-foreground">En toda la plataforma</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Reservas</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.totalBookings || "N/A"}</div>
+                  <p className="text-xs text-muted-foreground">Citas agendadas</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Tabla de negocios */}
+            <Card className="border-none shadow-md">
+              <CardHeader>
+                <div className="flex flex-col gap-4">
+                  <div>
+                    <CardTitle>Negocios Registrados</CardTitle>
+                    <CardDescription className="text-sm">Lista de todos los clientes y sus detalles.</CardDescription>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <div className="relative flex-1 sm:max-w-xs">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar negocio..."
+                        className="pl-8 w-full"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+                    <Button variant="outline" size="icon" className="sm:w-auto">
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <Button variant="outline" size="icon" className="sm:w-auto">
-                  <Filter className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0 sm:p-6">
-            <div className="overflow-x-auto">
-              <Table className="min-w-[720px]">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[180px]">Negocio</TableHead>
-                    <TableHead className="hidden sm:table-cell">Tipo</TableHead>
-                    <TableHead className="hidden md:table-cell">Dueño</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="hidden lg:table-cell">Registro</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredBusinesses.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                        No se encontraron negocios
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredBusinesses.map((business) => (
-                      <TableRow key={business._id || business.businessName}>
-                        <TableCell className="font-medium">
-                          <div className="flex flex-col">
-                            <span className="font-semibold">{business.businessName || business.name}</span>
-                            <span className="text-xs text-muted-foreground">{business.email || "N/A"}</span>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Button
-                                variant="link"
-                                size="sm"
-                                className="px-0 h-auto text-primary"
-                                onClick={() => window.open(`/business/${business._id}/booking`, "_blank")}
-                              >
-                                Ver página de reservas
-                              </Button>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="capitalize">
-                            {getTypeLabel(business.type)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{business.ownerName || business.ownerUserId || "N/A"}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(business.subscriptionStatus)} variant="secondary">
-                            {(business.subscriptionStatus ?? 'trial') === 'active' ? 'Activo' :
-                              (business.subscriptionStatus ?? 'trial') === 'trial' ? 'Prueba' :
-                                (business.subscriptionStatus ?? 'inactive') === 'inactive' ? 'Inactivo' : 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {business.createdAt ? new Date(business.createdAt).toLocaleDateString() : "N/A"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Abrir menú</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(business._id)}>
-                                Copiar ID
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleViewBusiness(business._id)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Ver dashboard
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => window.open(`/business/${business._id}/booking`, "_blank")}>
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                Ver página de reservas
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openEditModal(business)}>
-                                Editar negocio
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() => toast.info("Funcionalidad próximamente")}
-                              >
-                                Desactivar cuenta
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+              </CardHeader>
+              <CardContent className="p-0 sm:p-6">
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[720px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[180px]">Negocio</TableHead>
+                        <TableHead className="hidden sm:table-cell">Tipo</TableHead>
+                        <TableHead className="hidden md:table-cell">Dueño</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead className="hidden lg:table-cell">Registro</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredBusinesses.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                            No se encontraron negocios
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredBusinesses.map((business) => (
+                          <TableRow key={business._id || business.businessName}>
+                            <TableCell className="font-medium">
+                              <div className="flex flex-col">
+                                <span className="font-semibold">{business.businessName || business.name}</span>
+                                <span className="text-xs text-muted-foreground">{business.email || "N/A"}</span>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="px-0 h-auto text-primary"
+                                    onClick={() => window.open(`/business/${business._id}/booking`, "_blank")}
+                                  >
+                                    Ver página de reservas
+                                  </Button>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="capitalize">
+                                {getTypeLabel(business.type)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{business.ownerName || business.ownerUserId || "N/A"}</TableCell>
+                            <TableCell>
+                              <Badge className={getStatusColor(business.subscriptionStatus)} variant="secondary">
+                                {(business.subscriptionStatus ?? 'trial') === 'active' ? 'Activo' :
+                                  (business.subscriptionStatus ?? 'trial') === 'trial' ? 'Prueba' :
+                                    (business.subscriptionStatus ?? 'inactive') === 'inactive' ? 'Inactivo' : 'N/A'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {business.createdAt ? new Date(business.createdAt).toLocaleDateString() : "N/A"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">Abrir menú</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                  <DropdownMenuItem onClick={() => navigator.clipboard.writeText(business._id)}>
+                                    Copiar ID
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleViewBusiness(business._id)}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Ver dashboard
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => window.open(`/business/${business._id}/booking`, "_blank")}>
+                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                    Ver página de reservas
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => openEditModal(business)}>
+                                    Editar negocio
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-red-600"
+                                    onClick={() => toast.info("Funcionalidad próximamente")}
+                                  >
+                                    Desactivar cuenta
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Modal de Éxito / Bienvenida */}

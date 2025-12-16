@@ -1111,5 +1111,70 @@
     },
     "processing": "Procesando pago...",
     "redirect": "Redirigiendo a Stripe..."
+  },
+  "get_started": {
+    "title": "¡Felicidades! Tu cuenta está lista",
+    "subtitle": "Elige cómo quieres comenzar con Book Pro",
+    "trial": {
+      "title": "Comenzar con Trial",
+      "subtitle": "Prueba BookPro gratis por 14 días",
+      "features_title": "Qué incluye:",
+      "feature1": "Acceso completo a todas las funciones",
+      "feature2": "Reservas ilimitadas durante el trial",
+      "feature3": "Sin necesidad de tarjeta de crédito",
+      "feature4": "Cancela en cualquier momento",
+      "cta": "Comenzar Trial Gratis",
+      "note": "No se requiere tarjeta de crédito"
+    },
+    "subscribe": {
+      "title": "Suscribirme Ahora",
+      "subtitle": "Activa tu cuenta y empieza a recibir clientes",
+      "badge": "Recomendado",
+      "period": "mes",
+      "features_title": "Todo lo anterior, más:",
+      "feature1": "Sin limitaciones de tiempo",
+      "feature2": "Soporte prioritario",
+      "feature3": "Actualizaciones automáticas",
+      "feature4": "Garantía de satisfacción",
+      "cta": "Suscribirme por $299 MXN/mes",
+      "note": "Pago seguro con Stripe • Cancela cuando quieras"
+    },
+    "help_text": "¿Tienes dudas? Puedes comenzar con el trial y suscribirte después.",
+    "error_auth": "Debes iniciar sesión",
+    "error_subscribe": "Error al iniciar el proceso de pago. Por favor intenta de nuevo."
+  },
+  "activate": {
+    "title": "Activar Cuenta",
+    "subtitle": "Establece tu contraseña para acceder a BookPro",
+    "success_title": "¡Cuenta Activada!",
+    "success_subtitle": "Redirigiendo al proceso de configuración...",
+    "password_label": "Nueva Contraseña",
+    "confirm_password_label": "Confirmar Contraseña",
+    "submit_button": "Activar Cuenta",
+    "submitting": "Activando...",
+    "errors": {
+      "password_min": "La contraseña debe tener al menos 6 caracteres",
+      "password_match": "Las contraseñas no coinciden",
+      "generic": "Error al activar la cuenta"
+    }
+  },
+  "admin": {
+    "leads": {
+      "title": "Solicitudes Pendientes",
+      "status": "Estado",
+      "actions": "Acciones",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "approve_dialog": {
+        "title": "Aprobar Solicitud",
+        "description": "Selecciona el tipo de acceso para {{name}}.",
+        "trial": "Prueba Gratuita (14 días)",
+        "paid": "Suscripción Pagada (Requiere pago)",
+        "confirm": "Confirmar Aprobación"
+      },
+      "empty": "No hay solicitudes pendientes",
+      "success_approve": "Lead aprobado exitosamente",
+      "success_reject": "Lead rechazado"
+    }
   }
 }

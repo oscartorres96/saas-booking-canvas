@@ -2,57 +2,13 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Loader2 } from 'lucide-react';
-import { useState } from 'react';
-import { useAuthContext } from '@/auth/AuthContext';
-import { toast } from 'sonner';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { Check } from 'lucide-react';
 
 export function PricingSection() {
     const { t } = useTranslation();
-    const { user } = useAuthContext();
-    const navigate = useNavigate();
-    const [loading, setLoading] = useState(false);
 
-    const handleSubscribe = async () => {
-        if (!user) {
-            toast.error('Debes iniciar sesión para suscribirte');
-            navigate('/login');
-            return;
-        }
-
-        try {
-            setLoading(true);
-
-            // Get the user's first business (or let them select if they have multiple)
-            // For now, we'll assume they need to have a business or we redirect to onboarding
-            const response = await axios.post(
-                `${API_URL}/api/stripe/checkout/subscription`,
-                {
-                    userId: user._id,
-                    businessId: user.businessId || user._id, // Adjust based on your user structure
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem('token')}`,
-                    },
-                }
-            );
-
-            if (response.data?.data?.url) {
-                // Redirect to Stripe Checkout
-                window.location.href = response.data.data.url;
-            } else {
-                throw new Error('No checkout URL received');
-            }
-        } catch (error) {
-            console.error('Error creating checkout session:', error);
-            toast.error('Error al iniciar el proceso de pago. Por favor intenta de nuevo.');
-            setLoading(false);
-        }
+    const handleGetStarted = () => {
+        document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' });
     };
 
     const features = [
@@ -126,19 +82,11 @@ export function PricingSection() {
 
                         <CardFooter className="pt-6">
                             <Button
-                                onClick={handleSubscribe}
-                                disabled={loading}
+                                onClick={handleGetStarted}
                                 className="w-full text-lg py-6 font-semibold"
                                 size="lg"
                             >
-                                {loading ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                        {t('payment.processing')}
-                                    </>
-                                ) : (
-                                    t('pricing.plan.cta')
-                                )}
+                                {t('pricing.plan.cta')}
                             </Button>
                         </CardFooter>
                     </Card>

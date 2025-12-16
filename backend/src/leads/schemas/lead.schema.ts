@@ -23,8 +23,23 @@ export class Lead {
     @Prop({ required: true, enum: ['demo', 'registration'] })
     type!: string;
 
-    @Prop({ default: 'new', enum: ['new', 'contacted', 'converted', 'closed'] })
+    @Prop({ default: 'pending', enum: ['pending', 'approved', 'rejected', 'contacted', 'converted'] })
     status!: string;
+
+    @Prop()
+    approvedBy?: string; // Admin user ID
+
+    @Prop()
+    approvedAt?: Date;
+
+    @Prop()
+    rejectedReason?: string;
+
+    @Prop({ default: false })
+    accountCreated!: boolean;
+
+    @Prop()
+    createdUserId?: string; // User ID created from this lead
 
     @Prop()
     language?: string;

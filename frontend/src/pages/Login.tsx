@@ -4,33 +4,20 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Lock, ArrowRight, Mail, Phone } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { User, Lock, ArrowRight } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import useAuth from "@/auth/useAuth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useTranslation } from "react-i18next";
-import axios from "axios";
 import { motion } from "framer-motion";
-import PhoneInput from "react-phone-input-2";
-import "react-phone-input-2/lib/style.css";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
   password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
-});
-
-const demoSchema = z.object({
-  name: z.string().min(1, { message: "El nombre es requerido" }),
-  email: z.string().email({ message: "Email inválido" }),
-  phone: z.string().optional(),
-  company: z.string().optional(),
-  message: z.string().optional(),
 });
 
 const Login = () => {
@@ -38,8 +25,7 @@ const Login = () => {
   const location = useLocation();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [isSubmittingDemo, setIsSubmittingDemo] = useState(false);
-  const defaultTab = location.pathname === "/demo" ? "demo" : "login";
+  // const defaultTab = location.pathname === "/demo" ? "demo" : "login"; // Removed
   const { t, i18n } = useTranslation();
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -47,17 +33,6 @@ const Login = () => {
     defaultValues: {
       email: "",
       password: "",
-    },
-  });
-
-  const demoForm = useForm<z.infer<typeof demoSchema>>({
-    resolver: zodResolver(demoSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      company: "",
-      message: "",
     },
   });
 
@@ -89,42 +64,7 @@ const Login = () => {
     }
   }
 
-  async function onDemoSubmit(values: z.infer<typeof demoSchema>) {
-    try {
-      setIsSubmittingDemo(true);
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
-      await axios.post(`${apiUrl}/leads/demo`, {
-        name: values.name,
-        email: values.email,
-        phone: values.phone || undefined,
-        company: values.company || undefined,
-        message: values.message || undefined,
-        language: i18n.language,
-      });
-
-      // Show success message
-      toast.success(t('login.demo.success_title'), {
-        description: t('login.demo.success_description'),
-        duration: 5000,
-      });
-
-      // Reset form after successful submission
-      demoForm.reset();
-
-      // Redirect to landing page after a short delay
-      setTimeout(() => {
-        navigate('/');
-      }, 1500);
-    } catch (error) {
-      console.error('Error submitting demo request:', error);
-      toast.error(t('login.demo.error_title'), {
-        description: t('login.demo.error_description'),
-      });
-    } finally {
-      setIsSubmittingDemo(false);
-    }
-  }
+  // Removed demo form and handler
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden">
@@ -186,217 +126,78 @@ const Login = () => {
         {/* Main Card with Glassmorphism */}
         <Card className="backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 border border-white/20 shadow-2xl">
           <CardContent className="p-4 sm:p-6 md:p-8">
-            <Tabs defaultValue={defaultTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6 sm:mb-8 bg-white/50 dark:bg-gray-800/50">
-                <TabsTrigger value="login" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white">
-                  {t('login.tabs.login')}
-                </TabsTrigger>
-                <TabsTrigger value="demo" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white">
-                  {t('login.tabs.demo')}
-                </TabsTrigger>
-              </TabsList>
+            <div className="space-y-4 sm:space-y-6">
+              <div className="text-center sm:text-left">
+                <h3 className="text-lg sm:text-xl font-semibold mb-1">{t('login.form.title')}</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">{t('login.form.description')}</p>
+              </div>
 
-              <TabsContent value="login">
-                <div className="space-y-4 sm:space-y-6">
-                  <div className="text-center sm:text-left">
-                    <h3 className="text-lg sm:text-xl font-semibold mb-1">{t('login.form.title')}</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground">{t('login.form.description')}</p>
-                  </div>
+              <Form {...loginForm}>
+                <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4 sm:space-y-5">
+                  <FormField
+                    control={loginForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium">{t('login.form.email_label')}</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder={t('login.form.email_placeholder')}
+                              className="pl-10 bg-white/50 dark:bg-gray-800/50 border-white/20 focus:border-blue-500 transition-colors"
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={loginForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium">{t('login.form.password_label')}</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              type="password"
+                              placeholder={t('login.form.password_placeholder')}
+                              className="pl-10 bg-white/50 dark:bg-gray-800/50 border-white/20 focus:border-blue-500 transition-colors"
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                    disabled={isLoading}
+                    size="lg"
+                  >
+                    {isLoading ? (
+                      t('login.form.submitting')
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        {t('login.form.submit_button')} <ArrowRight className="h-4 w-4" />
+                      </span>
+                    )}
+                  </Button>
+                </form>
+              </Form>
 
-                  <Form {...loginForm}>
-                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4 sm:space-y-5">
-                      <FormField
-                        control={loginForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium">{t('login.form.email_label')}</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                  placeholder={t('login.form.email_placeholder')}
-                                  className="pl-10 bg-white/50 dark:bg-gray-800/50 border-white/20 focus:border-blue-500 transition-colors"
-                                  {...field}
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={loginForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium">{t('login.form.password_label')}</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                  type="password"
-                                  placeholder={t('login.form.password_placeholder')}
-                                  className="pl-10 bg-white/50 dark:bg-gray-800/50 border-white/20 focus:border-blue-500 transition-colors"
-                                  {...field}
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="submit"
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                        disabled={isLoading}
-                        size="lg"
-                      >
-                        {isLoading ? (
-                          t('login.form.submitting')
-                        ) : (
-                          <span className="flex items-center gap-2">
-                            {t('login.form.submit_button')} <ArrowRight className="h-4 w-4" />
-                          </span>
-                        )}
-                      </Button>
-                    </form>
-                  </Form>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="demo">
-                <div className="space-y-4 sm:space-y-5">
-                  <div className="text-center sm:text-left">
-                    <h3 className="text-lg sm:text-xl font-semibold mb-1">{t('login.demo.title')}</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground">{t('login.demo.description')}</p>
-                  </div>
-
-                  <Form {...demoForm}>
-                    <form onSubmit={demoForm.handleSubmit(onDemoSubmit)} className="space-y-3 sm:space-y-4">
-                      <FormField
-                        control={demoForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs sm:text-sm font-medium">{t('login.demo.name_label')}</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                  placeholder={t('login.demo.name_placeholder')}
-                                  className="pl-10 bg-white/50 dark:bg-gray-800/50 border-white/20 focus:border-blue-500 transition-colors"
-                                  {...field}
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={demoForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs sm:text-sm font-medium">{t('login.demo.email_label')}</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                  type="email"
-                                  placeholder={t('login.demo.email_placeholder')}
-                                  className="pl-10 bg-white/50 dark:bg-gray-800/50 border-white/20 focus:border-blue-500 transition-colors"
-                                  {...field}
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={demoForm.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs sm:text-sm font-medium">{t('login.demo.phone_label')}</FormLabel>
-                            <FormControl>
-                              <PhoneInput
-                                country={i18n.language === 'es' ? 'mx' : 'us'}
-                                enableSearch
-                                countryCodeEditable={false}
-                                value={field.value}
-                                onChange={(phone) => field.onChange(phone)}
-                                placeholder={t('login.demo.phone_placeholder')}
-                                containerClass="w-full"
-                                inputClass="!w-full !h-10 !text-sm sm:!text-base !bg-white/50 dark:!bg-gray-800/50 !border !border-white/20 !rounded-md !pl-14 !text-foreground focus:!border-blue-500 focus:!ring-2 focus:!ring-blue-500/20 transition-colors"
-                                buttonClass="!h-10 !bg-white/50 dark:!bg-gray-800/50 !border !border-white/20 !rounded-l-md !px-3"
-                                dropdownClass="!bg-popover !text-foreground !shadow-lg !border !rounded-md !z-50"
-                                inputStyle={{ paddingLeft: "3.5rem" }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={demoForm.control}
-                        name="company"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs sm:text-sm font-medium">{t('login.demo.company_label')}</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                  placeholder={t('login.demo.company_placeholder')}
-                                  className="pl-10 bg-white/50 dark:bg-gray-800/50 border-white/20 focus:border-blue-500 transition-colors"
-                                  {...field}
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={demoForm.control}
-                        name="message"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs sm:text-sm font-medium">{t('login.demo.message_label')}</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder={t('login.demo.message_placeholder')}
-                                className="resize-none bg-white/50 dark:bg-gray-800/50 border-white/20 focus:border-blue-500 transition-colors"
-                                rows={3}
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="submit"
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                        disabled={isSubmittingDemo}
-                        size="lg"
-                      >
-                        {isSubmittingDemo ? (
-                          t('login.demo.submitting')
-                        ) : (
-                          <span className="flex items-center gap-2">
-                            {t('login.demo.submit_button')} <ArrowRight className="h-4 w-4" />
-                          </span>
-                        )}
-                      </Button>
-                    </form>
-                  </Form>
-                </div>
-              </TabsContent>
-            </Tabs>
+              <div className="text-center mt-4">
+                <Button variant="link" onClick={() => navigate('/')} className="text-sm text-muted-foreground">
+                  ← Volver al inicio
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 

@@ -9,6 +9,9 @@ export interface CreateUserPayload {
   name: string;
   role?: string;
   businessId?: string;
+  isActive?: boolean;
+  activationToken?: string;
+  activationTokenExpires?: Date;
 }
 
 export interface UpdateUserPayload {
@@ -22,7 +25,7 @@ export interface UpdateUserPayload {
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private readonly userModel: Model<UserDocument>) {}
+  constructor(@InjectModel(User.name) private readonly userModel: Model<UserDocument>) { }
 
   async create(payload: CreateUserPayload): Promise<UserDocument> {
     const user = new this.userModel(payload);
@@ -65,5 +68,12 @@ export class UsersService {
     if (!res) {
       throw new NotFoundException('User not found');
     }
+  }
+
+  async findByActivationToken(token: string): Promise<UserDocument | null> {
+    return this.userModel.findOne({
+      activationToken: token,
+      activationTokenExpires: { $gt: new Date() }
+    }).exec();
   }
 }
