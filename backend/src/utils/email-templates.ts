@@ -336,7 +336,17 @@ const translations = {
     servicePerformed: "Servicio realizado",
     dateLabel: "Fecha",
     hopeSeeYou: "¡Esperamos verte pronto de nuevo!",
-    bookAgain: "Reservar de nuevo"
+    bookAgain: "Reservar de nuevo",
+    demoRequestSubject: "Solicitud de Demo",
+    demoRequestHeader: "Nueva Solicitud de Demo",
+    demoRequestBody: "Has recibido una nueva solicitud de demo.",
+    name: "Nombre",
+    company: "Empresa",
+    message: "Mensaje",
+    requestReceivedSubject: "Hemos recibido tu solicitud",
+    requestReceivedHeader: "Solicitud Recibida",
+    requestReceivedBody: "Hemos recibido tu solicitud de registro de negocio. Nuestro equipo revisará la información y te contactará pronto.",
+    demoRequestReceivedBody: "Gracias por solicitar una demo. Nos pondremos en contacto contigo a la brevedad."
   },
   en: {
     bookingConfirmed: "Booking Confirmed",
@@ -376,9 +386,28 @@ const translations = {
     servicePerformed: "Service performed",
     dateLabel: "Date",
     hopeSeeYou: "We hope to see you again soon!",
-    bookAgain: "Book again"
+    bookAgain: "Book again",
+    demoRequestSubject: "Demo Request",
+    demoRequestHeader: "New Demo Request",
+    demoRequestBody: "You have received a new demo request.",
+    name: "Name",
+    company: "Company",
+    message: "Message",
+    requestReceivedSubject: "We received your request",
+    requestReceivedHeader: "Request Received",
+    requestReceivedBody: "We have received your business registration request. Our team will review the information and contact you soon.",
+    demoRequestReceivedBody: "Thanks for requesting a demo. We will contact you soon."
   }
 };
+
+export interface DemoRequestData {
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  message?: string;
+  language?: string;
+}
 
 export const clientBookingConfirmationTemplate = (data: BookingEmailData): string => {
   const lang = (data.language || 'es') as keyof typeof translations;
@@ -806,6 +835,185 @@ export const clientBookingCompletedTemplate = (data: BookingEmailData): string =
     </div>
     <div class="email-footer">
       <p>${data.businessName}</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+};
+
+export const demoRequestTemplate = (data: DemoRequestData): string => {
+  const lang = (data.language || 'es') as keyof typeof translations;
+  const t = translations[lang];
+
+  return `
+<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>${baseStyles}</style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>${t.demoRequestHeader}</h1>
+    </div>
+    <div class="email-body">
+      <h2>${t.hello}!</h2>
+      <p>${t.demoRequestBody}</p>
+      
+      <div class="booking-details">
+        <div class="detail-row">
+          <span class="detail-label">${t.name}</span>
+          <span class="detail-value">${data.name}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">${t.email}</span>
+          <span class="detail-value">${data.email}</span>
+        </div>
+        ${data.phone ? `
+        <div class="detail-row">
+          <span class="detail-label">${t.phone}</span>
+          <span class="detail-value">${data.phone}</span>
+        </div>
+        ` : ''}
+        ${data.company ? `
+        <div class="detail-row">
+          <span class="detail-label">${t.company}</span>
+          <span class="detail-value">${data.company}</span>
+        </div>
+        ` : ''}
+        ${data.message ? `
+        <div class="detail-row">
+          <span class="detail-label">${t.message}</span>
+          <span class="detail-value">${data.message}</span>
+        </div>
+        ` : ''}
+      </div>
+    </div>
+    <div class="email-footer">
+      <p>BookPro Demo Request</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+};
+
+export const businessRegistrationReceiptTemplate = (data: DemoRequestData): string => {
+  const lang = (data.language || 'es') as keyof typeof translations;
+  const t = translations[lang];
+
+  return `
+<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>${baseStyles}</style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>${t.requestReceivedHeader}</h1>
+    </div>
+    <div class="email-body">
+      <h2>${t.hello} ${data.name}!</h2>
+      <p>${t.requestReceivedBody}</p>
+      
+      <div class="booking-details">
+        <div class="detail-row">
+          <span class="detail-label">${t.name}</span>
+          <span class="detail-value">${data.name}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">${t.email}</span>
+          <span class="detail-value">${data.email}</span>
+        </div>
+        ${data.phone ? `
+        <div class="detail-row">
+          <span class="detail-label">${t.phone}</span>
+          <span class="detail-value">${data.phone}</span>
+        </div>
+        ` : ''}
+        ${data.company ? `
+        <div class="detail-row">
+          <span class="detail-label">${t.company}</span>
+          <span class="detail-value">${data.company}</span>
+        </div>
+        ` : ''}
+      </div>
+
+      <p style="margin-top: 24px;">
+        ${t.autoEmail}
+      </p>
+    </div>
+    <div class="email-footer">
+      <p>BookPro Team</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+};
+
+export const demoRequestReceiptTemplate = (data: DemoRequestData): string => {
+  const lang = (data.language || 'es') as keyof typeof translations;
+  const t = translations[lang];
+
+  return `
+<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>${baseStyles}</style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>${t.requestReceivedHeader}</h1>
+    </div>
+    <div class="email-body">
+      <h2>${t.hello} ${data.name}!</h2>
+      <p>${t.demoRequestReceivedBody}</p>
+      
+      <div class="booking-details">
+        <div class="detail-row">
+          <span class="detail-label">${t.name}</span>
+          <span class="detail-value">${data.name}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">${t.email}</span>
+          <span class="detail-value">${data.email}</span>
+        </div>
+        ${data.phone ? `
+        <div class="detail-row">
+          <span class="detail-label">${t.phone}</span>
+          <span class="detail-value">${data.phone}</span>
+        </div>
+        ` : ''}
+        ${data.company ? `
+        <div class="detail-row">
+          <span class="detail-label">${t.company}</span>
+          <span class="detail-value">${data.company}</span>
+        </div>
+        ` : ''}
+        ${data.message ? `
+        <div class="detail-row">
+          <span class="detail-label">${t.message}</span>
+          <span class="detail-value">${data.message}</span>
+        </div>
+        ` : ''}
+      </div>
+
+      <p style="margin-top: 24px;">
+        ${t.autoEmail}
+      </p>
+    </div>
+    <div class="email-footer">
+      <p>BookPro Team</p>
     </div>
   </div>
 </body>

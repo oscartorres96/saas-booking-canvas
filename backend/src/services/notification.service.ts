@@ -10,6 +10,10 @@ import {
   clientBookingConfirmationTemplate,
   clientCancellationTemplate,
   clientBookingCompletedTemplate,
+  demoRequestTemplate,
+  businessRegistrationReceiptTemplate,
+  demoRequestReceiptTemplate,
+  DemoRequestData,
 } from '../utils/email-templates';
 import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
 import { Booking } from '../bookings/schemas/booking.schema';
@@ -270,6 +274,67 @@ export class NotificationService {
       });
     } catch (error) {
       console.error('Error al enviar agradecimiento:', error);
+    }
+  }
+
+  /** Envia notificacion de solicitud de demo */
+  async sendDemoRequestNotification(data: DemoRequestData): Promise<void> {
+    try {
+      // 1. Send Admin Notification
+      const adminHtml = demoRequestTemplate(data);
+      // Use specific admin email or fallback
+      const adminEmail = process.env.ADMIN_EMAIL || 'oscartorres0396@gmail.com';
+
+      await sendEmail({
+        to: adminEmail,
+        subject: `Nueva Solicitud de Demo - ${data.name}`,
+        html: adminHtml,
+      });
+
+      // 2. Send Applicant Confirmation
+      if (data.email) {
+        const applicantHtml = demoRequestReceiptTemplate(data);
+        await sendEmail({
+          to: data.email,
+          subject: 'Hemos recibido tu solicitud de demo - BookPro',
+          html: applicantHtml,
+        });
+      }
+    } catch (error) {
+      console.error('Error sending demo request notification', error);
+    }
+  }
+
+  /** Envia notificacion de solicitud de registro de negocio */
+  async sendBusinessRegistrationNotification(data: DemoRequestData): Promise<void> {
+    try {
+      // 1. Send Admin Notification
+      const adminHtml = demoRequestTemplate(data);
+      // Use specific admin email or fallback
+      const adminEmail = process.env.ADMIN_EMAIL || 'oscartorres0396@gmail.com';
+
+      if (adminEmail) {
+        await sendEmail({
+          to: adminEmail,
+          subject: `Nueva Solicitud de Registro de Negocio - ${data.name}`,
+          html: adminHtml,
+        });
+      } else {
+        console.error('No admin email configured for business registration requests');
+      }
+
+      // 2. Send Applicant Confirmation
+      if (data.email) {
+        const applicantHtml = businessRegistrationReceiptTemplate(data);
+        await sendEmail({
+          to: data.email,
+          subject: 'Hemos recibido tu solicitud - BookPro',
+          html: applicantHtml,
+        });
+      }
+
+    } catch (error) {
+      console.error('Error sending business registration notification', error);
     }
   }
 }

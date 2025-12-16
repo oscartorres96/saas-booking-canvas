@@ -1,0 +1,31 @@
+import { LandingNav } from '../components/landing/LandingNav';
+import { HeroSection } from '../components/landing/HeroSection';
+import { WhatIsSection } from '../components/landing/WhatIsSection';
+import { BenefitsSection } from '../components/landing/BenefitsSection';
+import { HowItWorksSection } from '../components/landing/HowItWorksSection';
+import { UseCasesSection } from '../components/landing/UseCasesSection';
+import { FeaturesSection } from '../components/landing/FeaturesSection';
+import { CTASection } from '../components/landing/CTASection';
+import { DemoSection } from '../components/landing/DemoSection';
+import { LandingFooter } from '../components/landing/LandingFooter';
+
+const Landing = () => {
+    return (
+        <div className="min-h-screen bg-background">
+            <LandingNav />
+            <main>
+                <HeroSection />
+                <WhatIsSection />
+                <BenefitsSection />
+                <HowItWorksSection />
+                <UseCasesSection />
+                <FeaturesSection />
+                <CTASection />
+                <DemoSection id="demo" />
+            </main>
+            <LandingFooter />
+        </div>
+    );
+};
+
+export default Landing;

@@ -51,6 +51,186 @@
             "load_businesses": "Could not load businesses"
         }
     },
+    "landing": {
+        "nav": {
+            "features": "Features",
+            "benefits": "Benefits",
+            "how_it_works": "How It Works",
+            "pricing": "Pricing",
+            "login": "Sign In",
+            "demo": "Request Demo"
+        },
+        "demo": {
+            "title": "Request Demo",
+            "subtitle": "Leave your details and we will contact you shortly.",
+            "name_label": "Full Name",
+            "name_placeholder": "Your name",
+            "email_label": "Work Email",
+            "email_placeholder": "name@company.com",
+            "phone_label": "Phone",
+            "phone_placeholder": "+1 555 123 4567",
+            "company_label": "Company",
+            "company_placeholder": "Company name",
+            "message_label": "Message (Optional)",
+            "message_placeholder": "What would you like to know?",
+            "submit_btn": "Request Demo",
+            "success_title": "Request Sent!",
+            "success_desc": "Thank you for your interest. We will contact you soon.",
+            "error_title": "Error",
+            "error_desc": "There was a problem sending your request. Please try again."
+        },
+        "hero": {
+            "headline": "Manage your business bookings without complications",
+            "subheadline": "BookPro is the SaaS platform you need to automate your appointments, impress your clients, and grow your business.",
+            "cta_primary": "Get started now",
+            "cta_secondary": "See how it works",
+            "badge": "14-day free trial",
+            "trust_indicator_1": "100% secure payments",
+            "trust_indicator_2": "Setup in minutes"
+        },
+        "what_is": {
+            "title": "What is BookPro?",
+            "subtitle": "The complete solution for professionals and businesses that work with appointments",
+            "description": "BookPro allows you to create your own personalized booking page, manage your services, schedules, and appointments from one place. Forget about paper sheets, lost messages, and double bookings.",
+            "video_alt": "BookPro Demo"
+        },
+        "benefits": {
+            "title": "Benefits that transform your business",
+            "subtitle": "Not just managing appointments, improving your entire operation",
+            "items": {
+                "time": {
+                    "title": "Save valuable time",
+                    "description": "Automate bookings and dedicate your time to what really matters: serving your clients."
+                },
+                "clients": {
+                    "title": "Attract more clients",
+                    "description": "A professional booking page improves your image and makes it easier for new clients to find you."
+                },
+                "errors": {
+                    "title": "Eliminate errors",
+                    "description": "Smart system that automatically prevents double bookings and schedule conflicts."
+                },
+                "professional": {
+                    "title": "Professional image",
+                    "description": "Build trust with a modern platform, personalized with your brand."
+                }
+            }
+        },
+        "how_it_works": {
+            "title": "How it works",
+            "subtitle": "In 4 simple steps you'll be receiving bookings",
+            "steps": {
+                "step1": {
+                    "title": "Create your account",
+                    "description": "Sign up in seconds and access your personalized dashboard."
+                },
+                "step2": {
+                    "title": "Configure your services",
+                    "description": "Add your services, prices, duration, and business hours."
+                },
+                "step3": {
+                    "title": "Customize your brand",
+                    "description": "Upload your logo, choose your colors, and make the page 100% yours."
+                },
+                "step4": {
+                    "title": "Share and receive bookings",
+                    "description": "Share your link or QR code and start receiving appointments automatically."
+                }
+            }
+        },
+        "use_cases": {
+            "title": "Perfect for your type of business",
+            "subtitle": "Thousands of professionals already trust BookPro",
+            "items": {
+                "gym": {
+                    "title": "Gyms and Studios",
+                    "description": "Manage classes, personal training, and group schedules."
+                },
+                "medical": {
+                    "title": "Medical Offices",
+                    "description": "Organize consultations, nutrition, therapies, and patient follow-ups."
+                },
+                "beauty": {
+                    "title": "Beauty Studios",
+                    "description": "Bookings for hair, nails, lashes, makeup, and more."
+                },
+                "professionals": {
+                    "title": "Independent Professionals",
+                    "description": "Ideal for coaches, consultants, photographers, and freelancers."
+                }
+            }
+        },
+        "features": {
+            "title": "Everything you need in one place",
+            "subtitle": "Features that make the difference",
+            "items": {
+                "booking_page": {
+                    "title": "Public Booking Page",
+                    "description": "Your own website ready to share with your clients."
+                },
+                "dashboard": {
+                    "title": "Professional Dashboard",
+                    "description": "Complete panel to manage services, schedules, and appointments."
+                },
+                "customization": {
+                    "title": "Total Customization",
+                    "description": "Logo, colors, and 100% customizable brand."
+                },
+                "notifications": {
+                    "title": "Automatic Notifications",
+                    "description": "Confirmation emails and reminders for your clients."
+                },
+                "multilingual": {
+                    "title": "Multi-language",
+                    "description": "Full support in Spanish and English."
+                },
+                "dark_mode": {
+                    "title": "Light/Dark Mode",
+                    "description": "Adaptable theme for any preference."
+                },
+                "qr_code": {
+                    "title": "QR Code",
+                    "description": "Generate your QR code to share on social media."
+                },
+                "realtime": {
+                    "title": "Real Time",
+                    "description": "Availability updated instantly, no conflicts."
+                }
+            }
+        },
+        "cta": {
+            "title": "Ready to transform your business?",
+            "subtitle": "Join hundreds of professionals who are already growing with BookPro",
+            "button": "Request Demo",
+            "note": "Schedule a custom demo"
+        },
+        "footer": {
+            "tagline": "The simplest way to manage your bookings",
+            "product": {
+                "title": "Product",
+                "features": "Features",
+                "pricing": "Pricing",
+                "demo": "Request Demo"
+            },
+            "company": {
+                "title": "Company",
+                "about": "About",
+                "contact": "Contact",
+                "blog": "Blog"
+            },
+            "legal": {
+                "title": "Legal",
+                "privacy": "Privacy",
+                "terms": "Terms",
+                "cookies": "Cookies"
+            },
+            "contact": {
+                "title": "Contact",
+                "email": "oscartorres0396@gmail.com"
+            },
+            "copyright": "© 2026 BookPro. All rights reserved."
+        }
+    },
     "booking": {
         "form": {
             "title": "Book Appointment",
@@ -343,7 +523,7 @@
         "copyright": "All rights reserved.",
         "tabs": {
             "login": "Sign In",
-            "register": "Register Business"
+            "demo": "Request Demo"
         },
         "form": {
             "title": "Access",
@@ -359,11 +539,53 @@
         },
         "register": {
             "title": "New Business",
-            "description": "Start your 14-day free trial.",
-            "business_button": "I'm a Business (Nutritionist, Dentist...)",
-            "or_label": "Or contact us",
-            "contact_text": "For business registrations, please contact oscartorres0396@gmail.com",
-            "coming_soon": "Registration feature coming soon"
+            "description": "Complete the form to register your business.",
+            "form_title": "Business Information",
+            "form_subtitle": "Provide the necessary information to register your business",
+            "name_label": "Full Name",
+            "name_placeholder": "Your name",
+            "email_label": "Professional Email",
+            "email_placeholder": "you@company.com",
+            "phone_label": "Phone",
+            "phone_placeholder": "+1 ...",
+            "business_name_label": "Business Name",
+            "business_name_placeholder": "Ex. My Dental Clinic",
+            "business_type_label": "Business Type",
+            "business_type_placeholder": "Ex. Nutrition, Aesthetics, Dentist...",
+            "message_label": "Message (Optional)",
+            "message_placeholder": "Tell us about your business...",
+            "submit_button": "Submit Request",
+            "submitting": "Submitting...",
+            "success_title": "Request Sent!",
+            "success_message": "Thank you for your interest. We will contact you soon to complete your registration.",
+            "error_title": "Error sending",
+            "error_message": "There was a problem sending your request. Please try again.",
+            "validation": {
+                "name_required": "Name is required",
+                "email_invalid": "Invalid email",
+                "phone_required": "Phone is required",
+                "business_name_required": "Business name is required"
+            }
+        },
+        "demo": {
+            "title": "Request Demo",
+            "description": "Leave your details and we will contact you shortly.",
+            "name_label": "Full Name",
+            "name_placeholder": "Your name",
+            "email_label": "Work Email",
+            "email_placeholder": "name@company.com",
+            "phone_label": "Phone (Optional)",
+            "phone_placeholder": "+1 555 123 4567",
+            "company_label": "Company (Optional)",
+            "company_placeholder": "Company name",
+            "message_label": "Message (Optional)",
+            "message_placeholder": "What would you like to know?",
+            "submit_button": "Request Demo",
+            "submitting": "Submitting...",
+            "success_title": "Request Sent!",
+            "success_description": "Thank you for your interest. We will contact you soon.",
+            "error_title": "Error sending",
+            "error_description": "There was a problem sending your request. Please try again."
         }
     },
     "myBookings": {
@@ -537,7 +759,7 @@
         },
         "footer": {
             "congrats": "Congratulations! You're ready to manage your business bookings professionally.",
-            "updated": "Last updated: December 2024  Version 1.0"
+            "updated": "Last updated: December 2026  Version 1.0"
         }
     }
 }
