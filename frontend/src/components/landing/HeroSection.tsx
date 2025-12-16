@@ -19,13 +19,13 @@ export const HeroSection = () => {
     return (
         <section className="pt-20 sm:pt-24 md:pt-32 pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
             {/* Background Gradient */}
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-pink-950/20 -z-10" />
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-pink-950/20 -z-10 pointer-events-none" />
 
             {/* Decorative Elements */}
-            <div className="absolute top-20 right-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob" />
-            <div className="absolute top-40 left-10 w-72 h-72 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000" />
+            <div className="absolute top-20 right-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob pointer-events-none" />
+            <div className="absolute top-40 left-10 w-72 h-72 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000 pointer-events-none" />
 
-            <div className="container mx-auto max-w-6xl">
+            <div className="container mx-auto max-w-6xl relative z-10">
                 <div className="grid lg:grid-cols-2 gap-12 items-center">
                     {/* Left Column - Text Content */}
                     <motion.div
@@ -51,7 +51,7 @@ export const HeroSection = () => {
                             <Button
                                 size="lg"
                                 onClick={() => navigate('/login')}
-                                className="group text-sm sm:text-base px-6 sm:px-8 py-5 sm:py-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                                className="group text-sm sm:text-base px-8 sm:px-8 py-6 sm:py-6 min-h-[52px] sm:min-h-[56px] bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 touch-manipulation"
                             >
                                 {t('landing.hero.cta_primary')}
                                 <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform" />
@@ -60,7 +60,7 @@ export const HeroSection = () => {
                                 size="lg"
                                 variant="outline"
                                 onClick={scrollToHowItWorks}
-                                className="text-sm sm:text-base px-6 sm:px-8 py-5 sm:py-6"
+                                className="text-sm sm:text-base px-8 sm:px-8 py-6 sm:py-6 min-h-[52px] sm:min-h-[56px] touch-manipulation"
                             >
                                 {t('landing.hero.cta_secondary')}
                             </Button>

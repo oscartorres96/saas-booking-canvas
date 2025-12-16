@@ -93,19 +93,20 @@ export const LandingNav = () => {
                         {/* Theme Toggle */}
                         <ThemeToggle />
 
-                        {/* Login - Hidden on mobile */}
+                        {/* Login Button - Always visible */}
                         <Button
                             variant="ghost"
                             onClick={() => navigate('/login')}
-                            className="hidden sm:flex text-sm px-3 md:px-4 h-9 md:h-10"
+                            className="text-xs sm:text-sm px-2 sm:px-3 md:px-4 h-9 md:h-10"
                         >
-                            {t('landing.nav.login')}
+                            <span className="hidden xs:inline">{t('landing.nav.login')}</span>
+                            <span className="xs:hidden">Login</span>
                         </Button>
 
                         {/* Demo Button */}
                         <Button
                             onClick={() => setIsDemoOpen(true)}
-                            className="text-xs sm:text-sm px-3 md:px-4 h-9 md:h-10 whitespace-nowrap"
+                            className="text-xs sm:text-sm px-2 sm:px-3 md:px-4 h-9 md:h-10 whitespace-nowrap"
                         >
                             Demo
                         </Button>
