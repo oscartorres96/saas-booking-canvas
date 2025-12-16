@@ -3,7 +3,7 @@ import AdminDashboard from '../pages/admin/AdminDashboard';
 import BookingPage from '../pages/BookingPage';
 import BusinessDashboard from '../pages/business/BusinessDashboard';
 import BusinessBookingPage from '../pages/business/BusinessBookingPage';
-import Home from '../pages/Home';
+import Landing from '../pages/Landing';
 import MyBookings from '../pages/MyBookings';
 import Login from '../pages/Login';
 import NotFound from '../pages/NotFound';
@@ -21,7 +21,7 @@ const AppRouter = () => (
     }}
   >
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route path="/" element={<Landing />} />
       <Route path="/:businessSlug" element={<BookingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Login />} />
