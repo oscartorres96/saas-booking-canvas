@@ -15,12 +15,13 @@ export function PricingSection() {
     const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
     const [isAnnual, setIsAnnual] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [selectedBillingPeriod, setSelectedBillingPeriod] = useState<'monthly' | 'annual' | 'trial'>('monthly');
 
     const monthlyPrice = 299;
     const annualPrice = monthlyPrice * 11; // 11 meses (1 mes gratis)
     const displayPrice = isAnnual ? annualPrice : monthlyPrice;
 
-    const handleGetStarted = async () => {
+    const handleGetStarted = async (planType: 'trial' | 'monthly' | 'annual' = isAnnual ? 'annual' : 'monthly') => {
         // Get user ID from available properties
         const userId = user?.userId || (user as any)?._id || (user as any)?.id;
 
@@ -28,7 +29,8 @@ export function PricingSection() {
             loggedIn: !!user,
             businessId: user?.businessId,
             userId: userId,
-            fullUser: user
+            fullUser: user,
+            planType
         });
 
         if (user && user.businessId && userId) {
@@ -38,7 +40,7 @@ export function PricingSection() {
                 const response = await createCheckoutSession({
                     userId: userId,
                     businessId: user.businessId,
-                    billingPeriod: isAnnual ? 'annual' : 'monthly',
+                    billingPeriod: planType,
                 });
 
                 console.log("Checkout response:", response);
@@ -60,6 +62,8 @@ export function PricingSection() {
             }
         } else {
             console.log("User missing required fields for auto-checkout");
+            // Guardar el plan seleccionado antes de abrir el diálogo
+            setSelectedBillingPeriod(planType);
             // No autenticado: Mostrar diálogo de registro rápido
             setPurchaseDialogOpen(true);
         }
@@ -118,8 +122,78 @@ export function PricingSection() {
                     </div>
                 </div>
 
-                {/* Pricing Card */}
-                <div className="max-w-md mx-auto">
+                {/* Pricing Cards Grid */}
+                <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                    {/* Trial Package - 1 Peso */}
+                    <Card className="relative border-2 border-muted hover:border-primary/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                            <Badge className="bg-secondary text-secondary-foreground px-4 py-1 text-sm font-semibold">
+                                Prueba
+                            </Badge>
+                        </div>
+
+                        <CardHeader className="text-center pt-8 pb-4">
+                            <CardTitle className="text-2xl font-bold">
+                                Paquete de Prueba
+                            </CardTitle>
+                            <CardDescription className="mt-4">
+                                <div className="flex items-baseline justify-center gap-1">
+                                    <span className="text-5xl font-bold text-foreground">
+                                        $1
+                                    </span>
+                                    <span className="text-xl text-muted-foreground ml-1">
+                                        MXN
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                        / único
+                                    </span>
+                                </div>
+                                <p className="text-sm text-muted-foreground mt-2">
+                                    Prueba todas las funciones
+                                </p>
+                            </CardDescription>
+                        </CardHeader>
+
+                        <CardContent className="pt-6">
+                            <div className="space-y-4">
+                                <p className="font-semibold text-sm text-muted-foreground">
+                                    Incluye:
+                                </p>
+                                <ul className="space-y-3">
+                                    <li className="flex items-start gap-3">
+                                        <Check className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                                        <span className="text-sm">Acceso completo por 7 días</span>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <Check className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                                        <span className="text-sm">Todas las funcionalidades</span>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <Check className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                                        <span className="text-sm">Sin compromiso</span>
+                                    </li>
+                                    <li className="flex items-start gap-3">
+                                        <Check className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                                        <span className="text-sm">Soporte básico</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </CardContent>
+
+                        <CardFooter className="pt-6">
+                            <Button
+                                onClick={() => handleGetStarted('trial')}
+                                variant="outline"
+                                className="w-full text-lg py-6 font-semibold"
+                                size="lg"
+                                disabled={loading}
+                            >
+                                Probar ahora
+                            </Button>
+                        </CardFooter>
+                    </Card>
+
+                    {/* Regular Plan */}
                     <Card className="relative border-2 border-primary shadow-xl hover:shadow-2xl transition-all duration-300">
                         {/* Badge */}
                         <div className="absolute -top-4 left-1/2 -translate-x-1/2">
@@ -170,7 +244,7 @@ export function PricingSection() {
 
                         <CardFooter className="pt-6">
                             <Button
-                                onClick={handleGetStarted}
+                                onClick={() => handleGetStarted()}
                                 className="w-full text-lg py-6 font-semibold"
                                 size="lg"
                                 disabled={loading}
@@ -208,7 +282,7 @@ export function PricingSection() {
             <DirectPurchaseDialog
                 open={purchaseDialogOpen}
                 onOpenChange={setPurchaseDialogOpen}
-                billingPeriod={isAnnual ? 'annual' : 'monthly'}
+                billingPeriod={selectedBillingPeriod}
             />
         </section>
     );

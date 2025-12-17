@@ -4,7 +4,7 @@ export interface CreateCheckoutSessionParams {
     userId: string;
     businessId: string;
     priceId?: string;
-    billingPeriod?: 'monthly' | 'annual';
+    billingPeriod?: 'monthly' | 'annual' | 'trial';
     successUrl?: string;
     cancelUrl?: string;
 }

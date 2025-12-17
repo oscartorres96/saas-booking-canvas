@@ -66,6 +66,9 @@ export class StripeService {
         if (!finalPriceId) {
             if (billingPeriod === 'annual') {
                 finalPriceId = this.configService.get<string>('STRIPE_PRICE_ID_ANNUAL') || 'price_1Sf5dUQ12BYwu1Gtc44DvB2d';
+            } else if (billingPeriod === 'trial') {
+                // Trial package - 1 peso (you'll need to create this price in Stripe)
+                finalPriceId = this.configService.get<string>('STRIPE_PRICE_ID_TRIAL') || 'price_trial_placeholder';
             } else {
                 finalPriceId = this.configService.get<string>('STRIPE_PRICE_ID_MONTHLY') || this.configService.get<string>('STRIPE_PRICE_ID') || 'price_1Seq4UQ12BYwu1GtvHcSAF4U';
             }
@@ -139,6 +142,10 @@ export class StripeService {
         if (billingPeriod === 'annual') {
             finalPriceId = this.configService.get<string>('STRIPE_PRICE_ID_ANNUAL') || 'price_1Sf5dUQ12BYwu1Gtc44DvB2d';
             this.logger.log(`Using annual price ID: ${finalPriceId}`);
+        } else if (billingPeriod === 'trial') {
+            // Trial package - 1 peso (you'll need to create this price in Stripe)
+            finalPriceId = this.configService.get<string>('STRIPE_PRICE_ID_TRIAL') || 'price_trial_placeholder';
+            this.logger.log(`Using trial price ID: ${finalPriceId}`);
         } else {
             finalPriceId = this.configService.get<string>('STRIPE_PRICE_ID_MONTHLY') || this.configService.get<string>('STRIPE_PRICE_ID') || 'price_1Seq4UQ12BYwu1GtvHcSAF4U';
             this.logger.log(`Using monthly price ID: ${finalPriceId}`);
