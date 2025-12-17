@@ -20,4 +20,8 @@ export class CreateCheckoutSessionDto {
     @IsString()
     @IsOptional()
     priceId?: string; // Optional, defaults to env var
+
+    @IsString()
+    @IsOptional()
+    billingPeriod?: string;
 }

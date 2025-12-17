@@ -8,6 +8,7 @@ import {
     Moon,
     QrCode,
     Zap,
+    CreditCard,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '../ui/card';
@@ -21,6 +22,7 @@ const featureIcons = {
     dark_mode: Moon,
     qr_code: QrCode,
     realtime: Zap,
+    payments: CreditCard,
 };
 
 // Colores vibrantes para cada característica destacada
@@ -29,13 +31,14 @@ const featureColors = {
     dark_mode: { from: 'from-purple-500', to: 'to-pink-500', icon: 'text-purple-500' },
     qr_code: { from: 'from-green-500', to: 'to-emerald-500', icon: 'text-green-500' },
     realtime: { from: 'from-orange-500', to: 'to-red-500', icon: 'text-orange-500' },
+    payments: { from: 'from-indigo-500', to: 'to-violet-500', icon: 'text-indigo-500' },
 };
 
 export const FeaturesSection = () => {
     const { t } = useTranslation();
 
-    // Las 4 características principales que van arriba
-    const topFeatures = ['multilingual', 'dark_mode', 'qr_code', 'realtime'];
+    // Las 5 características principales que van arriba
+    const topFeatures = ['multilingual', 'dark_mode', 'qr_code', 'realtime', 'payments'];
 
     // Las otras características que van abajo
     const allFeatures = [
@@ -47,6 +50,7 @@ export const FeaturesSection = () => {
         'dark_mode',
         'qr_code',
         'realtime',
+        'payments',
     ];
 
     const container = {
@@ -69,7 +73,7 @@ export const FeaturesSection = () => {
             <div className="container mx-auto max-w-6xl">
                 {/* Top Highlighted Features - CON DISEÑO PREMIUM */}
                 <div className="mb-16 sm:mb-20">
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
                         {topFeatures.map((feature, index) => {
                             const Icon = featureIcons[feature as keyof typeof featureIcons];
                             const colors = featureColors[feature as keyof typeof featureColors];
@@ -135,7 +139,7 @@ export const FeaturesSection = () => {
                     initial="hidden"
                     whileInView="show"
                     viewport={{ once: true }}
-                    className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
+                    className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"
                 >
                     {allFeatures.map((feature) => {
                         const Icon = featureIcons[feature as keyof typeof featureIcons];

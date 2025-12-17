@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { LandingNav } from '../components/landing/LandingNav';
 import { HeroSection } from '../components/landing/HeroSection';
 import { WhatIsSection } from '../components/landing/WhatIsSection';
@@ -11,6 +12,23 @@ import { DemoSection } from '../components/landing/DemoSection';
 import { LandingFooter } from '../components/landing/LandingFooter';
 
 const Landing = () => {
+    useEffect(() => {
+        // Scroll to section if hash is present in URL
+        const hash = window.location.hash;
+        if (hash) {
+            // Small delay to ensure the page is fully rendered
+            setTimeout(() => {
+                const element = document.querySelector(hash);
+                if (element) {
+                    element.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            }, 100);
+        }
+    }, []);
+
     return (
         <div className="min-h-screen bg-background">
             <LandingNav />

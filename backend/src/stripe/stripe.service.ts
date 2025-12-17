@@ -50,8 +50,9 @@ export class StripeService {
         successUrl?: string;
         cancelUrl?: string;
         priceId?: string;
+        billingPeriod?: string;
     }): Promise<{ sessionId: string; url: string }> {
-        const { userId, businessId, successUrl, cancelUrl, priceId } = params;
+        const { userId, businessId, successUrl, cancelUrl, priceId, billingPeriod } = params;
 
         // Validate business exists
         const business = await this.businessModel.findById(businessId);
@@ -59,8 +60,16 @@ export class StripeService {
             throw new NotFoundException('Business not found');
         }
 
-        // Use provided price ID or default from env
-        const finalPriceId = priceId || this.configService.get<string>('STRIPE_PRICE_ID') || 'price_1Seq4UQ12BYwu1GtvHcSAF4U';
+        // Determine Price ID
+        let finalPriceId = priceId;
+
+        if (!finalPriceId) {
+            if (billingPeriod === 'annual') {
+                finalPriceId = this.configService.get<string>('STRIPE_PRICE_ID_ANNUAL') || 'price_1Sf5dUQ12BYwu1Gtc44DvB2d';
+            } else {
+                finalPriceId = this.configService.get<string>('STRIPE_PRICE_ID_MONTHLY') || this.configService.get<string>('STRIPE_PRICE_ID') || 'price_1Seq4UQ12BYwu1GtvHcSAF4U';
+            }
+        }
 
         const session = await this.stripe.checkout.sessions.create({
             mode: 'subscription',
@@ -623,5 +632,24 @@ export class StripeService {
      */
     async getPaymentsByBusinessId(businessId: string): Promise<PaymentDocument[]> {
         return this.paymentModel.find({ businessId }).sort({ createdAt: -1 }).exec();
+    }
+
+    /**
+     * Create a Billing Portal Session
+     */
+    async createPortalSession(businessId: string): Promise<{ url: string }> {
+        // Find subscription to get stripeCustomerId
+        const subscription = await this.subscriptionModel.findOne({ businessId }).sort({ createdAt: -1 });
+
+        if (!subscription || !subscription.stripeCustomerId) {
+            throw new BadRequestException('No subscription customer found for this business');
+        }
+
+        const session = await this.stripe.billingPortal.sessions.create({
+            customer: subscription.stripeCustomerId,
+            return_url: `${this.frontendUrl}/dashboard`,
+        });
+
+        return { url: session.url };
     }
 }

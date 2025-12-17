@@ -21,7 +21,8 @@
     "closed": "Cerrado",
     "to": "a",
     "minutes": "minutos",
-    "optional": "(Opcional)"
+    "optional": "(Opcional)",
+    "coming_soon": "Esta funcionalidad estará disponible próximamente."
   },
   "home": {
     "header": {
@@ -196,6 +197,10 @@
         "realtime": {
           "title": "Tiempo Real",
           "description": "Disponibilidad actualizada al instante, sin conflictos."
+        },
+        "payments": {
+          "title": "Pagos con Tarjeta",
+          "description": "Acepta pagos por tus servicios de forma segura con Stripe, si así lo requieres."
         }
       }
     },
@@ -356,7 +361,8 @@
     "serviceLinkMessage": "¡Hola! 👋\n\nReserva tu cita para *{{serviceName}}* aquí: 👇\n{{url}}",
     "tabs": {
       "dashboard": "Dashboard",
-      "settings": "Configuración"
+      "settings": "Configuración",
+      "billing": "Facturación"
     },
     "stats": {
       "services": "Servicios",
@@ -588,6 +594,7 @@
       "welcome_toast": "Bienvenido",
       "error_toast": "Credenciales inválidas."
     },
+    "trial_expired_message": "Tu período de prueba ha expirado. Por favor suscríbete para continuar usando BookPro.",
     "register": {
       "title": "Nuevo Negocio",
       "description": "Completa el formulario para registrar tu negocio.",
@@ -1181,7 +1188,8 @@
     "errors": {
       "password_min": "La contraseña debe tener al menos 6 caracteres",
       "password_match": "Las contraseñas no coinciden",
-      "generic": "Error al activar la cuenta"
+      "stripe_portal_failed": "No se pudo conectar con el portal de pagos. Redirigiendo...",
+      "generic": "Ha ocurrido un error inesperado"
     }
   },
   "admin": {
@@ -1202,5 +1210,126 @@
       "success_approve": "Lead aprobado exitosamente",
       "success_reject": "Lead rechazado"
     }
+  },
+  "trial_expired": {
+    "title": "Tu Período de Prueba ha Finalizado",
+    "subtitle": "Continúa disfrutando de todas las funciones de BookPro suscribiéndote ahora",
+    "expired_on": "Tu prueba gratuita expiró el:",
+    "message": "Para seguir gestionando tus citas, servicios y clientes sin interrupciones, necesitas activar una suscripción.",
+    "benefits_title": "Con tu suscripción obtendrás:",
+    "benefit_1": "Gestión ilimitada de citas y servicios",
+    "benefit_2": "Recordatorios automáticos por WhatsApp y Email",
+    "benefit_3": "Soporte prioritario y actualizaciones constantes",
+    "renew_now": "Renovar Ahora",
+    "contact_support": "Contactar Soporte"
+  },
+  "banners": {
+    "past_due": {
+      "title": "Problema con tu último pago",
+      "message": "No pudimos procesar el pago de tu suscripción. Actualiza tu método de pago para evitar perder el acceso.",
+      "action": "Actualizar Pago"
+    },
+    "trial_ending": {
+      "title": "Tu prueba termina en {{days}} días",
+      "message": "¡No te quedes sin servicio! Suscríbete ahora para mantener el acceso completo.",
+      "action": "Suscribirme Ahora"
+    }
+  },
+  "subscription_expired": {
+    "title": "Tu Suscripción ha Expirado",
+    "subtitle": "No pierdas acceso a tus datos y clientes. Renueva ahora.",
+    "expired_on": "Tu suscripción finalizó el:",
+    "message": "Hubo un problema con tu último pago o tu suscripción ha finalizado. Para reactivar tu cuenta, necesitas renovar tu plan.",
+    "benefits_title": "Al renovar recuperarás acceso a:",
+    "benefit_1": "Todos tus datos históricos y citas",
+    "benefit_2": "Panel de control completo y reportes",
+    "benefit_3": "Gestión de clientes y servicios",
+    "renew_now": "Renovar Suscripción",
+    "contact_support": "Ayuda con Pago"
+  },
+  "billing": {
+    "title": "Suscripción y Facturación",
+    "subtitle": "Gestiona tu plan, pagos y facturación",
+    "overview": {
+      "title": "Resumen de Suscripción",
+      "subtitle": "Información detallada sobre tu plan actual",
+      "plan": "Plan Actual",
+      "renewal_date": "Próximo Pago",
+      "payment_method": "Método de Pago",
+      "auto_renews": "Se renueva automáticamente",
+      "canceled_at_period_end": "Se cancela al finalizar el período"
+    },
+    "status": {
+      "active": "Activo",
+      "trialing": "Período de prueba",
+      "past_due": "Pago vencido",
+      "canceled": "Cancelado"
+    },
+    "plan": {
+      "monthly": "Plan Mensual",
+      "annual": "Plan Anual",
+      "legacy": "Plan Legacy (Grandfathered)",
+      "cycle": {
+        "monthly": "mes",
+        "annual": "año"
+      },
+      "save_badge": "Ahorra 1 mes",
+      "annual_savings": "Equivalente a 11 meses • Ahorra $299 MXN"
+    },
+    "payment_method": {
+      "card": "•••• •••• •••• 1234",
+      "no_method": "No configurado"
+    },
+    "actions": {
+      "change_plan": "Cambiar Plan",
+      "update_payment": "Actualizar Método de Pago",
+      "cancel_subscription": "Cancelar Suscripción"
+    },
+    "history": {
+      "title": "Historial de Pagos",
+      "subtitle": "Todos tus pagos y facturas",
+      "empty": "No hay pagos registrados",
+      "table": {
+        "date": "Fecha",
+        "description": "Descripción",
+        "amount": "Monto",
+        "status": "Estado",
+        "actions": "Acciones"
+      },
+      "status": {
+        "paid": "Pagado",
+        "failed": "Fallido",
+        "pending": "Pendiente"
+      },
+      "download": "Descargar"
+    },
+    "cancel": {
+      "title": "Cancelar Suscripción",
+      "description": "¿Estás seguro de que deseas cancelar tu suscripción?",
+      "warning": "Esta acción no se puede deshacer",
+      "info": "Tendrás acceso hasta el {{date}}. Después, tu cuenta será desactivada.",
+      "confirm": "Sí, cancelar suscripción",
+      "success": "Suscripción cancelada exitosamente"
+    },
+    "change_plan": {
+      "title": "Cambiar Plan",
+      "description": "Selecciona el plan que mejor se adapte a tus necesidades",
+      "select": "Seleccionar",
+      "current": "Plan actual"
+    },
+    "update_payment": {
+      "coming_soon": "Esta función estará disponible pronto"
+    },
+    "no_subscription": {
+      "title": "No tienes una suscripción activa",
+      "description": "Suscríbete para continuar usando BookPro",
+      "action": "Ver Planes"
+    },
+    "error": {
+      "load_failed": "Error al cargar información de facturación"
+    }
+  },
+  "errors": {
+    "stripe_portal_failed": "No se pudo conectar con el portal de pagos. Redirigiendo..."
   }
 }

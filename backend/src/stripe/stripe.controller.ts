@@ -49,6 +49,19 @@ export class StripeController {
     }
 
     /**
+     * Create a Stripe Billing Portal Session
+     */
+    @Post('portal-session')
+    @UseGuards(JwtAuthGuard)
+    async createPortalSession(@Body() body: { businessId: string }) {
+        const result = await this.stripeService.createPortalSession(body.businessId);
+        return {
+            success: true,
+            data: result,
+        };
+    }
+
+    /**
      * Manual completion endpoint for testing (when webhooks don't work locally)
      * POST /api/stripe/direct-purchase/complete
      */

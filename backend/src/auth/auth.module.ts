@@ -7,6 +7,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt.guard';
 import { JwtStrategy } from './jwt.strategy';
+import { Subscription, SubscriptionSchema } from '../stripe/schemas/subscription.schema';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Business, BusinessSchema } from '../businesses/schemas/business.schema';
 
@@ -25,7 +26,10 @@ import { Business, BusinessSchema } from '../businesses/schemas/business.schema'
       }),
 
     }),
-    MongooseModule.forFeature([{ name: Business.name, schema: BusinessSchema }]),
+    MongooseModule.forFeature([
+      { name: Business.name, schema: BusinessSchema },
+      { name: Subscription.name, schema: SubscriptionSchema },
+    ]),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, JwtAuthGuard],

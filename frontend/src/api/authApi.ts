@@ -5,7 +5,13 @@ export interface AuthResponse {
   refreshToken: string;
   user: Record<string, unknown>;
   isOnboardingCompleted?: boolean;
+  trialExpired?: boolean;
+  trialEndsAt?: Date;
+  subscriptionExpired?: boolean;
+  subscriptionEndsAt?: Date;
+  subscriptionPastDue?: boolean;
 }
+
 
 export const login = async (email: string, password: string) => {
   const { data } = await apiClient.post<AuthResponse>('/auth/login', { email, password });

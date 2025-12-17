@@ -10,12 +10,17 @@ interface AuthUser {
   role?: string;
   businessId?: string;
   isOnboardingCompleted?: boolean;
+  trialExpired?: boolean;
+  trialEndsAt?: Date;
+  subscriptionExpired?: boolean;
+  subscriptionEndsAt?: Date;
+  subscriptionPastDue?: boolean;
   [key: string]: unknown;
 }
 
 interface AuthContextValue {
   user: AuthUser | null;
-  accessToken: string | null; // ... rest is same
+  accessToken: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   register: (email: string, password: string, name: string) => Promise<AuthUser>;
@@ -70,7 +75,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const data = await authApi.login(email, password);
     setTokens(data.accessToken, data.refreshToken);
     setAccessToken(data.accessToken);
-    const userWithOnboarding = { ...data.user, isOnboardingCompleted: data.isOnboardingCompleted } as AuthUser;
+    const userWithOnboarding = {
+      ...data.user,
+      isOnboardingCompleted: data.isOnboardingCompleted,
+      trialExpired: data.trialExpired,
+      trialEndsAt: data.trialEndsAt,
+      subscriptionExpired: data.subscriptionExpired,
+      subscriptionEndsAt: data.subscriptionEndsAt,
+      subscriptionPastDue: data.subscriptionPastDue,
+    } as AuthUser;
     setUser(userWithOnboarding);
     return userWithOnboarding;
   }, []);
@@ -105,11 +118,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loading,
       login,
       register,
-      setSession, // Added
+      setSession,
       logout,
       refreshProfile,
     }),
-    [accessToken, loading, login, logout, register, refreshProfile, user, setSession], // added setSession
+    [accessToken, loading, login, logout, register, refreshProfile, user, setSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

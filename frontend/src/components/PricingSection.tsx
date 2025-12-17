@@ -5,18 +5,64 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check } from 'lucide-react';
 import { DirectPurchaseDialog } from './landing/DirectPurchaseDialog';
+import useAuth from '@/auth/useAuth';
+import { createCheckoutSession } from '@/api/stripeApi';
+import { toast } from 'sonner';
 
 export function PricingSection() {
     const { t } = useTranslation();
+    const { user } = useAuth();
     const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
     const [isAnnual, setIsAnnual] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     const monthlyPrice = 299;
     const annualPrice = monthlyPrice * 11; // 11 meses (1 mes gratis)
     const displayPrice = isAnnual ? annualPrice : monthlyPrice;
 
-    const handleGetStarted = () => {
-        setPurchaseDialogOpen(true);
+    const handleGetStarted = async () => {
+        // Get user ID from available properties
+        const userId = user?.userId || (user as any)?._id || (user as any)?.id;
+
+        console.log("Pricing Click Debug:", {
+            loggedIn: !!user,
+            businessId: user?.businessId,
+            userId: userId,
+            fullUser: user
+        });
+
+        if (user && user.businessId && userId) {
+            setLoading(true);
+            try {
+                // Autenticado: Ir directo a checkout de Stripe
+                const response = await createCheckoutSession({
+                    userId: userId,
+                    businessId: user.businessId,
+                    billingPeriod: isAnnual ? 'annual' : 'monthly',
+                });
+
+                console.log("Checkout response:", response);
+
+                if (response.data && response.data.url) {
+                    window.location.href = response.data.url;
+                } else if (response.url) {
+                    // Fallback in case structure is different
+                    window.location.href = response.url;
+                } else {
+                    console.error("Invalid response structure:", response);
+                    toast.error("Error: Respuesta inválida del servidor de pagos");
+                }
+            } catch (error) {
+                console.error("Error creating checkout", error);
+                toast.error("Error al iniciar el pago");
+            } finally {
+                setLoading(false);
+            }
+        } else {
+            console.log("User missing required fields for auto-checkout");
+            // No autenticado: Mostrar diálogo de registro rápido
+            setPurchaseDialogOpen(true);
+        }
     };
 
     const features = [
@@ -127,8 +173,9 @@ export function PricingSection() {
                                 onClick={handleGetStarted}
                                 className="w-full text-lg py-6 font-semibold"
                                 size="lg"
+                                disabled={loading}
                             >
-                                {t('pricing.plan.cta')}
+                                {loading ? (t('common.loading') || "Cargando...") : t('pricing.plan.cta')}
                             </Button>
                         </CardFooter>
                     </Card>

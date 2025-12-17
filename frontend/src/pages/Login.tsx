@@ -14,6 +14,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
+import { TrialExpiredModal } from "@/components/TrialExpiredModal";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -25,6 +26,9 @@ const Login = () => {
   const location = useLocation();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [trialExpiredModalOpen, setTrialExpiredModalOpen] = useState(false);
+  const [expiredEndsAt, setExpiredEndsAt] = useState<Date | undefined>();
+  const [isTrialExpiration, setIsTrialExpiration] = useState(true);
   // const defaultTab = location.pathname === "/demo" ? "demo" : "login"; // Removed
   const { t, i18n } = useTranslation();
 
@@ -40,6 +44,23 @@ const Login = () => {
     try {
       setIsLoading(true);
       const loggedUser = await login(values.email, values.password);
+
+      // Check if trial expired
+      if (loggedUser?.trialExpired) {
+        setExpiredEndsAt(loggedUser.trialEndsAt);
+        setIsTrialExpiration(true);
+        setTrialExpiredModalOpen(true);
+        return;
+      }
+
+      // Check if subscription expired
+      if (loggedUser?.subscriptionExpired) {
+        setExpiredEndsAt(loggedUser.subscriptionEndsAt);
+        setIsTrialExpiration(false);
+        setTrialExpiredModalOpen(true);
+        return;
+      }
+
       toast.success(t('login.form.welcome_toast'));
       if (loggedUser?.role === "owner") {
         navigate("/admin");
@@ -211,6 +232,14 @@ const Login = () => {
           © {new Date().getFullYear()} BookPro. {t('login.copyright')}
         </motion.div>
       </motion.div>
+
+      {/* Trial Expired Modal */}
+      <TrialExpiredModal
+        open={trialExpiredModalOpen}
+        onOpenChange={setTrialExpiredModalOpen}
+        endsAt={expiredEndsAt}
+        isTrial={isTrialExpiration}
+      />
     </div>
   );
 };
