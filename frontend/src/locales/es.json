@@ -20,7 +20,9 @@
     "saved": "Guardado",
     "closed": "Cerrado",
     "to": "a",
-    "minutes": "minutos"
+    "minutes": "minutos",
+    "optional": "(Opcional)",
+    "coming_soon": "Esta funcionalidad estará disponible próximamente."
   },
   "home": {
     "header": {
@@ -195,6 +197,10 @@
         "realtime": {
           "title": "Tiempo Real",
           "description": "Disponibilidad actualizada al instante, sin conflictos."
+        },
+        "payments": {
+          "title": "Pagos con Tarjeta",
+          "description": "Acepta pagos por tus servicios de forma segura con Stripe, si así lo requieres."
         }
       }
     },
@@ -355,7 +361,8 @@
     "serviceLinkMessage": "¡Hola! 👋\n\nReserva tu cita para *{{serviceName}}* aquí: 👇\n{{url}}",
     "tabs": {
       "dashboard": "Dashboard",
-      "settings": "Configuración"
+      "settings": "Configuración",
+      "billing": "Facturación"
     },
     "stats": {
       "services": "Servicios",
@@ -550,6 +557,18 @@
     "language": "Idioma de Comunicación",
     "languageHelp": "Idioma para tu página de reservas pública y correos a clientes. (Cambia el idioma del dashboard usando el selector arriba)"
   },
+  "demo": {
+    "form": {
+      "name": "Nombre completo",
+      "name_placeholder": "Juan Pérez",
+      "email": "Email",
+      "email_placeholder": "juan@ejemplo.com",
+      "phone": "Teléfono",
+      "phone_placeholder": "+52 55 1234 5678",
+      "company": "Nombre del negocio",
+      "company_placeholder": "Mi Negocio"
+    }
+  },
   "login": {
     "welcome": "Bienvenido",
     "subtitle": "Ingresa a tu panel de control para gestionar tu negocio.",
@@ -575,6 +594,7 @@
       "welcome_toast": "Bienvenido",
       "error_toast": "Credenciales inválidas."
     },
+    "trial_expired_message": "Tu período de prueba ha expirado. Por favor suscríbete para continuar usando BookPro.",
     "register": {
       "title": "Nuevo Negocio",
       "description": "Completa el formulario para registrar tu negocio.",
@@ -1048,5 +1068,268 @@
       "congrats": "¡Felicidades! Ya estás listo para gestionar las reservas de tu negocio de manera profesional.",
       "updated": "Última actualización: Diciembre 2026 • Versión 1.0"
     }
+  },
+  "pricing": {
+    "title": "Planes y Precios",
+    "subtitle": "Elige el plan perfecto para tu negocio",
+    "billing": {
+      "monthly": "Mensual",
+      "annual": "Anual",
+      "save_badge": "Ahorra 1 mes"
+    },
+    "plan": {
+      "name": "BookPro – Plan Mensual",
+      "name_annual": "BookPro – Plan Anual",
+      "price": "$299",
+      "currency": "MXN",
+      "period": "mes",
+      "period_annual": "año",
+      "annual_savings": "¡Equivalente a 11 meses! Ahorra $299 MXN",
+      "cta": "Comenzar ahora",
+      "features": {
+        "title": "Todo lo que necesitas:",
+        "feature1": "Reservas ilimitadas",
+        "feature2": "Página de reservas personalizada",
+        "feature3": "Notificaciones por email automáticas",
+        "feature4": "Gestión de servicios y horarios",
+        "feature5": "Panel de administración completo",
+        "feature6": "Código QR para compartir",
+        "feature7": "Soporte prioritario",
+        "feature8": "Sin costo de instalación"
+      },
+      "badge": "Más Popular"
+    },
+    "faq": {
+      "title": "Preguntas Frecuentes",
+      "q1": {
+        "q": "¿Puedo cancelar en cualquier momento?",
+        "a": "Sí, puedes cancelar tu suscripción en cualquier momento sin penalización."
+      },
+      "q2": {
+        "q": "¿Hay límite de reservas?",
+        "a": "No, con BookPro puedes recibir reservas ilimitadas."
+      },
+      "q3": {
+        "q": "¿Necesito tarjeta de crédito?",
+        "a": "Sí, procesamos pagos de forma segura a través de Stripe."
+      }
+    },
+    "purchase": {
+      "title": "Comenzar con BookPro",
+      "subtitle": "Completa tus datos para proceder al pago",
+      "cta": "Proceder al pago"
+    }
+  },
+  "payment": {
+    "success": {
+      "title": "¡Pago Exitoso!",
+      "subtitle": "Gracias por suscribirte a BookPro",
+      "message": "Tu pago ha sido procesado exitosamente. Tu suscripción está ahora activa.",
+      "next_steps": "Próximos Pasos:",
+      "step1": "Completa la configuración de tu negocio",
+      "step2": "Agrega tus servicios",
+      "step3": "Personaliza tu página de reservas",
+      "step4": "¡Comienza a recibir clientes!",
+      "cta": "Ir al Panel de Control",
+      "session_id": "ID de Sesión"
+    },
+    "cancel": {
+      "title": "Pago Cancelado",
+      "subtitle": "No se realizó ningún cargo",
+      "message": "Tu pago fue cancelado. No se ha realizado ningún cargo a tu tarjeta.",
+      "help": "¿Necesitas ayuda?",
+      "contact": "Si tienes alguna pregunta o necesitas asistencia, no dudes en contactarnos.",
+      "retry": "Intentar de Nuevo",
+      "back": "Volver al Inicio"
+    },
+    "processing": "Procesando pago...",
+    "redirect": "Redirigiendo a Stripe..."
+  },
+  "get_started": {
+    "title": "¡Felicidades! Tu cuenta está lista",
+    "subtitle": "Elige cómo quieres comenzar con Book Pro",
+    "trial": {
+      "title": "Comenzar con Trial",
+      "subtitle": "Prueba BookPro gratis por 14 días",
+      "features_title": "Qué incluye:",
+      "feature1": "Acceso completo a todas las funciones",
+      "feature2": "Reservas ilimitadas durante el trial",
+      "feature3": "Sin necesidad de tarjeta de crédito",
+      "feature4": "Cancela en cualquier momento",
+      "cta": "Comenzar Trial Gratis",
+      "note": "No se requiere tarjeta de crédito"
+    },
+    "subscribe": {
+      "title": "Suscribirme Ahora",
+      "subtitle": "Activa tu cuenta y empieza a recibir clientes",
+      "badge": "Recomendado",
+      "period": "mes",
+      "features_title": "Todo lo anterior, más:",
+      "feature1": "Sin limitaciones de tiempo",
+      "feature2": "Soporte prioritario",
+      "feature3": "Actualizaciones automáticas",
+      "feature4": "Garantía de satisfacción",
+      "cta": "Suscribirme por $299 MXN/mes",
+      "note": "Pago seguro con Stripe • Cancela cuando quieras"
+    },
+    "help_text": "¿Tienes dudas? Puedes comenzar con el trial y suscribirte después.",
+    "error_auth": "Debes iniciar sesión",
+    "error_subscribe": "Error al iniciar el proceso de pago. Por favor intenta de nuevo."
+  },
+  "activate": {
+    "title": "Activar Cuenta",
+    "subtitle": "Establece tu contraseña para acceder a BookPro",
+    "success_title": "¡Cuenta Activada!",
+    "success_subtitle": "Redirigiendo al proceso de configuración...",
+    "password_label": "Nueva Contraseña",
+    "confirm_password_label": "Confirmar Contraseña",
+    "submit_button": "Activar Cuenta",
+    "submitting": "Activando...",
+    "errors": {
+      "password_min": "La contraseña debe tener al menos 6 caracteres",
+      "password_match": "Las contraseñas no coinciden",
+      "stripe_portal_failed": "No se pudo conectar con el portal de pagos. Redirigiendo...",
+      "generic": "Ha ocurrido un error inesperado"
+    }
+  },
+  "admin": {
+    "leads": {
+      "title": "Solicitudes Pendientes",
+      "status": "Estado",
+      "actions": "Acciones",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "approve_dialog": {
+        "title": "Aprobar Solicitud",
+        "description": "Selecciona el tipo de acceso para {{name}}.",
+        "trial": "Prueba Gratuita (14 días)",
+        "paid": "Suscripción Pagada (Requiere pago)",
+        "confirm": "Confirmar Aprobación"
+      },
+      "empty": "No hay solicitudes pendientes",
+      "success_approve": "Lead aprobado exitosamente",
+      "success_reject": "Lead rechazado"
+    }
+  },
+  "trial_expired": {
+    "title": "Tu Período de Prueba ha Finalizado",
+    "subtitle": "Continúa disfrutando de todas las funciones de BookPro suscribiéndote ahora",
+    "expired_on": "Tu prueba gratuita expiró el:",
+    "message": "Para seguir gestionando tus citas, servicios y clientes sin interrupciones, necesitas activar una suscripción.",
+    "benefits_title": "Con tu suscripción obtendrás:",
+    "benefit_1": "Gestión ilimitada de citas y servicios",
+    "benefit_2": "Recordatorios automáticos por WhatsApp y Email",
+    "benefit_3": "Soporte prioritario y actualizaciones constantes",
+    "renew_now": "Renovar Ahora",
+    "contact_support": "Contactar Soporte"
+  },
+  "banners": {
+    "past_due": {
+      "title": "Problema con tu último pago",
+      "message": "No pudimos procesar el pago de tu suscripción. Actualiza tu método de pago para evitar perder el acceso.",
+      "action": "Actualizar Pago"
+    },
+    "trial_ending": {
+      "title": "Tu prueba termina en {{days}} días",
+      "message": "¡No te quedes sin servicio! Suscríbete ahora para mantener el acceso completo.",
+      "action": "Suscribirme Ahora"
+    }
+  },
+  "subscription_expired": {
+    "title": "Tu Suscripción ha Expirado",
+    "subtitle": "No pierdas acceso a tus datos y clientes. Renueva ahora.",
+    "expired_on": "Tu suscripción finalizó el:",
+    "message": "Hubo un problema con tu último pago o tu suscripción ha finalizado. Para reactivar tu cuenta, necesitas renovar tu plan.",
+    "benefits_title": "Al renovar recuperarás acceso a:",
+    "benefit_1": "Todos tus datos históricos y citas",
+    "benefit_2": "Panel de control completo y reportes",
+    "benefit_3": "Gestión de clientes y servicios",
+    "renew_now": "Renovar Suscripción",
+    "contact_support": "Ayuda con Pago"
+  },
+  "billing": {
+    "title": "Suscripción y Facturación",
+    "subtitle": "Gestiona tu plan, pagos y facturación",
+    "overview": {
+      "title": "Resumen de Suscripción",
+      "subtitle": "Información detallada sobre tu plan actual",
+      "plan": "Plan Actual",
+      "renewal_date": "Próximo Pago",
+      "payment_method": "Método de Pago",
+      "auto_renews": "Se renueva automáticamente",
+      "canceled_at_period_end": "Se cancela al finalizar el período"
+    },
+    "status": {
+      "active": "Activo",
+      "trialing": "Período de prueba",
+      "past_due": "Pago vencido",
+      "canceled": "Cancelado"
+    },
+    "plan": {
+      "monthly": "Plan Mensual",
+      "annual": "Plan Anual",
+      "legacy": "Plan Legacy (Grandfathered)",
+      "cycle": {
+        "monthly": "mes",
+        "annual": "año"
+      },
+      "save_badge": "Ahorra 1 mes",
+      "annual_savings": "Equivalente a 11 meses • Ahorra $299 MXN"
+    },
+    "payment_method": {
+      "card": "•••• •••• •••• 1234",
+      "no_method": "No configurado"
+    },
+    "actions": {
+      "change_plan": "Cambiar Plan",
+      "update_payment": "Actualizar Método de Pago",
+      "cancel_subscription": "Cancelar Suscripción"
+    },
+    "history": {
+      "title": "Historial de Pagos",
+      "subtitle": "Todos tus pagos y facturas",
+      "empty": "No hay pagos registrados",
+      "table": {
+        "date": "Fecha",
+        "description": "Descripción",
+        "amount": "Monto",
+        "status": "Estado",
+        "actions": "Acciones"
+      },
+      "status": {
+        "paid": "Pagado",
+        "failed": "Fallido",
+        "pending": "Pendiente"
+      },
+      "download": "Descargar"
+    },
+    "cancel": {
+      "title": "Cancelar Suscripción",
+      "description": "¿Estás seguro de que deseas cancelar tu suscripción?",
+      "warning": "Esta acción no se puede deshacer",
+      "info": "Tendrás acceso hasta el {{date}}. Después, tu cuenta será desactivada.",
+      "confirm": "Sí, cancelar suscripción",
+      "success": "Suscripción cancelada exitosamente"
+    },
+    "change_plan": {
+      "title": "Cambiar Plan",
+      "description": "Selecciona el plan que mejor se adapte a tus necesidades",
+      "select": "Seleccionar",
+      "current": "Plan actual"
+    },
+    "update_payment": {
+      "coming_soon": "Esta función estará disponible pronto"
+    },
+    "no_subscription": {
+      "title": "No tienes una suscripción activa",
+      "description": "Suscríbete para continuar usando BookPro",
+      "action": "Ver Planes"
+    },
+    "error": {
+      "load_failed": "Error al cargar información de facturación"
+    }
+  },
+  "errors": {
+    "stripe_portal_failed": "No se pudo conectar con el portal de pagos. Redirigiendo..."
   }
 }

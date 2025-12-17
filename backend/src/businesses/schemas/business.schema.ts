@@ -50,6 +50,9 @@ export class Business {
   @Prop({ default: false })
   isOnboardingCompleted?: boolean;
 
+  @Prop({ type: Date })
+  trialEndsAt?: Date;
+
   @Prop({
     type: {
       primaryColor: String,

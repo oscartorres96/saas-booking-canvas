@@ -10,15 +10,21 @@ interface AuthUser {
   role?: string;
   businessId?: string;
   isOnboardingCompleted?: boolean;
+  trialExpired?: boolean;
+  trialEndsAt?: Date;
+  subscriptionExpired?: boolean;
+  subscriptionEndsAt?: Date;
+  subscriptionPastDue?: boolean;
   [key: string]: unknown;
 }
 
 interface AuthContextValue {
   user: AuthUser | null;
-  accessToken: string | null; // ... rest is same
+  accessToken: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   register: (email: string, password: string, name: string) => Promise<AuthUser>;
+  setSession: (accessToken: string, refreshToken: string, user: AuthUser) => void;
   logout: () => void;
   refreshProfile: () => Promise<void>;
 }
@@ -69,7 +75,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const data = await authApi.login(email, password);
     setTokens(data.accessToken, data.refreshToken);
     setAccessToken(data.accessToken);
-    const userWithOnboarding = { ...data.user, isOnboardingCompleted: data.isOnboardingCompleted } as AuthUser;
+    const userWithOnboarding = {
+      ...data.user,
+      isOnboardingCompleted: data.isOnboardingCompleted,
+      trialExpired: data.trialExpired,
+      trialEndsAt: data.trialEndsAt,
+      subscriptionExpired: data.subscriptionExpired,
+      subscriptionEndsAt: data.subscriptionEndsAt,
+      subscriptionPastDue: data.subscriptionPastDue,
+    } as AuthUser;
     setUser(userWithOnboarding);
     return userWithOnboarding;
   }, []);
@@ -80,6 +94,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAccessToken(data.accessToken);
     setUser(data.user as AuthUser);
     return data.user as AuthUser;
+  }, []);
+
+  const setSession = useCallback((accessToken: string, refreshToken: string, user: AuthUser) => {
+    setTokens(accessToken, refreshToken);
+    setAccessToken(accessToken);
+    setUser(user);
+    if (accessToken) {
+      apiClient.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
+    }
   }, []);
 
   const refreshProfile = useCallback(async () => {
@@ -95,10 +118,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loading,
       login,
       register,
+      setSession,
       logout,
       refreshProfile,
     }),
-    [accessToken, loading, login, logout, register, refreshProfile, user],
+    [accessToken, loading, login, logout, register, refreshProfile, user, setSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

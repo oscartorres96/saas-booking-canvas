@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 import { JwtAuthGuard } from './jwt.guard';
 import { AuthService } from './auth.service';
+import { ActivateAccountDto } from './dto/activate-account.dto';
 
 class LoginDto {
   @IsEmail()
@@ -20,7 +21,7 @@ class RegisterDto extends LoginDto {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('register')
   register(@Body() body: RegisterDto) {
@@ -30,6 +31,11 @@ export class AuthController {
   @Post('login')
   login(@Body() body: LoginDto) {
     return this.authService.login(body.email, body.password);
+  }
+
+  @Post('activate')
+  activate(@Body() body: ActivateAccountDto) {
+    return this.authService.activateAccount(body.token, body.newPassword);
   }
 
   @UseGuards(JwtAuthGuard)

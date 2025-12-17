@@ -16,12 +16,43 @@ export const DemoSection = ({ id }: { id?: string }) => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setLoading(false);
-        toast.success(t('landing.demo.success'));
-        (e.target as HTMLFormElement).reset();
-        setPhone('');
+
+        const form = e.target as HTMLFormElement;
+        const name = (form.elements.namedItem('name') as HTMLInputElement).value;
+        const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+        const message = (form.elements.namedItem('message') as HTMLTextAreaElement).value;
+
+        try {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+            const response = await fetch(`${apiUrl}/leads/demo`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name,
+                    email,
+                    phone,
+                    message,
+                    language: i18n.language,
+                    source: 'landing_page_demo_section'
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error submitting form');
+            }
+
+            toast.success(t('landing.demo.success'));
+            form.reset();
+            setPhone('');
+        } catch (error: any) {
+            console.error('Error submitting demo request:', error);
+            toast.error(error.message || t('common.error'));
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (

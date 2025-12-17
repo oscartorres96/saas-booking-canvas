@@ -20,7 +20,9 @@
         "saved": "Saved",
         "closed": "Closed",
         "to": "to",
-        "minutes": "minutes"
+        "minutes": "minutes",
+        "optional": "(Optional)",
+        "coming_soon": "Feature coming soon."
     },
     "home": {
         "header": {
@@ -195,6 +197,10 @@
                 "realtime": {
                     "title": "Real Time",
                     "description": "Availability updated instantly, no conflicts."
+                },
+                "payments": {
+                    "title": "Card Payments",
+                    "description": "Accept secure payments for your services with Stripe, if you choose to."
                 }
             }
         },
@@ -341,7 +347,8 @@
         "serviceLinkMessage": "Hi! 👋\n\nBook your appointment for *{{serviceName}}* here: 👇\n{{url}}",
         "tabs": {
             "dashboard": "Dashboard",
-            "settings": "Settings"
+            "settings": "Settings",
+            "billing": "Billing"
         },
         "stats": {
             "services": "Services",
@@ -512,6 +519,18 @@
         "language": "Communication Language",
         "languageHelp": "Language for your public booking page and client emails. (Change dashboard language using the switcher above)"
     },
+    "demo": {
+        "form": {
+            "name": "Full name",
+            "name_placeholder": "John Doe",
+            "email": "Email",
+            "email_placeholder": "john@example.com",
+            "phone": "Phone",
+            "phone_placeholder": "+1 555 123 4567",
+            "company": "Business name",
+            "company_placeholder": "My Business"
+        }
+    },
     "login": {
         "welcome": "Welcome",
         "subtitle": "Access your dashboard to manage your business.",
@@ -537,6 +556,7 @@
             "welcome_toast": "Welcome",
             "error_toast": "Invalid credentials."
         },
+        "trial_expired_message": "Your trial period has expired. Please subscribe to continue using BookPro.",
         "register": {
             "title": "New Business",
             "description": "Complete the form to register your business.",
@@ -761,5 +781,268 @@
             "congrats": "Congratulations! You're ready to manage your business bookings professionally.",
             "updated": "Last updated: December 2026  Version 1.0"
         }
+    },
+    "pricing": {
+        "title": "Plans & Pricing",
+        "subtitle": "Choose the perfect plan for your business",
+        "billing": {
+            "monthly": "Monthly",
+            "annual": "Annual",
+            "save_badge": "Save 1 month"
+        },
+        "plan": {
+            "name": "BookPro – Monthly Plan",
+            "name_annual": "BookPro – Annual Plan",
+            "price": "$299",
+            "currency": "MXN",
+            "period": "month",
+            "period_annual": "year",
+            "annual_savings": "Equivalent to 11 months! Save $299 MXN",
+            "cta": "Get started",
+            "features": {
+                "title": "Everything you need:",
+                "feature1": "Unlimited bookings",
+                "feature2": "Customized booking page",
+                "feature3": "Automatic email notifications",
+                "feature4": "Service and schedule management",
+                "feature5": "Complete admin panel",
+                "feature6": "QR code for sharing",
+                "feature7": "Priority support",
+                "feature8": "No setup fee"
+            },
+            "badge": "Most Popular"
+        },
+        "faq": {
+            "title": "Frequently Asked Questions",
+            "q1": {
+                "q": "Can I cancel anytime?",
+                "a": "Yes, you can cancel your subscription at any time without penalty."
+            },
+            "q2": {
+                "q": "Is there a booking limit?",
+                "a": "No, with BookPro you can receive unlimited bookings."
+            },
+            "q3": {
+                "q": "Do I need a credit card?",
+                "a": "Yes, we process payments securely through Stripe."
+            }
+        },
+        "purchase": {
+            "title": "Get Started with BookPro",
+            "subtitle": "Complete your details to proceed to payment",
+            "cta": "Proceed to Payment"
+        }
+    },
+    "payment": {
+        "success": {
+            "title": "Payment Successful!",
+            "subtitle": "Thank you for subscribing to BookPro",
+            "message": "Your payment has been processed successfully. Your subscription is now active.",
+            "next_steps": "Next Steps:",
+            "step1": "Complete your business setup",
+            "step2": "Add your services",
+            "step3": "Customize your booking page",
+            "step4": "Start receiving clients!",
+            "cta": "Go to Dashboard",
+            "session_id": "Session ID"
+        },
+        "cancel": {
+            "title": "Payment Cancelled",
+            "subtitle": "No charge was made",
+            "message": "Your payment was cancelled. No charge has been made to your card.",
+            "help": "Need help?",
+            "contact": "If you have any questions or need assistance, please don't hesitate to contact us.",
+            "retry": "Try Again",
+            "back": "Back to Home"
+        },
+        "processing": "Processing payment...",
+        "redirect": "Redirecting to Stripe..."
+    },
+    "get_started": {
+        "title": "Congratulations! Your account is ready",
+        "subtitle": "Choose how you want to start with BookPro",
+        "trial": {
+            "title": "Start with Trial",
+            "subtitle": "Try BookPro free for 14 days",
+            "features_title": "What's included:",
+            "feature1": "Full access to all features",
+            "feature2": "Unlimited bookings during trial",
+            "feature3": "No credit card required",
+            "feature4": "Cancel anytime",
+            "cta": "Start Free Trial",
+            "note": "No credit card required"
+        },
+        "subscribe": {
+            "title": "Subscribe Now",
+            "subtitle": "Activate your account and start receiving clients",
+            "badge": "Recommended",
+            "period": "month",
+            "features_title": "All of the above, plus:",
+            "feature1": "No time limitations",
+            "feature2": "Priority support",
+            "feature3": "Automatic updates",
+            "feature4": "Satisfaction guarantee",
+            "cta": "Subscribe for $299 MXN/month",
+            "note": "Secure payment with Stripe • Cancel anytime"
+        },
+        "help_text": "Have questions? You can start with the trial and subscribe later.",
+        "error_auth": "You must be logged in",
+        "error_subscribe": "Error starting payment process. Please try again."
+    },
+    "activate": {
+        "title": "Activate Account",
+        "subtitle": "Set your password to access BookPro",
+        "success_title": "Account Activated!",
+        "success_subtitle": "Redirecting to setup process...",
+        "password_label": "New Password",
+        "confirm_password_label": "Confirm Password",
+        "submit_button": "Activate Account",
+        "submitting": "Activating...",
+        "errors": {
+            "password_min": "Password must be at least 6 characters",
+            "password_match": "Passwords do not match",
+            "stripe_portal_failed": "Could not connect to payment portal. Redirecting...",
+            "generic": "An unexpected error occurred"
+        }
+    },
+    "admin": {
+        "leads": {
+            "title": "Pending Requests",
+            "status": "Status",
+            "actions": "Actions",
+            "approve": "Approve",
+            "reject": "Reject",
+            "approve_dialog": {
+                "title": "Approve Request",
+                "description": "Select access type for {{name}}.",
+                "trial": "Free Trial (14 days)",
+                "paid": "Paid Subscription (Requires payment)",
+                "confirm": "Confirm Approval"
+            },
+            "empty": "No pending requests",
+            "success_approve": "Lead approved successfully",
+            "success_reject": "Lead rejected"
+        }
+    },
+    "trial_expired": {
+        "title": "Your Trial Period Has Ended",
+        "subtitle": "Continue enjoying all BookPro features by subscribing now",
+        "expired_on": "Your free trial expired on:",
+        "message": "To continue managing your appointments, services, and clients without interruption, you need to activate a subscription.",
+        "benefits_title": "With your subscription you'll get:",
+        "benefit_1": "Unlimited appointment and service management",
+        "benefit_2": "Automatic WhatsApp and Email reminders",
+        "benefit_3": "Priority support and constant updates",
+        "renew_now": "Renew Now",
+        "contact_support": "Contact Support"
+    },
+    "banners": {
+        "past_due": {
+            "title": "Issue with your last payment",
+            "message": "We couldn't process your subscription payment. Update your payment method to avoid losing access.",
+            "action": "Update Payment"
+        },
+        "trial_ending": {
+            "title": "Your trial ends in {{days}} days",
+            "message": "Don't lose service! Subscribe now to keep full access.",
+            "action": "Subscribe Now"
+        }
+    },
+    "subscription_expired": {
+        "title": "Your Subscription Has Expired",
+        "subtitle": "Don't lose access to your data and clients. Renew now.",
+        "expired_on": "Your subscription ended on:",
+        "message": "There was an issue with your last payment or your subscription has ended. To reactivate your account, please renew your plan.",
+        "benefits_title": "By renewing you'll regain access to:",
+        "benefit_1": "All your historical data and appointments",
+        "benefit_2": "Full dashboard and reports",
+        "benefit_3": "Client and service management",
+        "renew_now": "Renew Subscription",
+        "contact_support": "Payment Help"
+    },
+    "billing": {
+        "title": "Subscription & Billing",
+        "subtitle": "Manage your plan, payments, and billing",
+        "overview": {
+            "title": "Subscription Overview",
+            "subtitle": "Detailed information about your current plan",
+            "plan": "Current Plan",
+            "renewal_date": "Next Payment",
+            "payment_method": "Payment Method",
+            "auto_renews": "Renews automatically",
+            "canceled_at_period_end": "Cancels at period end"
+        },
+        "status": {
+            "active": "Active",
+            "trialing": "Trial Period",
+            "past_due": "Past Due",
+            "canceled": "Canceled"
+        },
+        "plan": {
+            "monthly": "Monthly Plan",
+            "annual": "Annual Plan",
+            "legacy": "Legacy Plan (Grandfathered)",
+            "cycle": {
+                "monthly": "month",
+                "annual": "year"
+            },
+            "save_badge": "Save 1 month",
+            "annual_savings": "Equivalent to 11 months • Save $299 MXN"
+        },
+        "payment_method": {
+            "card": "•••• •••• •••• 1234",
+            "no_method": "Not configured"
+        },
+        "actions": {
+            "change_plan": "Change Plan",
+            "update_payment": "Update Payment Method",
+            "cancel_subscription": "Cancel Subscription"
+        },
+        "history": {
+            "title": "Payment History",
+            "subtitle": "All your payments and invoices",
+            "empty": "No payments recorded",
+            "table": {
+                "date": "Date",
+                "description": "Description",
+                "amount": "Amount",
+                "status": "Status",
+                "actions": "Actions"
+            },
+            "status": {
+                "paid": "Paid",
+                "failed": "Failed",
+                "pending": "Pending"
+            },
+            "download": "Download"
+        },
+        "cancel": {
+            "title": "Cancel Subscription",
+            "description": "Are you sure you want to cancel your subscription?",
+            "warning": "This action cannot be undone",
+            "info": "You will have access until {{date}}. After that, your account will be deactivated.",
+            "confirm": "Yes, cancel subscription",
+            "success": "Subscription successfully canceled"
+        },
+        "change_plan": {
+            "title": "Change Plan",
+            "description": "Select the plan that best fits your needs",
+            "select": "Select",
+            "current": "Current plan"
+        },
+        "update_payment": {
+            "coming_soon": "This feature will be available soon"
+        },
+        "no_subscription": {
+            "title": "You don't have an active subscription",
+            "description": "Subscribe to continue using BookPro",
+            "action": "View Plans"
+        },
+        "error": {
+            "load_failed": "Error loading billing information"
+        }
+    },
+    "errors": {
+        "stripe_portal_failed": "Could not connect to payment portal. Redirecting..."
     }
 }

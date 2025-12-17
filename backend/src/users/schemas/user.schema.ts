@@ -30,6 +30,18 @@ export class User {
 
   @Prop()
   businessId?: string;
+
+  @Prop()
+  activationToken?: string;
+
+  @Prop()
+  activationTokenExpires?: Date;
+
+  @Prop({ default: false })
+  isActive!: boolean;
+
+  @Prop()
+  createdFromLead?: string; // Lead ID reference
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

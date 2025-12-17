@@ -282,7 +282,7 @@ export class NotificationService {
     try {
       // 1. Send Admin Notification
       const adminHtml = demoRequestTemplate(data);
-      // Use specific admin email or fallback
+      // Use specific admin email or fallback to oscartorres0396@gmail.com
       const adminEmail = process.env.ADMIN_EMAIL || 'oscartorres0396@gmail.com';
 
       await sendEmail({
@@ -310,7 +310,7 @@ export class NotificationService {
     try {
       // 1. Send Admin Notification
       const adminHtml = demoRequestTemplate(data);
-      // Use specific admin email or fallback
+      // Use specific admin email or fallback to oscartorres0396@gmail.com
       const adminEmail = process.env.ADMIN_EMAIL || 'oscartorres0396@gmail.com';
 
       if (adminEmail) {
@@ -335,6 +335,112 @@ export class NotificationService {
 
     } catch (error) {
       console.error('Error sending business registration notification', error);
+    }
+  }
+
+  /** Envia email de activación de cuenta */
+  async sendAccountActivationEmail(data: {
+    email: string;
+    name: string;
+    activationToken: string;
+    temporaryPassword: string;
+    accessType: 'trial' | 'paid';
+  }): Promise<void> {
+    try {
+      const { email, name, activationToken, temporaryPassword, accessType } = data;
+
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const activationLink = `${frontendUrl}/activate/${activationToken}`;
+
+      const accessTypeText = accessType === 'trial'
+        ? 'acceso de prueba por 14 días'
+        : 'acceso con suscripción';
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+          <div style="max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">¡Bienvenido a BookPro!</h1>
+              <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px;">Tu cuenta ha sido creada</p>
+            </div>
+
+            <!-- Content -->
+            <div style="padding: 40px 30px;">
+              <p style="font-size: 16px; color: #333333; line-height: 1.6;">
+                Hola <strong>${name}</strong>,
+              </p>
+              
+              <p style="font-size: 16px; color: #333333; line-height: 1.6;">
+                ¡Excelentes noticias! Tu solicitud ha sido aprobada y tu cuenta de BookPro está lista para ser activada con <strong>${accessTypeText}</strong>.
+              </p>
+
+              <!-- Credenciales Box -->
+              <div style="background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 25px 0; border-radius: 4px;">
+                <h3 style="margin: 0 0 15px 0; color: #333333; font-size: 18px;">Credenciales de Acceso Temporales</h3>
+                <p style="margin: 8px 0; color: #555555;"><strong>Email:</strong> ${email}</p>
+                <p style="margin: 8px 0; color: #555555;"><strong>Contraseña Temporal:</strong> <code style="background-color: #e9ecef; padding: 4px 8px; border-radius: 3px; font-family: monospace;">${temporaryPassword}</code></p>
+              </div>
+
+              <p style="font-size: 16px; color: #333333; line-height: 1.6;">
+                Para activar tu cuenta y establecer tu contraseña personalizada, haz clic en el botón de abajo:
+              </p>
+
+              <!-- CTA Button -->
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${activationLink}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 15px 40px; border-radius: 6px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                  Activar Mi Cuenta
+                </a>
+              </div>
+
+              <!-- Important Notes -->
+              <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 15px; margin: 25px 0;">
+                <p style="margin: 0; color: #856404; font-size: 14px;">
+                  ⚠️ <strong>Importante:</strong> Este enlace expira en 48 horas. Por favor activa tu cuenta cuanto antes.
+                </p>
+              </div>
+
+              <p style="font-size: 14px; color: #666666; line-height: 1.6; margin-top: 30px;">
+                Si el botón no funciona, copia y pega este enlace en tu navegador:<br>
+                <a href="${activationLink}" style="color: #667eea; word-break: break-all;">${activationLink}</a>
+              </p>
+
+              <p style="font-size: 14px; color: #666666; line-height: 1.6; margin-top: 20px;">
+                Si no solicitaste esta cuenta, puedes ignorar este mensaje.
+              </p>
+            </div>
+
+            <!-- Footer -->
+            <div style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="margin: 0; font-size: 12px; color: #6c757d;">
+                © 2024 BookPro. Todos los derechos reservados.
+              </p>
+              <p style="margin: 10px 0 0 0; font-size: 12px; color: #6c757d;">
+                <a href="mailto:oscartorres0396@gmail.com" style="color: #667eea; text-decoration: none;">Contáctanos</a>
+              </p>
+            </div>
+
+          </div>
+        </body>
+        </html>
+      `;
+
+      await sendEmail({
+        to: email,
+        subject: '🎉 Tu cuenta BookPro está lista - Actívala ahora',
+        html,
+      });
+
+    } catch (error) {
+      console.error('Error sending account activation email:', error);
+      throw error;
     }
   }
 }

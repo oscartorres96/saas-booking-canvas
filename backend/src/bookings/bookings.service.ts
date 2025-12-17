@@ -40,12 +40,23 @@ export class BookingsService {
   ) { }
 
   private buildFilter(authUser: AuthUser) {
+    // Si el usuario tiene un businessId asociado, restringir las reservas a ese negocio
+    // Esto aplica tanto para roles 'business' como 'owner' de un negocio específico
+    if (authUser.businessId) {
+      return { businessId: authUser.businessId };
+    }
+
+    // Si es Owner pero NO tiene businessId, asumimos que es un SuperAdmin de la plataforma
     if (authUser.role === UserRole.Owner) return {};
+
     if (authUser.role === UserRole.Business) {
+      // Fallback por seguridad, aunque debería haber entrado en el if de arriba
       if (!authUser.businessId) throw new ForbiddenException('Business context missing');
       return { businessId: authUser.businessId };
     }
+
     if (authUser.role === UserRole.Client) return { userId: authUser.userId };
+
     return {};
   }
 

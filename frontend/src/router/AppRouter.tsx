@@ -10,6 +10,10 @@ import NotFound from '../pages/NotFound';
 import PrivateRoute from '../auth/PrivateRoute';
 import Onboarding from '../pages/Onboarding';
 import UserManual from '../pages/UserManual';
+import PaymentSuccess from '../pages/PaymentSuccess';
+import PaymentCancel from '../pages/PaymentCancel';
+import GetStarted from '../pages/GetStarted';
+import ActivateAccount from '../pages/ActivateAccount';
 
 const AppRouter = () => (
   <BrowserRouter
@@ -23,8 +27,12 @@ const AppRouter = () => (
       <Route path="/:businessSlug" element={<BookingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Login />} />
+      <Route path="/activate/:token" element={<ActivateAccount />} />
       <Route path="/my-bookings" element={<MyBookings />} />
       <Route path="/manual" element={<UserManual />} />
+      <Route path="/payment/success" element={<PaymentSuccess />} />
+      <Route path="/payment/cancel" element={<PaymentCancel />} />
+      <Route path="/get-started" element={<GetStarted />} />
 
       <Route
         path="/onboarding"

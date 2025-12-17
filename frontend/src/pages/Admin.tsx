@@ -40,6 +40,9 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { getAllBusinesses, Business } from "@/api/businessesApi";
 import { useToast } from "@/components/ui/use-toast";
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LeadsPanel } from "@/components/admin/LeadsPanel";
+
 const Admin = () => {
     const { toast } = useToast();
     const [searchTerm, setSearchTerm] = useState("");
@@ -98,170 +101,170 @@ const Admin = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">Panel de Administración</h1>
-                        <p className="text-muted-foreground">Gestiona los negocios registrados y monitorea su actividad.</p>
+                        <p className="text-muted-foreground">Gestiona solicitudes y negocios registrados.</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <ThemeToggle />
                         <Button variant="outline" onClick={() => window.location.href = '/login'}>
                             Cerrar Sesión
                         </Button>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> Nuevo Negocio
-                        </Button>
                     </div>
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Negocios</CardTitle>
-                            <Building2 className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{businesses.length}</div>
-                            {/* <p className="text-xs text-muted-foreground">+2 desde el mes pasado</p> */}
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Suscripciones Activas</CardTitle>
-                            <Activity className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">
-                                {businesses.filter(b => b.subscriptionStatus === 'active').length}
-                            </div>
-                            {/* <p className="text-xs text-muted-foreground">+12% vs mes anterior</p> */}
-                        </CardContent>
-                    </Card>
-                    {/* Placeholder Stats */}
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Usuarios Totales</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">-</div>
-                            <p className="text-xs text-muted-foreground">No disponible</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Ingresos Mensuales</CardTitle>
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">-</div>
-                            <p className="text-xs text-muted-foreground">No disponible</p>
-                        </CardContent>
-                    </Card>
-                </div>
+                <Tabs defaultValue="businesses" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+                        <TabsTrigger value="requests">Solicitudes</TabsTrigger>
+                        <TabsTrigger value="businesses">Negocios</TabsTrigger>
+                    </TabsList>
 
-                {/* Main Content - Table */}
-                <Card className="border-none shadow-md">
-                    <CardHeader>
-                        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                            <div>
-                                <CardTitle>Negocios Registrados</CardTitle>
-                                <CardDescription>Lista de todos los clientes y sus detalles.</CardDescription>
-                            </div>
-                            <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-                                <div className="relative w-full sm:w-64">
-                                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        placeholder="Buscar negocio..."
-                                        className="pl-8"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
-                                </div>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="self-start sm:self-auto"
-                                >
-                                    <Filter className="h-4 w-4" />
-                                </Button>
-                            </div>
+                    <TabsContent value="requests" className="mt-6">
+                        <LeadsPanel />
+                    </TabsContent>
+
+                    <TabsContent value="businesses" className="mt-6">
+                        {/* Stats Cards */}
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Total Negocios</CardTitle>
+                                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{businesses.length}</div>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Suscripciones Activas</CardTitle>
+                                    <Activity className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">
+                                        {businesses.filter(b => b.subscriptionStatus === 'active').length}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">En Trial</CardTitle>
+                                    <Users className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">
+                                        {businesses.filter(b => b.subscriptionStatus === 'trial').length}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">Prueba gratuita</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Ingresos Mensuales</CardTitle>
+                                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-gray-400">---</div>
+                                    <p className="text-xs text-muted-foreground">Próximamente</p>
+                                </CardContent>
+                            </Card>
                         </div>
-                    </CardHeader>
-                    <CardContent className="overflow-x-auto">
-                        {loading ? (
-                            <div className="flex justify-center p-8">
-                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                            </div>
-                        ) : (
-                            <Table className="min-w-[640px]">
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Negocio</TableHead>
-                                        <TableHead>Tipo</TableHead>
-                                        <TableHead>Dueño</TableHead>
-                                        <TableHead>Estado</TableHead>
-                                        <TableHead>Registro</TableHead>
-                                        <TableHead className="text-right">Acciones</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredBusinesses.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                                No se encontraron negocios.
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        filteredBusinesses.map((business) => (
-                                            <TableRow key={business._id}>
-                                                <TableCell className="font-medium">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-semibold">{business.businessName || business.name}</span>
-                                                        <span className="text-xs text-muted-foreground">{business.email}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline" className="capitalize">
-                                                        {getTypeLabel(business.type)}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>{business.ownerName || 'N/A'}</TableCell>
-                                                <TableCell>
-                                                    <Badge className={getStatusColor(business.subscriptionStatus)} variant="secondary">
-                                                        {business.subscriptionStatus === 'active' ? 'Activo' :
-                                                            business.subscriptionStatus === 'trial' ? 'Prueba' : 'Inactivo'}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {business.createdAt ? new Date(business.createdAt).toLocaleDateString() : '-'}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                                                <span className="sr-only">Abrir menú</span>
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                                            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(business._id)}>
-                                                                Copiar ID
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem>Ver detalles</DropdownMenuItem>
-                                                            <DropdownMenuItem>Editar suscripción</DropdownMenuItem>
-                                                            <DropdownMenuItem className="text-red-600">Desactivar cuenta</DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </TableCell>
+
+                        {/* Main Content - Table */}
+                        <Card className="border-none shadow-md">
+                            <CardHeader>
+                                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                    <div>
+                                        <CardTitle>Negocios Registrados</CardTitle>
+                                        <CardDescription>Lista de todos los clientes y sus detalles.</CardDescription>
+                                    </div>
+                                    <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+                                        <div className="relative w-full sm:w-64">
+                                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                            <Input
+                                                placeholder="Buscar negocio..."
+                                                className="pl-8"
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="overflow-x-auto">
+                                {loading ? (
+                                    <div className="flex justify-center p-8">
+                                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                    </div>
+                                ) : (
+                                    <Table className="min-w-[640px]">
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Negocio</TableHead>
+                                                <TableHead>Tipo</TableHead>
+                                                <TableHead>Dueño</TableHead>
+                                                <TableHead>Estado</TableHead>
+                                                <TableHead>Registro</TableHead>
+                                                <TableHead className="text-right">Acciones</TableHead>
                                             </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </CardContent>
-                </Card>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {filteredBusinesses.length === 0 ? (
+                                                <TableRow>
+                                                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                                        No se encontraron negocios.
+                                                    </TableCell>
+                                                </TableRow>
+                                            ) : (
+                                                filteredBusinesses.map((business) => (
+                                                    <TableRow key={business._id}>
+                                                        <TableCell className="font-medium">
+                                                            <div className="flex flex-col">
+                                                                <span className="font-semibold">{business.businessName || business.name}</span>
+                                                                <span className="text-xs text-muted-foreground">{business.email}</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Badge variant="outline" className="capitalize">
+                                                                {getTypeLabel(business.type)}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell>{business.ownerName || 'N/A'}</TableCell>
+                                                        <TableCell>
+                                                            <Badge className={getStatusColor(business.subscriptionStatus)} variant="secondary">
+                                                                {business.subscriptionStatus === 'active' ? 'Activo' :
+                                                                    business.subscriptionStatus === 'trial' ? 'Prueba' : 'Inactivo'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {business.createdAt ? new Date(business.createdAt).toLocaleDateString() : '-'}
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                        <span className="sr-only">Abrir menú</span>
+                                                                        <MoreHorizontal className="h-4 w-4" />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end">
+                                                                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                                                    <DropdownMenuItem onClick={() => navigator.clipboard.writeText(business._id)}>
+                                                                        Copiar ID
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuSeparator />
+                                                                    <DropdownMenuItem>Ver detalles</DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
             </div>
         </div>
     );
