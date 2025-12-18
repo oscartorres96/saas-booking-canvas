@@ -17,8 +17,8 @@ export function PricingSection() {
     const [loading, setLoading] = useState(false);
     const [selectedBillingPeriod, setSelectedBillingPeriod] = useState<'monthly' | 'annual' | 'trial'>('monthly');
 
-    const monthlyPrice = 299;
-    const annualPrice = monthlyPrice * 11; // 11 meses (1 mes gratis)
+    const monthlyPrice = 349;
+    const annualPrice = monthlyPrice * 10; // 10 meses (2 meses gratis)
     const displayPrice = isAnnual ? annualPrice : monthlyPrice;
 
     const handleGetStarted = async (planType: 'trial' | 'monthly' | 'annual' = isAnnual ? 'annual' : 'monthly') => {

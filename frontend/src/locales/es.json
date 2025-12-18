@@ -1075,7 +1075,7 @@
     "billing": {
       "monthly": "Mensual",
       "annual": "Anual",
-      "save_badge": "Ahorra 1 mes"
+      "save_badge": "Ahorra 2 meses"
     },
     "plan": {
       "name": "BookPro – Plan Mensual",
@@ -1084,7 +1084,7 @@
       "currency": "MXN",
       "period": "mes",
       "period_annual": "año",
-      "annual_savings": "¡Equivalente a 11 meses! Ahorra $299 MXN",
+      "annual_savings": "¡Equivalente a 10 meses! Ahorra $698 MXN",
       "cta": "Comenzar ahora",
       "features": {
         "title": "Todo lo que necesitas:",
@@ -1273,8 +1273,8 @@
         "monthly": "mes",
         "annual": "año"
       },
-      "save_badge": "Ahorra 1 mes",
-      "annual_savings": "Equivalente a 11 meses • Ahorra $299 MXN"
+      "save_badge": "Ahorra 2 meses",
+      "annual_savings": "Equivalente a 10 meses • Ahorra $698 MXN"
     },
     "payment_method": {
       "card": "•••• •••• •••• 1234",

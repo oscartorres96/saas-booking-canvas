@@ -26,7 +26,7 @@ Necesitas crear tus productos/precios en modo LIVE:
 3. Configura:
    - **Name**: `BookPro - Plan Mensual`
    - **Description**: `Suscripción mensual a BookPro`
-   - **Price**: `$299.00 MXN`
+   - **Price**: `$349.00 MXN`
    - **Billing period**: `Monthly`
    - **Recurring**: ✅ Activado
 4. Clic en **"Save product"**
@@ -38,8 +38,8 @@ Necesitas crear tus productos/precios en modo LIVE:
 1. En la misma página de productos, clic en **"+ Add product"**
 2. Configura:
    - **Name**: `BookPro - Plan Anual`
-   - **Description**: `Suscripción anual a BookPro (Ahorra 1 mes)`
-   - **Price**: `$3,289.00 MXN`
+   - **Description**: `Suscripción anual a BookPro (Ahorra 2 meses)`
+   - **Price**: `$3,490.00 MXN`
    - **Billing period**: `Yearly`
    - **Recurring**: ✅ Activado
 3. Clic en **"Save product"**
