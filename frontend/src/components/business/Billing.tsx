@@ -189,7 +189,7 @@ export function Billing({ businessId }: BillingProps) {
 
     const getPlanCycle = (priceId: string) => {
         if (priceId.includes('trial') || priceId === 'price_1SfCuCLTjo7hhl0NqCZMtoSR' || priceId === 'price_1QPQCzQ12nTJiBYkCz7nnDsR') {
-            return t('billing.plan.cycle.monthly'); // O puedes poner "pago único" si prefieres
+            return 'pago único';
         }
         if (priceId.includes('annual') || priceId === 'price_1Sf5dUQ12BYwu1Gtc44DvB2d') {
             return t('billing.plan.cycle.annual');

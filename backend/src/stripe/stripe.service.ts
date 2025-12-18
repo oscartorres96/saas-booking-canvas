@@ -292,6 +292,21 @@ export class StripeService {
         const customerId = session.customer as string;
         const subscriptionId = session.subscription as string;
 
+        let stripePriceId = '';
+        let currentPeriodStart: Date | undefined;
+        let currentPeriodEnd: Date | undefined;
+
+        if (subscriptionId) {
+            try {
+                const stripeSubscription = await this.stripe.subscriptions.retrieve(subscriptionId) as any;
+                stripePriceId = stripeSubscription.items.data[0].price.id;
+                currentPeriodStart = new Date(stripeSubscription.current_period_start * 1000);
+                currentPeriodEnd = new Date(stripeSubscription.current_period_end * 1000);
+            } catch (err: any) {
+                this.logger.error(`Error fetching subscription from Stripe: ${err.message}`);
+            }
+        }
+
         // Create or update subscription record
         const existingSub = await this.subscriptionModel.findOne({
             businessId,
@@ -302,6 +317,9 @@ export class StripeService {
             existingSub.stripeCustomerId = customerId;
             existingSub.stripeSubscriptionId = subscriptionId;
             existingSub.status = 'active';
+            if (stripePriceId) existingSub.priceId = stripePriceId;
+            if (currentPeriodStart) existingSub.currentPeriodStart = currentPeriodStart;
+            if (currentPeriodEnd) existingSub.currentPeriodEnd = currentPeriodEnd;
             await existingSub.save();
         } else {
             await this.subscriptionModel.create({
@@ -309,8 +327,10 @@ export class StripeService {
                 businessId,
                 stripeCustomerId: customerId,
                 stripeSubscriptionId: subscriptionId,
-                priceId: this.configService.get<string>('STRIPE_PRICE_ID') || 'price_1Seq4UQ12BYwu1GtvHcSAF4U',
+                priceId: stripePriceId || this.configService.get<string>('STRIPE_PRICE_ID') || 'price_1Seq4UQ12BYwu1GtvHcSAF4U',
                 status: 'active',
+                currentPeriodStart,
+                currentPeriodEnd,
             });
         }
 
@@ -371,6 +391,21 @@ export class StripeService {
         const customerId = session.customer as string;
         const subscriptionId = session.subscription as string;
 
+        let stripePriceId = '';
+        let currentPeriodStart: Date | undefined;
+        let currentPeriodEnd: Date | undefined;
+
+        if (subscriptionId) {
+            try {
+                const stripeSubscription = await this.stripe.subscriptions.retrieve(subscriptionId) as any;
+                stripePriceId = stripeSubscription.items.data[0].price.id;
+                currentPeriodStart = new Date(stripeSubscription.current_period_start * 1000);
+                currentPeriodEnd = new Date(stripeSubscription.current_period_end * 1000);
+            } catch (err: any) {
+                this.logger.error(`Error fetching subscription from Stripe for direct purchase: ${err.message}`);
+            }
+        }
+
         // Generate activation token and temporary password
         const activationToken = crypto.randomBytes(32).toString('hex');
         const temporaryPassword = this.generateTemporaryPassword();
@@ -417,8 +452,10 @@ export class StripeService {
             businessId: String(newBusiness._id),
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscriptionId,
-            priceId: this.configService.get<string>('STRIPE_PRICE_ID') || 'price_1Seq4UQ12BYwu1GtvHcSAF4U',
+            priceId: stripePriceId || this.configService.get<string>('STRIPE_PRICE_ID') || 'price_1Seq4UQ12BYwu1GtvHcSAF4U',
             status: 'active',
+            currentPeriodStart,
+            currentPeriodEnd,
         });
 
         // Create payment record
