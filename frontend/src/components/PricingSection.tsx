@@ -123,65 +123,7 @@ export function PricingSection() {
                 </div>
 
                 {/* Pricing Cards Grid */}
-                <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                    {/* Trial Package - 1 Peso */}
-                    <Card className="relative border-2 border-muted hover:border-primary/50 shadow-lg hover:shadow-xl transition-all duration-300">
-                        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                            <Badge className="bg-secondary text-secondary-foreground px-4 py-1 text-sm font-semibold">
-                                {t('pricing.trial.badge')}
-                            </Badge>
-                        </div>
-
-                        <CardHeader className="text-center pt-8 pb-4">
-                            <CardTitle className="text-2xl font-bold">
-                                {t('pricing.trial.name')}
-                            </CardTitle>
-                            <CardDescription className="mt-4">
-                                <div className="flex items-baseline justify-center gap-1">
-                                    <span className="text-5xl font-bold text-foreground">
-                                        {t('pricing.trial.price')}
-                                    </span>
-                                    <span className="text-xl text-muted-foreground ml-1">
-                                        {t('pricing.plan.currency')}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                        / {t('pricing.trial.period')}
-                                    </span>
-                                </div>
-                                <p className="text-sm text-muted-foreground mt-2">
-                                    {t('pricing.trial.subtitle')}
-                                </p>
-                            </CardDescription>
-                        </CardHeader>
-
-                        <CardContent className="pt-6">
-                            <div className="space-y-4">
-                                <p className="font-semibold text-sm text-muted-foreground">
-                                    {t('pricing.trial.includes')}
-                                </p>
-                                <ul className="space-y-3">
-                                    {[1, 2, 3, 4].map((i) => (
-                                        <li key={i} className="flex items-start gap-3">
-                                            <Check className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                                            <span className="text-sm">{t(`pricing.trial.feature${i}`)}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </CardContent>
-
-                        <CardFooter className="pt-6">
-                            <Button
-                                onClick={() => handleGetStarted('trial')}
-                                variant="outline"
-                                className="w-full text-lg py-6 font-semibold"
-                                size="lg"
-                                disabled={loading}
-                            >
-                                {t('pricing.trial.cta')}
-                            </Button>
-                        </CardFooter>
-                    </Card>
+                <div className="max-w-md mx-auto">
 
                     {/* Regular Plan */}
                     <Card className="relative border-2 border-primary shadow-xl hover:shadow-2xl transition-all duration-300">

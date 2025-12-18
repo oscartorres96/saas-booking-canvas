@@ -166,10 +166,6 @@ export function Billing({ businessId }: BillingProps) {
         if (priceId === 'legacy_grandfathered' || !priceId) {
             return t('billing.plan.legacy') || 'Plan Legacy';
         }
-        // Paquete de prueba / Una vez (1 peso)
-        if (priceId.includes('trial') || priceId === 'price_1SfCuCLTjo7hhl0NqCZMtoSR' || priceId === 'price_1QPQCzQ12nTJiBYkCz7nnDsR') {
-            return t('billing.plan.trial');
-        }
         // Map price IDs to plan names
         if (priceId.includes('annual') || priceId === 'price_1Sf5dUQ12BYwu1Gtc44DvB2d') {
             return t('billing.plan.annual');
@@ -178,9 +174,6 @@ export function Billing({ businessId }: BillingProps) {
     };
 
     const getPlanPrice = (priceId: string) => {
-        if (priceId.includes('trial') || priceId === 'price_1SfCuCLTjo7hhl0NqCZMtoSR' || priceId === 'price_1QPQCzQ12nTJiBYkCz7nnDsR') {
-            return '$1 MXN';
-        }
         if (priceId.includes('annual') || priceId === 'price_1Sf5dUQ12BYwu1Gtc44DvB2d') {
             return '$3,490 MXN';
         }
@@ -188,9 +181,6 @@ export function Billing({ businessId }: BillingProps) {
     };
 
     const getPlanCycle = (priceId: string) => {
-        if (priceId.includes('trial') || priceId === 'price_1SfCuCLTjo7hhl0NqCZMtoSR' || priceId === 'price_1QPQCzQ12nTJiBYkCz7nnDsR') {
-            return 'pago único';
-        }
         if (priceId.includes('annual') || priceId === 'price_1Sf5dUQ12BYwu1Gtc44DvB2d') {
             return t('billing.plan.cycle.annual');
         }
