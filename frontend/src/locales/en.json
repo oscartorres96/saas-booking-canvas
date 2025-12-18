@@ -790,10 +790,23 @@
             "annual": "Annual",
             "save_badge": "Save 2 months"
         },
+        "trial": {
+            "badge": "Trial",
+            "name": "Trial Package",
+            "price": "$1",
+            "period": "once",
+            "subtitle": "Try all features for 7 days",
+            "includes": "Includes:",
+            "feature1": "Full access for 7 days",
+            "feature2": "All features",
+            "feature3": "No commitment",
+            "feature4": "Basic support",
+            "cta": "Try now"
+        },
         "plan": {
             "name": "BookPro – Monthly Plan",
             "name_annual": "BookPro – Annual Plan",
-            "price": "$299",
+            "price": "$349",
             "currency": "MXN",
             "period": "month",
             "period_annual": "year",
@@ -979,6 +992,7 @@
             "canceled": "Canceled"
         },
         "plan": {
+            "trial": "Trial Package",
             "monthly": "Monthly Plan",
             "annual": "Annual Plan",
             "legacy": "Legacy Plan (Grandfathered)",

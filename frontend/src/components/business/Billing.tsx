@@ -166,6 +166,10 @@ export function Billing({ businessId }: BillingProps) {
         if (priceId === 'legacy_grandfathered' || !priceId) {
             return t('billing.plan.legacy') || 'Plan Legacy';
         }
+        // Paquete de prueba / Una vez (1 peso)
+        if (priceId.includes('trial') || priceId === 'price_1SfCuCLTjo7hhl0NqCZMtoSR' || priceId === 'price_1QPQCzQ12nTJiBYkCz7nnDsR') {
+            return t('billing.plan.trial');
+        }
         // Map price IDs to plan names
         if (priceId.includes('annual') || priceId === 'price_1Sf5dUQ12BYwu1Gtc44DvB2d') {
             return t('billing.plan.annual');
@@ -174,13 +178,19 @@ export function Billing({ businessId }: BillingProps) {
     };
 
     const getPlanPrice = (priceId: string) => {
-        if (priceId.includes('annual') || priceId === 'price_1Sf5dUQ12BYwu1Gtc44DvB2d') {
-            return '$3,289 MXN';
+        if (priceId.includes('trial') || priceId === 'price_1SfCuCLTjo7hhl0NqCZMtoSR' || priceId === 'price_1QPQCzQ12nTJiBYkCz7nnDsR') {
+            return '$1 MXN';
         }
-        return '$299 MXN';
+        if (priceId.includes('annual') || priceId === 'price_1Sf5dUQ12BYwu1Gtc44DvB2d') {
+            return '$3,490 MXN';
+        }
+        return '$349 MXN';
     };
 
     const getPlanCycle = (priceId: string) => {
+        if (priceId.includes('trial') || priceId === 'price_1SfCuCLTjo7hhl0NqCZMtoSR' || priceId === 'price_1QPQCzQ12nTJiBYkCz7nnDsR') {
+            return t('billing.plan.cycle.monthly'); // O puedes poner "pago único" si prefieres
+        }
         if (priceId.includes('annual') || priceId === 'price_1Sf5dUQ12BYwu1Gtc44DvB2d') {
             return t('billing.plan.cycle.annual');
         }
@@ -425,7 +435,7 @@ export function Billing({ businessId }: BillingProps) {
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <h4 className="font-semibold">{t('billing.plan.monthly')}</h4>
-                                        <p className="text-2xl font-bold mt-1">$299 <span className="text-sm text-muted-foreground">MXN/mes</span></p>
+                                        <p className="text-2xl font-bold mt-1">$349 <span className="text-sm text-muted-foreground">MXN/mes</span></p>
                                     </div>
                                     <Button variant="outline">{t('billing.change_plan.select')}</Button>
                                 </div>
@@ -445,7 +455,7 @@ export function Billing({ businessId }: BillingProps) {
                                                 {t('billing.plan.save_badge')}
                                             </Badge>
                                         </div>
-                                        <p className="text-2xl font-bold mt-1">$3,289 <span className="text-sm text-muted-foreground">MXN/año</span></p>
+                                        <p className="text-2xl font-bold mt-1">$3,490 <span className="text-sm text-muted-foreground">MXN/año</span></p>
                                         <p className="text-xs text-muted-foreground mt-1">{t('billing.plan.annual_savings')}</p>
                                     </div>
                                     <Button variant="outline">{t('billing.change_plan.select')}</Button>
