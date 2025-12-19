@@ -326,6 +326,19 @@
                 "sat": "Saturday",
                 "sun": "Sunday"
             }
+        },
+        "payment": {
+            "title": "Payment by transfer",
+            "bank": "Bank",
+            "clabe": "Account Number / CLABE",
+            "holder": "Account Holder",
+            "concept": "Suggested reference",
+            "instructions": "Additional instructions",
+            "btn_done": "I've made the transfer",
+            "btn_processing": "Processing...",
+            "disclaimer": "Payment is made directly to the business. BookPro does not process these payments.",
+            "stripe_error_title": "Payment initialization error",
+            "stripe_error_desc": "We couldn't connect with Stripe. Please contact the business."
         }
     },
     "days": {
@@ -375,6 +388,9 @@
             "mode_label": "Mode",
             "mode_offline": "In-person only",
             "mode_online": "Online service",
+            "require_payment_label": "Charge on Booking",
+            "require_payment_yes": "Yes, charge upfront",
+            "require_payment_no": "Don't charge on booking",
             "empty": "No services created. Create your first service.",
             "status_header": "Status",
             "actions_header": "Actions",
@@ -415,11 +431,49 @@
                 "view_details": "View Details",
                 "confirm": "Confirm",
                 "complete": "Mark as Completed",
-                "cancel": "Cancel"
+                "cancel": "Cancel",
+                "verify_payment": "Verify Payment",
+                "reject_payment": "Reject Payment",
+                "confirm_receipt": "Confirm Payment Receipt"
+            },
+            "payment_status": {
+                "none": "No Payment",
+                "pending_verification": "Pending Verification",
+                "paid": "Paid",
+                "rejected": "Rejected"
+            },
+            "details": {
+                "title": "Booking Details",
+                "modal_description": "Full reservation information",
+                "client_info": "Client Information",
+                "name": "Name",
+                "email": "Email",
+                "phone": "Phone",
+                "status": "Status",
+                "service_info": "Service Information",
+                "service_name": "Service",
+                "service_description": "Description",
+                "datetime_info": "Date & Time",
+                "date": "Date",
+                "time": "Time",
+                "created_at": "Booking Created",
+                "updated_at": "Last Update",
+                "notes": "Additional Notes",
+                "payment_info": "Payment Information",
+                "payment_status": "Payment Status",
+                "payment_method": "Payment Method",
+                "bank_transfer": "Bank Transfer",
+                "holder": "Account Holder",
+                "clabe": "CLABE / Account #",
+                "transfer_date": "Transfer Date"
             },
             "toasts": {
                 "status_updated": "Appointment marked as {{status}}",
-                "error_update": "Error updating appointment status"
+                "payment_verified": "Payment verified successfully",
+                "payment_rejected": "Payment rejected",
+                "error_update": "Error updating appointment status",
+                "error_verify": "Error verifying payment",
+                "error_reject": "Error rejecting payment"
             }
         },
         "qr": {
@@ -505,6 +559,32 @@
             "instagram_placeholder": "https://instagram.com/your-profile",
             "twitter_placeholder": "https://twitter.com/your-account",
             "website_placeholder": "https://your-site.com"
+        },
+        "payments": {
+            "title": "Payment Collection",
+            "description": "Configure how your clients will pay you directly.",
+            "method": "Method",
+            "methods": {
+                "none": "None (Only booking)",
+                "bank_transfer": "Bank Transfer"
+            },
+            "bank": "Bank",
+            "clabe": "Account Number",
+            "holder": "Account Holder Name",
+            "instructions": "Optional instructions",
+            "disclaimer": "BookPro does not process these payments. Verification and collection are the responsibility of the business.",
+            "online_title": "Online Payments (Stripe)",
+            "online_desc": "Select how you wish to receive card payments.",
+            "powered_by": "Powered by Stripe",
+            "models": {
+                "intermediated": "Intermediated Model",
+                "intermediated_desc": "Ideal if you don't have a formal business account. BookPro collects for you and you request payout.",
+                "connect": "Stripe Connect",
+                "connect_desc": "Money goes directly to your Stripe account. Requires a linked formal account."
+            },
+            "connect_id": "Stripe Account ID",
+            "connect_id_hint": "Provided by the BookPro team after linking.",
+            "legal_notice": "BookPro acts as a technological intermediary and temporary custodian of the payment when applicable. Funds are transferred to the business according to the established times."
         }
     },
     "onboarding": {

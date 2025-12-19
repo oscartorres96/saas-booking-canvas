@@ -24,6 +24,15 @@ export class Service {
   @Prop({ default: false })
   isOnline?: boolean;
 
+  @Prop({ default: false })
+  requirePayment?: boolean;
+
+  @Prop({ default: false })
+  requireResource?: boolean;
+
+  @Prop({ default: false })
+  requireProduct?: boolean;
+
   @Prop()
   businessId?: string;
 }

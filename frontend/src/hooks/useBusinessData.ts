@@ -9,6 +9,9 @@ export interface Service {
     duration: string;
     price: string;
     description: string;
+    requirePayment?: boolean;
+    requireResource?: boolean;
+    requireProduct?: boolean;
 }
 
 export interface BusinessData {
@@ -25,6 +28,14 @@ export interface BusinessData {
         instagram: string;
     };
     language: string;
+    paymentConfig?: {
+        method: string;
+        bank?: string;
+        clabe?: string;
+        holderName?: string;
+        instructions?: string;
+    };
+    paymentModel?: 'INTERMEDIATED' | 'STRIPE_CONNECT';
 }
 
 // Mock data inicial (fallback)
@@ -79,7 +90,10 @@ const fetchBusinessData = async (businessSlug?: string): Promise<BusinessData> =
                 name: s.name,
                 duration: `${s.durationMinutes} minutos`,
                 price: `$${s.price}`,
-                description: s.description || ""
+                description: s.description || "",
+                requirePayment: s.requirePayment,
+                requireResource: s.requireResource,
+                requireProduct: s.requireProduct
             })),
             businessAddress: business.address || "",
             businessPhone: business.phone || business.settings?.phone || "",
@@ -88,7 +102,9 @@ const fetchBusinessData = async (businessSlug?: string): Promise<BusinessData> =
                 facebook: "", // Not yet in backend
                 instagram: ""
             },
-            language: business.language || "es" // Provide a default if undefined
+            language: business.language || "es", // Provide a default if undefined
+            paymentConfig: business.paymentConfig,
+            paymentModel: business.paymentModel
         };
     } catch (error) {
         console.error("Error fetching business data:", error);

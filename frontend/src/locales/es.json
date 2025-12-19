@@ -340,6 +340,57 @@
         "sat": "Sábado",
         "sun": "Domingo"
       }
+    },
+    "payment": {
+      "title": "Pago por transferencia",
+      "bank": "Banco",
+      "clabe": "CLABE",
+      "holder": "Titular",
+      "concept": "Concepto sugerido",
+      "instructions": "Instrucciones adicionales",
+      "btn_done": "Ya realicé la transferencia",
+      "btn_processing": "Procesando...",
+      "disclaimer": "El pago se realiza directamente con el negocio. BookPro no procesa pagos.",
+      "stripe_error_title": "Error al iniciar pago",
+      "stripe_error_desc": "No pudimos conectar con Stripe. Por favor contacta al negocio."
+    },
+    "products": {
+      "section_title": "Pases y Paquetes",
+      "section_subtitle": "Ahorra comprando paquetes de sesiones o pases únicos para tus clases favoritas",
+      "badge_popular": "MÁS VENDIDO",
+      "price_currency": "MXN",
+      "feature_sessions": "{{count}} sesiones incluidas",
+      "feature_single_use": "1 uso individual",
+      "feature_validity": "Válido por {{days}} días",
+      "feature_no_hidden": "Sin cargos ocultos",
+      "btn_buy": "Comprar Ahora",
+      "dialog_title": "Completar Compra",
+      "dialog_description": "Introduce tus datos para comprar",
+      "name_label": "Nombre Completo",
+      "name_placeholder": "Tu nombre",
+      "email_label": "Correo Electrónico",
+      "email_placeholder": "ejemplo@correo.com",
+      "email_hint": "* Se usará este correo para identificar tus clases al momento de reservar.",
+      "btn_proceed": "Proceder al Pago",
+      "btn_loading": "Cargando..."
+    },
+    "assets": {
+      "detected_title": "¡Vemos que tienes un paquete activo!",
+      "detected_subtitle": "Selecciona el paquete que deseas usar para esta reserva:",
+      "uses_remaining": "{{count}} usos",
+      "expires_on": "Vence el {{date}}",
+      "pay_individual": "Pagar de forma individual",
+      "required_title": "Este servicio requiere un pase o paquete activo",
+      "required_message": "No hemos encontrado un paquete activo bajo este correo. Por favor, adquiere uno debajo o usa otro correo electrónico para continuar.",
+      "no_assets_title": "No tienes un pase activo para este servicio",
+      "no_assets_message": "Puedes comprar uno para continuar.",
+      "package_expired": "Tu paquete ha vencido",
+      "package_no_uses": "Tu paquete no tiene usos disponibles",
+      "confirmation_asset_used": "Se ha descontado 1 uso de tu paquete"
+    },
+    "service_type": {
+      "direct_booking": "Este servicio se reserva directamente",
+      "requires_package": "Este servicio requiere un pase o paquete activo"
     }
   },
   "days": {
@@ -389,6 +440,9 @@
       "mode_label": "Modalidad",
       "mode_offline": "Solo presencial",
       "mode_online": "Servicio en línea",
+      "require_payment_label": "Cobrar al Reservar",
+      "require_payment_yes": "Sí, cobrar anticipado",
+      "require_payment_no": "No cobrar al agendar",
       "empty": "No hay servicios creados. Crea tu primer servicio.",
       "status_header": "Estado",
       "actions_header": "Acciones",
@@ -429,7 +483,16 @@
         "view_details": "Ver detalles",
         "confirm": "Confirmar",
         "complete": "Marcar como Completada",
-        "cancel": "Cancelar"
+        "cancel": "Cancelar",
+        "verify_payment": "Verificar Pago",
+        "reject_payment": "Rechazar Pago",
+        "confirm_receipt": "Confirmar Recibo de Pago"
+      },
+      "payment_status": {
+        "none": "Sin Pago",
+        "pending_verification": "Por Verificar",
+        "paid": "Pagado",
+        "rejected": "Rechazado"
       },
       "details": {
         "title": "Detalles de la Cita",
@@ -447,7 +510,14 @@
         "time": "Hora",
         "created_at": "Reserva Creada",
         "updated_at": "Última Actualización",
-        "notes": "Notas Adicionales"
+        "notes": "Notas Adicionales",
+        "payment_info": "Información de Pago",
+        "payment_status": "Estatus de Pago",
+        "payment_method": "Método de Pago",
+        "bank_transfer": "Transferencia Bancaria",
+        "holder": "Titular",
+        "clabe": "CLABE",
+        "transfer_date": "Fecha de Transferencia"
       },
       "cancel_confirm": {
         "title": "Confirmar Cancelación",
@@ -457,7 +527,11 @@
       },
       "toasts": {
         "status_updated": "Cita marcada como {{status}}",
-        "error_update": "Error al actualizar el estado de la cita"
+        "payment_verified": "Pago verificado correctamente",
+        "payment_rejected": "Pago rechazado",
+        "error_update": "Error al actualizar el estado de la cita",
+        "error_verify": "Error al verificar pago",
+        "error_reject": "Error al rechazar pago"
       }
     },
     "qr": {
@@ -543,6 +617,32 @@
       "instagram_placeholder": "https://instagram.com/tu-perfil",
       "twitter_placeholder": "https://twitter.com/tu-cuenta",
       "website_placeholder": "https://tu-sitio.com"
+    },
+    "payments": {
+      "title": "Método de cobro",
+      "description": "Configura cómo tus clientes te pagarán directamente.",
+      "method": "Método",
+      "methods": {
+        "none": "Ninguno (Solo reserva)",
+        "bank_transfer": "Transferencia Bancaria"
+      },
+      "bank": "Banco",
+      "clabe": "CLABE",
+      "holder": "Nombre del titular",
+      "instructions": "Instrucciones opcionales",
+      "disclaimer": "BookPro no procesa estos pagos. La verificación y cobro de los mismos queda bajo responsabilidad del negocio.",
+      "online_title": "Pagos en Línea (Stripe)",
+      "online_desc": "Selecciona cómo deseas recibir pagos con tarjeta.",
+      "powered_by": "Powered by Stripe",
+      "models": {
+        "intermediated": "Modelo Intermediado",
+        "intermediated_desc": "Ideal si no tienes cuenta formal de empresa. BookPro cobra por ti y tú solicitas la dispersión.",
+        "connect": "Stripe Connect",
+        "connect_desc": "El dinero va directo a tu cuenta Stripe. Requiere cuenta formal ya vinculada."
+      },
+      "connect_id": "Stripe Account ID",
+      "connect_id_hint": "Proporcionado por el equipo de BookPro tras la vinculación.",
+      "legal_notice": "BookPro actúa como intermediario tecnológico y custodio temporal del pago cuando aplica. Los fondos son transferidos al negocio conforme a los tiempos establecidos."
     }
   },
   "onboarding": {

@@ -10,6 +10,9 @@ import { BusinessesModule } from './businesses/businesses.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { StripeModule } from './stripe/stripe.module';
 import { LeadsModule } from './leads/leads.module';
+import { ResourceMapModule } from './resource-map/resource-map.module';
+import { ProductsModule } from './products/products.module';
+import { CustomerAssetsModule } from './customer-assets/customer-assets.module';
 // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
 // import { WhatsappModule } from './whatsapp/whatsapp.module';
 
@@ -28,6 +31,9 @@ import { LeadsModule } from './leads/leads.module';
     UploadsModule,
     StripeModule,
     LeadsModule,
+    ResourceMapModule,
+    ProductsModule,
+    CustomerAssetsModule,
     // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
     // WhatsappModule,
   ],

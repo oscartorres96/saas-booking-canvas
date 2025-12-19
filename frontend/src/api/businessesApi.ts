@@ -18,6 +18,31 @@ export interface Business {
   onboardingStep?: number;
   isOnboardingCompleted?: boolean;
   metadata?: Record<string, unknown>;
+  paymentConfig?: {
+    method: 'none' | 'bank_transfer';
+    bank?: string;
+    clabe?: string;
+    holderName?: string;
+    instructions?: string;
+  };
+  paymentModel?: 'INTERMEDIATED' | 'STRIPE_CONNECT';
+  stripeConnectAccountId?: string;
+  resourceConfig?: {
+    enabled: boolean;
+    resourceType?: string;
+    resourceLabel?: string;
+    rows?: number;
+    cols?: number;
+    resources?: Array<{
+      id: string;
+      label: string;
+      isActive: boolean;
+      position: {
+        row: number;
+        col: number;
+      };
+    }>;
+  };
   settings?: {
     primaryColor?: string;
     secondaryColor?: string;
@@ -99,5 +124,21 @@ export const updateOnboarding = async (
   isCompleted: boolean
 ): Promise<Business> => {
   const { data } = await apiClient.put<Business>(`/businesses/${businessId}/onboarding`, { step, isCompleted });
+  return data;
+};
+
+export const updatePaymentConfig = async (
+  businessId: string,
+  config: any
+): Promise<Business> => {
+  const { data } = await apiClient.put<Business>(`/businesses/${businessId}/payment-config`, config);
+  return data;
+};
+
+export const updateBusinessResourceConfig = async (
+  businessId: string,
+  config: any
+): Promise<any> => {
+  const { data } = await apiClient.put(`/resource-map/${businessId}/config`, config);
   return data;
 };

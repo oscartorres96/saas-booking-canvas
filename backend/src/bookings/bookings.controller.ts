@@ -36,6 +36,10 @@ class CreateBookingDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  resourceId?: string;
 }
 
 class UpdateBookingDto {
@@ -74,6 +78,10 @@ class UpdateBookingDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  resourceId?: string;
 }
 
 class LookupBookingDto {
@@ -146,5 +154,22 @@ export class BookingsController {
   @Post('cancel-public')
   cancelPublic(@Body() body: CancelBookingDto) {
     return this.bookingsService.cancelPublic(body.bookingId, body.clientEmail, body.accessCode);
+  }
+
+  @Post(':id/confirm-transfer')
+  confirmTransfer(@Param('id') id: string, @Body() body: any) {
+    return this.bookingsService.confirmPaymentTransfer(id, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/verify-payment')
+  verifyPayment(@Param('id') id: string, @Req() req: any) {
+    return this.bookingsService.verifyPaymentTransfer(id, req.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/reject-payment')
+  rejectPayment(@Param('id') id: string, @Req() req: any) {
+    return this.bookingsService.rejectPaymentTransfer(id, req.user);
   }
 }

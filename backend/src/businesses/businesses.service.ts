@@ -361,4 +361,25 @@ export class BusinessesService {
 
     return business.save();
   }
+
+  async updatePaymentConfig(id: string, config: any, authUser: AuthUser) {
+    const business = await this.businessModel.findById(id);
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
+    this.assertAccess(authUser, business);
+
+    // Update root level fields if present in config
+    if (config.paymentModel) business.paymentModel = config.paymentModel;
+    if (config.stripeConnectAccountId !== undefined) business.stripeConnectAccountId = config.stripeConnectAccountId;
+
+    // Filter out root fields from nested paymentConfig update
+    const { paymentModel, stripeConnectAccountId, ...paymentConfig } = config;
+
+    business.paymentConfig = {
+      ...business.paymentConfig,
+      ...paymentConfig,
+    };
+    return business.save();
+  }
 }

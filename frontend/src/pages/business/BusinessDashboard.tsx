@@ -6,6 +6,7 @@ import * as z from "zod";
 import { format } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
+import "@/styles/premium-tabs.css";
 import {
     Table,
     TableBody,
@@ -24,6 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
     Dialog,
     DialogContent,
@@ -61,7 +63,9 @@ import {
     LogOut,
     Copy,
     BookOpen,
-    QrCode
+    QrCode,
+    ExternalLink,
+    Grid3X3
 } from "lucide-react";
 import { QRCodeGenerator } from "@/components/QRCodeGenerator";
 import {
@@ -84,8 +88,10 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import useAuth from "@/auth/useAuth";
 import { getBusinessById, type Business } from "@/api/businessesApi";
 import { getServicesByBusiness, createService, updateService, deleteService, type Service } from "@/api/servicesApi";
-import { getBookingsByBusiness, updateBooking, type Booking } from "@/api/bookingsApi";
+import { getBookingsByBusiness, updateBooking, verifyPayment, rejectPayment, type Booking } from "@/api/bookingsApi";
 import { ExpirationBanner } from "@/components/ExpirationBanner";
+import { ResourceMapEditor } from "@/components/business/ResourceMapEditor";
+import { ProductsManager } from "@/components/business/ProductsManager";
 
 const serviceFormSchema = z.object({
     name: z.string().min(2, { message: "El nombre es requerido" }),
@@ -94,6 +100,9 @@ const serviceFormSchema = z.object({
     price: z.coerce.number().min(0, { message: "Precio inválido" }),
     active: z.boolean().default(true),
     isOnline: z.boolean().default(false),
+    requirePayment: z.boolean().default(false),
+    requireResource: z.boolean().default(false),
+    requireProduct: z.boolean().default(false),
 });
 
 const BusinessDashboard = () => {
@@ -135,6 +144,9 @@ const BusinessDashboard = () => {
             price: 0,
             active: true,
             isOnline: false,
+            requirePayment: false,
+            requireResource: false,
+            requireProduct: false,
         },
     });
 
@@ -147,6 +159,9 @@ const BusinessDashboard = () => {
             price: 0,
             active: true,
             isOnline: false,
+            requirePayment: false,
+            requireResource: false,
+            requireProduct: false,
         },
     });
 
@@ -243,13 +258,17 @@ const BusinessDashboard = () => {
                 price: 0,
                 active: true,
                 isOnline: false,
+                requirePayment: false,
+                requireResource: false,
+                requireProduct: false,
             });
             toast.success(t('dashboard.services.toasts.created'));
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error && 'response' in error
-                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
-                : undefined;
-            toast.error(errorMessage || t('dashboard.services.toasts.error_create'));
+        } catch (error: any) {
+            const errorData = error.response?.data;
+            const detailedMessage = Array.isArray(errorData?.message)
+                ? errorData.message.join(", ")
+                : errorData?.message;
+            toast.error(detailedMessage || t('dashboard.services.toasts.error_create'));
         }
     };
 
@@ -262,6 +281,9 @@ const BusinessDashboard = () => {
             price: service.price,
             active: service.active ?? true,
             isOnline: service.isOnline ?? false,
+            requirePayment: service.requirePayment ?? false,
+            requireResource: service.requireResource ?? false,
+            requireProduct: service.requireProduct ?? false,
         });
         setIsEditServiceDialogOpen(true);
     };
@@ -273,11 +295,12 @@ const BusinessDashboard = () => {
             setServices(prev => prev.map(s => (s._id === updated._id ? updated : s)));
             setIsEditServiceDialogOpen(false);
             toast.success(t('dashboard.services.toasts.updated'));
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error && 'response' in error
-                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
-                : undefined;
-            toast.error(errorMessage || t('dashboard.services.toasts.error_update'));
+        } catch (error: any) {
+            const errorData = error.response?.data;
+            const detailedMessage = Array.isArray(errorData?.message)
+                ? errorData.message.join(", ")
+                : errorData?.message;
+            toast.error(detailedMessage || t('dashboard.services.toasts.error_update'));
         }
     };
 
@@ -292,14 +315,36 @@ const BusinessDashboard = () => {
             await deleteService(serviceToDelete._id);
             setServices(prev => prev.filter(s => s._id !== serviceToDelete._id));
             toast.success(t('dashboard.services.toasts.deleted'));
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error && 'response' in error
-                ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
-                : undefined;
-            toast.error(errorMessage || t('dashboard.services.toasts.error_delete'));
+        } catch (error: any) {
+            const errorData = error.response?.data;
+            const detailedMessage = Array.isArray(errorData?.message)
+                ? errorData.message.join(", ")
+                : errorData?.message;
+            toast.error(detailedMessage || t('dashboard.services.toasts.error_delete'));
         } finally {
             setIsDeleteServiceDialogOpen(false);
             setServiceToDelete(null);
+        }
+    };
+
+    const handleVerifyPayment = async (bookingId: string) => {
+        try {
+            await verifyPayment(bookingId);
+            // Updating local state
+            setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, paymentStatus: 'paid' as any, status: 'confirmed' as any } : b));
+            toast.success(t('dashboard.bookings.toasts.payment_verified', 'Pago verificado correctamente'));
+        } catch (error) {
+            toast.error(t('dashboard.bookings.toasts.error_verify', 'Error al verificar pago'));
+        }
+    };
+
+    const handleRejectPayment = async (bookingId: string) => {
+        try {
+            await rejectPayment(bookingId);
+            setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, paymentStatus: 'rejected' as any } : b));
+            toast.success(t('dashboard.bookings.toasts.payment_rejected', 'Pago rechazado'));
+        } catch (error) {
+            toast.error(t('dashboard.bookings.toasts.error_reject', 'Error al rechazar pago'));
         }
     };
 
@@ -359,6 +404,7 @@ const BusinessDashboard = () => {
             case "pending": return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
             case "completed": return "bg-blue-100 text-blue-800 hover:bg-blue-100";
             case "cancelled": return "bg-red-100 text-red-800 hover:bg-red-100";
+            case "pending_payment": return "bg-amber-100 text-amber-800 hover:bg-amber-100";
             default: return "bg-gray-100 text-gray-800";
         }
     };
@@ -398,19 +444,20 @@ const BusinessDashboard = () => {
 
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                         {/* Header */}
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex flex-col gap-6 w-full lg:flex-row lg:items-center lg:justify-between">
+                            {/* Identidad del Negocio */}
                             <div className="flex items-center gap-4">
                                 {business.logoUrl && business.logoUrl !== "/placeholder.svg" ? (
                                     <img
                                         src={business.logoUrl}
                                         alt="Logo"
-                                        className="h-14 w-14 rounded-xl object-cover shadow-sm bg-background border"
+                                        className="h-14 w-14 rounded-2xl object-cover shadow-sm bg-background border p-1"
                                     />
                                 ) : (
                                     <div
-                                        className="h-14 w-14 rounded-xl flex items-center justify-center shadow-sm border"
+                                        className="h-14 w-14 rounded-2xl flex items-center justify-center shadow-sm border"
                                         style={{
-                                            backgroundColor: business.settings?.primaryColor ? `${business.settings.primaryColor}15` : undefined, // 15 = ~10% opacity hex
+                                            backgroundColor: business.settings?.primaryColor ? `${business.settings.primaryColor}15` : undefined,
                                             borderColor: business.settings?.primaryColor ? `${business.settings.primaryColor}30` : undefined
                                         }}
                                     >
@@ -420,56 +467,75 @@ const BusinessDashboard = () => {
                                         />
                                     </div>
                                 )}
-                                <div>
-                                    <h1 className="text-2xl font-semibold tracking-tight">{business.businessName}</h1>
-                                    <p className="text-muted-foreground text-sm">
+                                <div className="flex-1">
+                                    <h1 className="text-2xl font-bold tracking-tight text-foreground">{business.businessName}</h1>
+                                    <p className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
                                         {t('dashboard.subtitle')}
                                     </p>
                                 </div>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
-                                <Button
-                                    variant="outline"
-                                    className="w-full md:w-auto order-last md:order-first"
-                                    onClick={() => window.open(`/business/${businessId}/booking`, '_blank')}
-                                >
-                                    {t('dashboard.viewBookingPage')}
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    className="w-full md:w-auto order-last md:order-first"
-                                    onClick={() => navigate('/manual')}
-                                >
-                                    <BookOpen className="mr-2 h-4 w-4" />
-                                    Manual
-                                </Button>
-                                <Button
-                                    variant="default"
-                                    className="w-full md:w-auto order-last md:order-first"
-                                    onClick={handleCopyInvitation}
-                                >
-                                    <Copy className="mr-2 h-4 w-4" />
-                                    {t('dashboard.copyInvitation')}
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    className="w-full md:w-auto order-last md:order-first"
-                                    onClick={() => setIsQrDialogOpen(true)}
-                                >
-                                    <QrCode className="mr-2 h-4 w-4" />
-                                    QR
-                                </Button>
-                                <TabsList className="order-first md:order-none w-full md:w-auto">
-                                    <TabsTrigger value="dashboard" className="flex-1 md:flex-none">{t('dashboard.tabs.dashboard')}</TabsTrigger>
-                                    <TabsTrigger value="settings" className="flex-1 md:flex-none">{t('dashboard.tabs.settings')}</TabsTrigger>
-                                    <TabsTrigger value="billing" className="flex-1 md:flex-none">{t('dashboard.tabs.billing')}</TabsTrigger>
-                                </TabsList>
-                                <div className="flex items-center gap-2 ml-auto md:ml-0">
+
+                                {/* Iconos de Sistema (Móvil: Arriba a la derecha) */}
+                                <div className="flex lg:hidden items-center gap-1">
                                     <LanguageSwitcher />
                                     <BusinessThemeToggle />
-                                    <Button variant="outline" size="icon" onClick={logout} title="Cerrar Sesión">
-                                        <LogOut className="h-4 w-4" />
+                                </div>
+                            </div>
+
+                            {/* Acciones y Navegación */}
+                            <div className="flex flex-col gap-4 w-full lg:w-auto lg:items-end">
+                                {/* Botones de Acciones Rápidas */}
+                                <div className="grid grid-cols-2 md:flex md:flex-row gap-2 w-full lg:w-auto">
+                                    <Button
+                                        variant="outline"
+                                        className="h-10 text-xs px-3 font-medium md:w-auto order-2 md:order-none"
+                                        onClick={() => window.open(`/business/${businessId}/booking`, '_blank')}
+                                    >
+                                        <ExternalLink className="mr-2 h-3.5 w-3.5" />
+                                        Reservas
                                     </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="h-10 text-xs px-3 font-medium md:w-auto order-3 md:order-none"
+                                        onClick={() => navigate('/manual')}
+                                    >
+                                        <BookOpen className="mr-2 h-3.5 w-3.5" />
+                                        Manual
+                                    </Button>
+                                    <Button
+                                        variant="default"
+                                        className="h-10 text-xs px-3 font-semibold col-span-2 md:col-auto order-1 md:order-none shadow-md shadow-primary/20"
+                                        onClick={handleCopyInvitation}
+                                    >
+                                        <Copy className="mr-2 h-3.5 w-3.5" />
+                                        {t('dashboard.copyInvitation')}
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="h-10 text-xs px-3 font-medium md:w-auto order-4 md:order-none"
+                                        onClick={() => setIsQrDialogOpen(true)}
+                                    >
+                                        <QrCode className="mr-2 h-3.5 w-3.5" />
+                                        QR
+                                    </Button>
+
+                                    {/* Iconos de Sistema (Desktop) */}
+                                    <div className="hidden lg:flex items-center gap-1 pl-2 border-l ml-2">
+                                        <LanguageSwitcher />
+                                        <BusinessThemeToggle />
+                                        <Button variant="ghost" size="icon" onClick={logout} className="h-9 w-9 text-muted-foreground hover:text-destructive transition-colors">
+                                            <LogOut className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Navegación por Tabs (Con scroll horizontal en móvil) */}
+                                <div className="premium-tabs-container">
+                                    <TabsList className="premium-tabs-list">
+                                        <TabsTrigger value="dashboard" className="premium-tab-trigger">{t('dashboard.tabs.dashboard')}</TabsTrigger>
+                                        <TabsTrigger value="settings" className="premium-tab-trigger">{t('dashboard.tabs.settings')}</TabsTrigger>
+                                        <TabsTrigger value="billing" className="premium-tab-trigger">{t('dashboard.tabs.billing')}</TabsTrigger>
+                                        <TabsTrigger value="resource-map" className="premium-tab-trigger">Mapa de Recursos</TabsTrigger>
+                                    </TabsList>
                                 </div>
                             </div>
                         </div>
@@ -547,93 +613,310 @@ const BusinessDashboard = () => {
                                                     <Plus className="mr-2 h-4 w-4" /> {t('dashboard.services.create')}
                                                 </Button>
                                             </DialogTrigger>
-                                            <DialogContent className="sm:max-w-[425px]">
+                                            <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
                                                 <DialogHeader>
-                                                    <DialogTitle>{t('dashboard.services.new_title')}</DialogTitle>
-                                                    <DialogDescription>
+                                                    <DialogTitle className="text-xl">{t('dashboard.services.new_title')}</DialogTitle>
+                                                    <DialogDescription className="text-sm">
                                                         {t('dashboard.services.new_description')}
                                                     </DialogDescription>
                                                 </DialogHeader>
                                                 <Form {...serviceForm}>
-                                                    <form onSubmit={serviceForm.handleSubmit(onCreateService)} className="space-y-4">
-                                                        <FormField
-                                                            control={serviceForm.control}
-                                                            name="name"
-                                                            render={({ field }) => (
-                                                                <FormItem>
-                                                                    <FormLabel>{t('dashboard.services.name_label')}</FormLabel>
-                                                                    <FormControl>
-                                                                        <Input placeholder={t('dashboard.services.name_placeholder')} {...field} />
-                                                                    </FormControl>
-                                                                    <FormMessage />
-                                                                </FormItem>
-                                                            )}
-                                                        />
-                                                        <FormField
-                                                            control={serviceForm.control}
-                                                            name="description"
-                                                            render={({ field }) => (
-                                                                <FormItem>
-                                                                    <FormLabel>{t('dashboard.services.desc_label')}</FormLabel>
-                                                                    <FormControl>
-                                                                        <Input placeholder={t('dashboard.services.desc_placeholder')} {...field} />
-                                                                    </FormControl>
-                                                                    <FormMessage />
-                                                                </FormItem>
-                                                            )}
-                                                        />
-                                                        <div className="grid grid-cols-2 gap-4">
+                                                    <form onSubmit={serviceForm.handleSubmit(onCreateService)} className="space-y-6">
+
+                                                        {/* Sección: Información del servicio */}
+                                                        <div className="space-y-4">
+                                                            <div className="flex items-center gap-2 pb-2 border-b">
+                                                                <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                                                                <h3 className="text-sm font-semibold text-foreground">Información del servicio</h3>
+                                                            </div>
+
                                                             <FormField
                                                                 control={serviceForm.control}
-                                                                name="durationMinutes"
+                                                                name="name"
                                                                 render={({ field }) => (
                                                                     <FormItem>
-                                                                        <FormLabel>{t('dashboard.services.duration_label')}</FormLabel>
+                                                                        <FormLabel className="text-sm font-medium">Nombre del servicio</FormLabel>
                                                                         <FormControl>
-                                                                            <Input type="number" {...field} />
+                                                                            <Input
+                                                                                placeholder="Ej: Clase de Yoga, Consulta Nutricional..."
+                                                                                {...field}
+                                                                                className="transition-all focus:ring-2 focus:ring-primary/20"
+                                                                            />
                                                                         </FormControl>
+                                                                        <p className="text-xs text-muted-foreground">Este nombre aparecerá en tu página de reservas</p>
                                                                         <FormMessage />
                                                                     </FormItem>
                                                                 )}
                                                             />
+
                                                             <FormField
                                                                 control={serviceForm.control}
-                                                                name="price"
+                                                                name="description"
                                                                 render={({ field }) => (
                                                                     <FormItem>
-                                                                        <FormLabel>{t('dashboard.services.price_label')}</FormLabel>
+                                                                        <FormLabel className="text-sm font-medium">Descripción breve</FormLabel>
                                                                         <FormControl>
-                                                                            <Input type="number" {...field} />
+                                                                            <Input
+                                                                                placeholder="Describe qué incluye este servicio..."
+                                                                                {...field}
+                                                                                className="transition-all focus:ring-2 focus:ring-primary/20"
+                                                                            />
                                                                         </FormControl>
+                                                                        <p className="text-xs text-muted-foreground">Ayuda a tus clientes a entender qué van a recibir</p>
                                                                         <FormMessage />
                                                                     </FormItem>
                                                                 )}
                                                             />
                                                         </div>
-                                                        <FormField
-                                                            control={serviceForm.control}
-                                                            name="isOnline"
-                                                            render={({ field }) => (
-                                                                <FormItem>
-                                                                    <FormLabel>{t('dashboard.services.mode_label')}</FormLabel>
-                                                                    <Select
-                                                                        value={field.value ? "online" : "offline"}
-                                                                        onValueChange={(val) => field.onChange(val === "online")}
-                                                                    >
-                                                                        <SelectTrigger>
-                                                                            <SelectValue />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent>
-                                                                            <SelectItem value="offline">{t('dashboard.services.mode_offline')}</SelectItem>
-                                                                            <SelectItem value="online">{t('dashboard.services.mode_online')}</SelectItem>
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                    <FormMessage />
-                                                                </FormItem>
+
+                                                        {/* Sección: Detalles de la cita */}
+                                                        <div className="space-y-4">
+                                                            <div className="flex items-center gap-2 pb-2 border-b">
+                                                                <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                                                                <h3 className="text-sm font-semibold text-foreground">Detalles de la cita</h3>
+                                                            </div>
+
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <FormField
+                                                                    control={serviceForm.control}
+                                                                    name="durationMinutes"
+                                                                    render={({ field }) => (
+                                                                        <FormItem>
+                                                                            <FormLabel className="text-sm font-medium">Duración (min)</FormLabel>
+                                                                            <FormControl>
+                                                                                <Input
+                                                                                    type="number"
+                                                                                    {...field}
+                                                                                    className="transition-all focus:ring-2 focus:ring-primary/20"
+                                                                                />
+                                                                            </FormControl>
+                                                                            <FormMessage />
+                                                                        </FormItem>
+                                                                    )}
+                                                                />
+
+                                                                <FormField
+                                                                    control={serviceForm.control}
+                                                                    name="isOnline"
+                                                                    render={({ field }) => (
+                                                                        <FormItem>
+                                                                            <FormLabel className="text-sm font-medium">Modalidad</FormLabel>
+                                                                            <Select
+                                                                                value={field.value ? "online" : "offline"}
+                                                                                onValueChange={(val) => field.onChange(val === "online")}
+                                                                            >
+                                                                                <SelectTrigger className="transition-all focus:ring-2 focus:ring-primary/20">
+                                                                                    <SelectValue />
+                                                                                </SelectTrigger>
+                                                                                <SelectContent>
+                                                                                    <SelectItem value="offline">Presencial</SelectItem>
+                                                                                    <SelectItem value="online">En línea</SelectItem>
+                                                                                </SelectContent>
+                                                                            </Select>
+                                                                            <FormMessage />
+                                                                        </FormItem>
+                                                                    )}
+                                                                />
+                                                            </div>
+                                                            <p className="text-xs text-muted-foreground">Define cuánto tiempo tomará la sesión y dónde se realizará</p>
+
+                                                            {/* Selección de lugar (Solo si el mapa está activo) */}
+                                                            {business?.resourceConfig?.enabled && (
+                                                                <FormField
+                                                                    control={serviceForm.control}
+                                                                    name="requireResource"
+                                                                    render={({ field }) => (
+                                                                        <FormItem className="space-y-3 pt-2">
+                                                                            <FormLabel className="text-sm font-medium flex items-center gap-2">
+                                                                                <Grid3X3 className="h-4 w-4 text-primary" />
+                                                                                ¿Requiere selección de lugar?
+                                                                            </FormLabel>
+                                                                            <div
+                                                                                onClick={() => field.onChange(!field.value)}
+                                                                                className={cn(
+                                                                                    "flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all hover:border-primary/50",
+                                                                                    field.value ? "border-primary bg-primary/5" : "border-muted"
+                                                                                )}
+                                                                            >
+                                                                                <div className="flex flex-col gap-0.5">
+                                                                                    <span className="text-sm font-medium">Mapa de {business?.resourceConfig?.resourceType || 'recursos'}</span>
+                                                                                    <p className="text-xs text-muted-foreground">El cliente elegirá su lugar específico al reservar</p>
+                                                                                </div>
+                                                                                <div onClick={(e) => e.stopPropagation()}>
+                                                                                    <Switch
+                                                                                        checked={field.value}
+                                                                                        onCheckedChange={field.onChange}
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                        </FormItem>
+                                                                    )}
+                                                                />
                                                             )}
-                                                        />
-                                                        <DialogFooter>
-                                                            <Button type="submit">{t('dashboard.services.create')}</Button>
+                                                        </div>
+
+                                                        {/* Sección: Precio y cobro */}
+                                                        <div className="space-y-4">
+                                                            <div className="flex items-center gap-2 pb-2 border-b">
+                                                                <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                                                                <h3 className="text-sm font-semibold text-foreground">Precio y cobro</h3>
+                                                            </div>
+
+                                                            <FormField
+                                                                control={serviceForm.control}
+                                                                name="price"
+                                                                render={({ field }) => (
+                                                                    <FormItem>
+                                                                        <FormLabel className="text-sm font-medium">Precio por sesión (MXN)</FormLabel>
+                                                                        <FormControl>
+                                                                            <div className="relative">
+                                                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                                                                                <Input
+                                                                                    type="number"
+                                                                                    {...field}
+                                                                                    className="pl-7 transition-all focus:ring-2 focus:ring-primary/20"
+                                                                                    placeholder="0"
+                                                                                />
+                                                                            </div>
+                                                                        </FormControl>
+                                                                        <p className="text-xs text-muted-foreground">Este es el precio que verán tus clientes al reservar</p>
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                )}
+                                                            />
+
+                                                            <FormField
+                                                                control={serviceForm.control}
+                                                                name="requirePayment"
+                                                                render={({ field }) => (
+                                                                    <FormItem className="space-y-3">
+                                                                        <FormLabel className="text-sm font-medium">¿Requieres pago al reservar?</FormLabel>
+                                                                        <div className="grid grid-cols-2 gap-3">
+                                                                            <div
+                                                                                onClick={() => field.onChange(false)}
+                                                                                className={cn(
+                                                                                    "relative flex flex-col gap-2 rounded-lg border-2 p-3 cursor-pointer transition-all hover:border-primary/50",
+                                                                                    !field.value ? "border-primary bg-primary/5" : "border-muted"
+                                                                                )}
+                                                                            >
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <span className="text-sm font-medium">Solo reserva</span>
+                                                                                    {!field.value && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                                                                </div>
+                                                                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                                                                    El cliente agenda sin pagar
+                                                                                </p>
+                                                                            </div>
+
+                                                                            <div
+                                                                                onClick={() => field.onChange(true)}
+                                                                                className={cn(
+                                                                                    "relative flex flex-col gap-2 rounded-lg border-2 p-3 cursor-pointer transition-all hover:border-primary/50",
+                                                                                    field.value ? "border-primary bg-primary/5" : "border-muted"
+                                                                                )}
+                                                                            >
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <span className="text-sm font-medium">Pago requerido</span>
+                                                                                    {field.value && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                                                                </div>
+                                                                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                                                                    Debe pagar para confirmar
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                        {field.value && (
+                                                                            <p className="text-xs text-amber-600 dark:text-amber-500 animate-in fade-in slide-in-from-top-1">
+                                                                                💡 La reserva quedará pendiente hasta que el cliente complete el pago
+                                                                            </p>
+                                                                        )}
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                )}
+                                                            />
+                                                        </div>
+
+                                                        {/* Sección: Forma de venta */}
+                                                        <div className="space-y-4">
+                                                            <div className="flex items-center gap-2 pb-2 border-b">
+                                                                <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                                                                <h3 className="text-sm font-semibold text-foreground">Forma de venta</h3>
+                                                            </div>
+
+                                                            <FormField
+                                                                control={serviceForm.control}
+                                                                name="requireProduct"
+                                                                render={({ field }) => (
+                                                                    <FormItem className="space-y-3">
+                                                                        <FormLabel className="text-sm font-medium">¿Cómo quieres vender este servicio?</FormLabel>
+                                                                        <div className="space-y-3">
+                                                                            <div
+                                                                                onClick={() => field.onChange(false)}
+                                                                                className={cn(
+                                                                                    "relative flex items-start gap-3 rounded-lg border-2 p-4 cursor-pointer transition-all hover:border-primary/50",
+                                                                                    !field.value ? "border-primary bg-primary/5" : "border-muted"
+                                                                                )}
+                                                                            >
+                                                                                <div className={cn(
+                                                                                    "mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                                    !field.value ? "border-primary" : "border-muted-foreground"
+                                                                                )}>
+                                                                                    {!field.value && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                                                                </div>
+                                                                                <div className="flex-1 space-y-1">
+                                                                                    <p className="text-sm font-medium">Reserva individual</p>
+                                                                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                                                                        Cualquier cliente puede reservar directamente. También pueden usar paquetes si los tienen.
+                                                                                    </p>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div
+                                                                                onClick={() => field.onChange(true)}
+                                                                                className={cn(
+                                                                                    "relative flex items-start gap-3 rounded-lg border-2 p-4 cursor-pointer transition-all hover:border-primary/50",
+                                                                                    field.value ? "border-primary bg-primary/5" : "border-muted"
+                                                                                )}
+                                                                            >
+                                                                                <div className={cn(
+                                                                                    "mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                                    field.value ? "border-primary" : "border-muted-foreground"
+                                                                                )}>
+                                                                                    {field.value && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                                                                </div>
+                                                                                <div className="flex-1 space-y-1">
+                                                                                    <p className="text-sm font-medium">Solo con paquete</p>
+                                                                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                                                                        El cliente debe comprar un paquete primero. Ideal para servicios premium o membresías.
+                                                                                    </p>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        {field.value && (
+                                                                            <p className="text-xs text-blue-600 dark:text-blue-400 animate-in fade-in slide-in-from-top-1">
+                                                                                ℹ️ Asegúrate de crear paquetes en la sección "Productos" para que tus clientes puedan reservar
+                                                                            </p>
+                                                                        )}
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                )}
+                                                            />
+                                                        </div>
+
+                                                        <DialogFooter className="gap-2 sm:gap-0">
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                onClick={() => setIsServiceDialogOpen(false)}
+                                                                className="transition-all"
+                                                            >
+                                                                Cancelar
+                                                            </Button>
+                                                            <Button
+                                                                type="submit"
+                                                                className="transition-all"
+                                                            >
+                                                                Crear servicio
+                                                            </Button>
                                                         </DialogFooter>
                                                     </form>
                                                 </Form>
@@ -713,113 +996,360 @@ const BusinessDashboard = () => {
 
                             {/* Edit Service Modal */}
                             <Dialog open={isEditServiceDialogOpen} onOpenChange={setIsEditServiceDialogOpen}>
-                                <DialogContent className="sm:max-w-[425px]">
+                                <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
                                     <DialogHeader>
-                                        <DialogTitle>{t('dashboard.services.edit_title')}</DialogTitle>
-                                        <DialogDescription>{t('dashboard.services.edit_description')}</DialogDescription>
+                                        <DialogTitle className="text-xl">{t('dashboard.services.edit_title')}</DialogTitle>
+                                        <DialogDescription className="text-sm">{t('dashboard.services.edit_description')}</DialogDescription>
                                     </DialogHeader>
                                     <Form {...editServiceForm}>
-                                        <form onSubmit={editServiceForm.handleSubmit(onUpdateService)} className="space-y-4">
-                                            <FormField
-                                                control={editServiceForm.control}
-                                                name="name"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>{t('dashboard.services.name_label')}</FormLabel>
-                                                        <FormControl>
-                                                            <Input placeholder={t('dashboard.services.name_placeholder')} {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <FormField
-                                                control={editServiceForm.control}
-                                                name="description"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>{t('dashboard.services.desc_label')}</FormLabel>
-                                                        <FormControl>
-                                                            <Input placeholder={t('dashboard.services.desc_placeholder')} {...field} />
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <div className="grid grid-cols-2 gap-4">
+                                        <form onSubmit={editServiceForm.handleSubmit(onUpdateService)} className="space-y-6">
+
+                                            {/* Sección: Información del servicio */}
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-2 pb-2 border-b">
+                                                    <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                                                    <h3 className="text-sm font-semibold text-foreground">Información del servicio</h3>
+                                                </div>
+
                                                 <FormField
                                                     control={editServiceForm.control}
-                                                    name="durationMinutes"
+                                                    name="name"
                                                     render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel>{t('dashboard.services.duration_label')}</FormLabel>
+                                                            <FormLabel className="text-sm font-medium">Nombre del servicio</FormLabel>
                                                             <FormControl>
-                                                                <Input type="number" {...field} />
+                                                                <Input
+                                                                    placeholder="Ej: Clase de Yoga, Consulta Nutricional..."
+                                                                    {...field}
+                                                                    className="transition-all focus:ring-2 focus:ring-primary/20"
+                                                                />
                                                             </FormControl>
+                                                            <p className="text-xs text-muted-foreground">Este nombre aparecerá en tu página de reservas</p>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )}
                                                 />
+
                                                 <FormField
                                                     control={editServiceForm.control}
-                                                    name="price"
+                                                    name="description"
                                                     render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel>{t('dashboard.services.price_label')}</FormLabel>
+                                                            <FormLabel className="text-sm font-medium">Descripción breve</FormLabel>
                                                             <FormControl>
-                                                                <Input type="number" {...field} />
+                                                                <Input
+                                                                    placeholder="Describe qué incluye este servicio..."
+                                                                    {...field}
+                                                                    className="transition-all focus:ring-2 focus:ring-primary/20"
+                                                                />
                                                             </FormControl>
+                                                            <p className="text-xs text-muted-foreground">Ayuda a tus clientes a entender qué van a recibir</p>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )}
                                                 />
                                             </div>
-                                            <FormField
-                                                control={editServiceForm.control}
-                                                name="isOnline"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>{t('dashboard.services.mode_label')}</FormLabel>
-                                                        <Select
-                                                            value={field.value ? "online" : "offline"}
-                                                            onValueChange={(val) => field.onChange(val === "online")}
-                                                        >
-                                                            <SelectTrigger>
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="offline">{t('dashboard.services.mode_offline')}</SelectItem>
-                                                                <SelectItem value="online">{t('dashboard.services.mode_online')}</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                    </FormItem>
+
+                                            {/* Sección: Detalles de la cita */}
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-2 pb-2 border-b">
+                                                    <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                                                    <h3 className="text-sm font-semibold text-foreground">Detalles de la cita</h3>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <FormField
+                                                        control={editServiceForm.control}
+                                                        name="durationMinutes"
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel className="text-sm font-medium">Duración (min)</FormLabel>
+                                                                <FormControl>
+                                                                    <Input
+                                                                        type="number"
+                                                                        {...field}
+                                                                        className="transition-all focus:ring-2 focus:ring-primary/20"
+                                                                    />
+                                                                </FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+
+                                                    <FormField
+                                                        control={editServiceForm.control}
+                                                        name="isOnline"
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel className="text-sm font-medium">Modalidad</FormLabel>
+                                                                <Select
+                                                                    value={field.value ? "online" : "offline"}
+                                                                    onValueChange={(val) => field.onChange(val === "online")}
+                                                                >
+                                                                    <SelectTrigger className="transition-all focus:ring-2 focus:ring-primary/20">
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="offline">Presencial</SelectItem>
+                                                                        <SelectItem value="online">En línea</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">Define cuánto tiempo tomará la sesión y dónde se realizará</p>
+
+                                                {/* Selección de lugar (Solo si el mapa está activo) */}
+                                                {business?.resourceConfig?.enabled && (
+                                                    <FormField
+                                                        control={editServiceForm.control}
+                                                        name="requireResource"
+                                                        render={({ field }) => (
+                                                            <FormItem className="space-y-3 pt-2">
+                                                                <FormLabel className="text-sm font-medium flex items-center gap-2">
+                                                                    <Grid3X3 className="h-4 w-4 text-primary" />
+                                                                    ¿Requiere selección de lugar?
+                                                                </FormLabel>
+                                                                <div
+                                                                    onClick={() => field.onChange(!field.value)}
+                                                                    className={cn(
+                                                                        "flex items-center justify-between p-3 rounded-lg border-2 cursor-pointer transition-all hover:border-primary/50",
+                                                                        field.value ? "border-primary bg-primary/5" : "border-muted"
+                                                                    )}
+                                                                >
+                                                                    <div className="flex flex-col gap-0.5">
+                                                                        <span className="text-sm font-medium">Mapa de {business?.resourceConfig?.resourceType || 'recursos'}</span>
+                                                                        <p className="text-xs text-muted-foreground">El cliente elegirá su lugar específico al reservar</p>
+                                                                    </div>
+                                                                    <div onClick={(e) => e.stopPropagation()}>
+                                                                        <Switch
+                                                                            checked={field.value}
+                                                                            onCheckedChange={field.onChange}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            </FormItem>
+                                                        )}
+                                                    />
                                                 )}
-                                            />
-                                            <FormField
-                                                control={editServiceForm.control}
-                                                name="active"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>{t('dashboard.services.status_header')}</FormLabel>
-                                                        <Select
-                                                            value={field.value ? "active" : "inactive"}
-                                                            onValueChange={(val) => field.onChange(val === "active")}
-                                                        >
-                                                            <SelectTrigger>
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="active">{t('common.active')}</SelectItem>
-                                                                <SelectItem value="inactive">{t('common.inactive')}</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-                                            <DialogFooter>
-                                                <Button type="submit">{t('common.save')}</Button>
+                                            </div>
+
+                                            {/* Sección: Precio y cobro */}
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-2 pb-2 border-b">
+                                                    <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                                                    <h3 className="text-sm font-semibold text-foreground">Precio y cobro</h3>
+                                                </div>
+
+                                                <FormField
+                                                    control={editServiceForm.control}
+                                                    name="price"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-sm font-medium">Precio por sesión (MXN)</FormLabel>
+                                                            <FormControl>
+                                                                <div className="relative">
+                                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                                                                    <Input
+                                                                        type="number"
+                                                                        {...field}
+                                                                        className="pl-7 transition-all focus:ring-2 focus:ring-primary/20"
+                                                                        placeholder="0"
+                                                                    />
+                                                                </div>
+                                                            </FormControl>
+                                                            <p className="text-xs text-muted-foreground">Este es el precio que verán tus clientes al reservar</p>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+
+                                                <FormField
+                                                    control={editServiceForm.control}
+                                                    name="requirePayment"
+                                                    render={({ field }) => (
+                                                        <FormItem className="space-y-3">
+                                                            <FormLabel className="text-sm font-medium">¿Requieres pago al reservar?</FormLabel>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div
+                                                                    onClick={() => field.onChange(false)}
+                                                                    className={cn(
+                                                                        "relative flex flex-col gap-2 rounded-lg border-2 p-3 cursor-pointer transition-all hover:border-primary/50",
+                                                                        !field.value ? "border-primary bg-primary/5" : "border-muted"
+                                                                    )}
+                                                                >
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className="text-sm font-medium">Solo reserva</span>
+                                                                        {!field.value && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                                                    </div>
+                                                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                                                        El cliente agenda sin pagar
+                                                                    </p>
+                                                                </div>
+
+                                                                <div
+                                                                    onClick={() => field.onChange(true)}
+                                                                    className={cn(
+                                                                        "relative flex flex-col gap-2 rounded-lg border-2 p-3 cursor-pointer transition-all hover:border-primary/50",
+                                                                        field.value ? "border-primary bg-primary/5" : "border-muted"
+                                                                    )}
+                                                                >
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className="text-sm font-medium">Pago requerido</span>
+                                                                        {field.value && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                                                    </div>
+                                                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                                                        Debe pagar para confirmar
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            {field.value && (
+                                                                <p className="text-xs text-amber-600 dark:text-amber-500 animate-in fade-in slide-in-from-top-1">
+                                                                    💡 La reserva quedará pendiente hasta que el cliente complete el pago
+                                                                </p>
+                                                            )}
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
+
+                                            {/* Sección: Forma de venta */}
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-2 pb-2 border-b">
+                                                    <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                                                    <h3 className="text-sm font-semibold text-foreground">Forma de venta</h3>
+                                                </div>
+
+                                                <FormField
+                                                    control={editServiceForm.control}
+                                                    name="requireProduct"
+                                                    render={({ field }) => (
+                                                        <FormItem className="space-y-3">
+                                                            <FormLabel className="text-sm font-medium">¿Cómo quieres vender este servicio?</FormLabel>
+                                                            <div className="space-y-3">
+                                                                <div
+                                                                    onClick={() => field.onChange(false)}
+                                                                    className={cn(
+                                                                        "relative flex items-start gap-3 rounded-lg border-2 p-4 cursor-pointer transition-all hover:border-primary/50",
+                                                                        !field.value ? "border-primary bg-primary/5" : "border-muted"
+                                                                    )}
+                                                                >
+                                                                    <div className={cn(
+                                                                        "mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                        !field.value ? "border-primary" : "border-muted-foreground"
+                                                                    )}>
+                                                                        {!field.value && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                                                    </div>
+                                                                    <div className="flex-1 space-y-1">
+                                                                        <p className="text-sm font-medium">Reserva individual</p>
+                                                                        <p className="text-xs text-muted-foreground leading-relaxed">
+                                                                            Cualquier cliente puede reservar directamente. También pueden usar paquetes si los tienen.
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div
+                                                                    onClick={() => field.onChange(true)}
+                                                                    className={cn(
+                                                                        "relative flex items-start gap-3 rounded-lg border-2 p-4 cursor-pointer transition-all hover:border-primary/50",
+                                                                        field.value ? "border-primary bg-primary/5" : "border-muted"
+                                                                    )}
+                                                                >
+                                                                    <div className={cn(
+                                                                        "mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all",
+                                                                        field.value ? "border-primary" : "border-muted-foreground"
+                                                                    )}>
+                                                                        {field.value && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                                                    </div>
+                                                                    <div className="flex-1 space-y-1">
+                                                                        <p className="text-sm font-medium">Solo con paquete</p>
+                                                                        <p className="text-xs text-muted-foreground leading-relaxed">
+                                                                            El cliente debe comprar un paquete primero. Ideal para servicios premium o membresías.
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            {field.value && (
+                                                                <p className="text-xs text-blue-600 dark:text-blue-400 animate-in fade-in slide-in-from-top-1">
+                                                                    ℹ️ Asegúrate de crear paquetes en la sección "Productos" para que tus clientes puedan reservar
+                                                                </p>
+                                                            )}
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
+
+                                            {/* Sección: Estado del servicio */}
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-2 pb-2 border-b">
+                                                    <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                                                    <h3 className="text-sm font-semibold text-foreground">Disponibilidad</h3>
+                                                </div>
+
+                                                <FormField
+                                                    control={editServiceForm.control}
+                                                    name="active"
+                                                    render={({ field }) => (
+                                                        <FormItem className="space-y-3">
+                                                            <FormLabel className="text-sm font-medium">Estado del servicio</FormLabel>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <div
+                                                                    onClick={() => field.onChange(true)}
+                                                                    className={cn(
+                                                                        "relative flex flex-col gap-2 rounded-lg border-2 p-3 cursor-pointer transition-all hover:border-primary/50",
+                                                                        field.value ? "border-primary bg-primary/5" : "border-muted"
+                                                                    )}
+                                                                >
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className="text-sm font-medium">Activo</span>
+                                                                        {field.value && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                                                    </div>
+                                                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                                                        Visible para clientes
+                                                                    </p>
+                                                                </div>
+
+                                                                <div
+                                                                    onClick={() => field.onChange(false)}
+                                                                    className={cn(
+                                                                        "relative flex flex-col gap-2 rounded-lg border-2 p-3 cursor-pointer transition-all hover:border-primary/50",
+                                                                        !field.value ? "border-primary bg-primary/5" : "border-muted"
+                                                                    )}
+                                                                >
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className="text-sm font-medium">Inactivo</span>
+                                                                        {!field.value && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                                                    </div>
+                                                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                                                        Oculto temporalmente
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
+
+                                            <DialogFooter className="gap-2 sm:gap-0">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() => setIsEditServiceDialogOpen(false)}
+                                                    className="transition-all"
+                                                >
+                                                    Cancelar
+                                                </Button>
+                                                <Button
+                                                    type="submit"
+                                                    className="transition-all"
+                                                >
+                                                    Guardar cambios
+                                                </Button>
                                             </DialogFooter>
                                         </form>
                                     </Form>
@@ -929,9 +1459,21 @@ const BusinessDashboard = () => {
                                                                     </div>
                                                                 </TableCell>
                                                                 <TableCell>
-                                                                    <Badge className={getStatusColor(booking.status)} variant="secondary">
-                                                                        {getStatusLabel(booking.status)}
-                                                                    </Badge>
+                                                                    <div className="flex flex-col gap-1 items-start">
+                                                                        <Badge className={getStatusColor(booking.status)} variant="secondary">
+                                                                            {getStatusLabel(booking.status)}
+                                                                        </Badge>
+                                                                        {booking.paymentStatus && (booking.paymentStatus as string) !== 'none' && (
+                                                                            <Badge variant="outline" className={cn(
+                                                                                "text-[10px] px-1 py-0 h-4 uppercase font-bold",
+                                                                                booking.paymentStatus === 'paid' ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/20' :
+                                                                                    booking.paymentStatus === 'pending_verification' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20' :
+                                                                                        'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
+                                                                            )}>
+                                                                                {t(`dashboard.bookings.payment_status.${booking.paymentStatus}`, booking.paymentStatus)}
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
                                                                 </TableCell>
                                                                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                                                     <DropdownMenu>
@@ -945,6 +1487,26 @@ const BusinessDashboard = () => {
                                                                             <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
                                                                             <DropdownMenuItem onClick={() => openBookingDetails(booking)}>{t('dashboard.bookings.actions.view_details')}</DropdownMenuItem>
                                                                             <DropdownMenuSeparator />
+
+                                                                            {/* Bank Transfer specific actions */}
+                                                                            {booking.paymentStatus === 'pending_verification' && (
+                                                                                <>
+                                                                                    <DropdownMenuItem
+                                                                                        className="text-green-600 font-semibold"
+                                                                                        onClick={() => handleVerifyPayment(booking._id)}
+                                                                                    >
+                                                                                        {t('dashboard.bookings.actions.verify_payment')}
+                                                                                    </DropdownMenuItem>
+                                                                                    <DropdownMenuItem
+                                                                                        className="text-red-600"
+                                                                                        onClick={() => handleRejectPayment(booking._id)}
+                                                                                    >
+                                                                                        {t('dashboard.bookings.actions.reject_payment')}
+                                                                                    </DropdownMenuItem>
+                                                                                    <DropdownMenuSeparator />
+                                                                                </>
+                                                                            )}
+
                                                                             {booking.status === 'pending' && (
                                                                                 <DropdownMenuItem
                                                                                     className="text-green-600"
@@ -1017,6 +1579,71 @@ const BusinessDashboard = () => {
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {/* Payment details if transfer */}
+                                            {bookingToView.paymentMethod === 'bank_transfer' && bookingToView.paymentDetails && (
+                                                <div className="space-y-3">
+                                                    <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                                                        {t('dashboard.bookings.details.payment_info')}
+                                                    </h3>
+                                                    <div className="bg-amber-50 dark:bg-amber-500/10 p-4 rounded-lg border border-amber-200 dark:border-amber-500/20 space-y-2">
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-muted-foreground">{t('dashboard.bookings.details.payment_status')}:</span>
+                                                            <Badge variant="outline" className="uppercase font-bold">
+                                                                {t(`dashboard.bookings.payment_status.${bookingToView.paymentStatus}`, bookingToView.paymentStatus)}
+                                                            </Badge>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-muted-foreground">{t('dashboard.bookings.details.payment_method')}:</span>
+                                                            <span className="font-medium">{t('dashboard.bookings.details.bank_transfer')}</span>
+                                                        </div>
+                                                        {bookingToView.paymentDetails.holderName && (
+                                                            <div className="flex justify-between text-sm">
+                                                                <span className="text-muted-foreground">{t('dashboard.bookings.details.holder')}:</span>
+                                                                <span className="font-medium">{bookingToView.paymentDetails.holderName}</span>
+                                                            </div>
+                                                        )}
+                                                        {bookingToView.paymentDetails.clabe && (
+                                                            <div className="flex justify-between text-sm">
+                                                                <span className="text-muted-foreground">{t('dashboard.bookings.details.clabe')}:</span>
+                                                                <span className="font-medium">{bookingToView.paymentDetails.clabe}</span>
+                                                            </div>
+                                                        )}
+                                                        {bookingToView.paymentDetails.transferDate && (
+                                                            <div className="flex justify-between text-sm">
+                                                                <span className="text-muted-foreground">{t('dashboard.bookings.details.transfer_date')}:</span>
+                                                                <span className="font-medium">
+                                                                    {format(new Date(bookingToView.paymentDetails.transferDate), "PPp", { locale: i18n.language === 'en' ? enUS : es })}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {bookingToView.paymentStatus === 'pending_verification' && (
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                className="flex-1 bg-green-600 hover:bg-green-700"
+                                                                onClick={() => {
+                                                                    handleVerifyPayment(bookingToView._id);
+                                                                    setIsBookingDetailsDialogOpen(false);
+                                                                }}
+                                                            >
+                                                                {t('dashboard.bookings.actions.confirm_receipt')}
+                                                            </Button>
+                                                            <Button
+                                                                variant="outline"
+                                                                className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
+                                                                onClick={() => {
+                                                                    handleRejectPayment(bookingToView._id);
+                                                                    setIsBookingDetailsDialogOpen(false);
+                                                                }}
+                                                            >
+                                                                {t('dashboard.bookings.actions.reject_payment')}
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
 
                                             {/* Service Information */}
                                             <div className="space-y-3">
@@ -1191,6 +1818,17 @@ const BusinessDashboard = () => {
                         <TabsContent value="billing">
                             <Billing businessId={businessId!} />
                         </TabsContent>
+
+                        <TabsContent value="resource-map">
+                            <ResourceMapEditor
+                                businessId={businessId!}
+                                initialConfig={business.resourceConfig}
+                            />
+                        </TabsContent>
+
+                        <TabsContent value="products" className="mt-6">
+                            <ProductsManager businessId={businessId || ""} />
+                        </TabsContent>
                     </Tabs>
                 </div>
             </div>
@@ -1199,4 +1837,3 @@ const BusinessDashboard = () => {
 };
 
 export default BusinessDashboard;
-

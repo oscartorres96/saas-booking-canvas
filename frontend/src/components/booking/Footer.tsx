@@ -1,5 +1,6 @@
-import { MapPin, Phone, Mail } from "lucide-react";
+import { MapPin, Phone, Mail, ArrowUpRight, Instagram, Facebook, Twitter } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { motion } from "framer-motion";
 
 interface FooterProps {
   businessAddress?: string;
@@ -19,86 +20,91 @@ export const Footer = ({
   businessSocials = {}
 }: FooterProps) => {
   const { t } = useTranslation();
+
   return (
-    <footer className="border-t bg-secondary/30">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid md:grid-cols-3 gap-8 mb-8">
-          <div className="space-y-4">
-            <h3 className="font-semibold text-lg">{t('booking.footer.contact_title')}</h3>
-            <div className="space-y-3 text-sm text-muted-foreground">
-              <div className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                <span>{businessAddress}</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <Phone className="h-5 w-5 flex-shrink-0" />
-                <a href={`tel:${businessPhone}`} className="hover:text-foreground transition-colors">
-                  {businessPhone}
-                </a>
-              </div>
-              <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 flex-shrink-0" />
-                <a href={`mailto:${businessEmail}`} className="hover:text-foreground transition-colors">
-                  {businessEmail}
-                </a>
-              </div>
-            </div>
-          </div>
+    <footer className="bg-slate-900 text-white py-24 relative overflow-hidden">
+      {/* Decorative Background */}
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/10 blur-[120px] rounded-full translate-x-1/2 -translate-y-1/2" />
 
-          <div className="space-y-4">
-            <h3 className="font-semibold text-lg">{t('booking.footer.hours_title')}</h3>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div className="flex justify-between">
-                <span>{t('booking.footer.days.mon_fri')}</span>
-                <span className="font-medium">9:00 - 18:00</span>
-              </div>
-              <div className="flex justify-between">
-                <span>{t('booking.footer.days.sat')}</span>
-                <span className="font-medium">10:00 - 14:00</span>
-              </div>
-              <div className="flex justify-between">
-                <span>{t('booking.footer.days.sun')}</span>
-                <span className="font-medium">{t('common.closed')}</span>
-              </div>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="grid md:grid-cols-12 gap-16 pb-16 border-b border-white/5">
+          <div className="md:col-span-5 space-y-8">
+            <div className="space-y-4">
+              <h2 className="text-3xl font-black uppercase italic tracking-tighter">
+                Tu Próximo <br />
+                <span className="text-primary">Nivel Comienza Aquí</span>
+              </h2>
+              <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-sm">
+                No solo reservamos lugares, diseñamos experiencias. Únete a la comunidad que está transformando su estilo de vida.
+              </p>
             </div>
-          </div>
 
-          <div className="space-y-4">
-            <h3 className="font-semibold text-lg">{t('booking.footer.follow_title')}</h3>
             <div className="flex gap-4">
-              {businessSocials.facebook && (
-                <a
-                  href={businessSocials.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
+              {[{ icon: Instagram, url: businessSocials.instagram }, { icon: Facebook, url: businessSocials.facebook }, { icon: Twitter, url: businessSocials.twitter }].map((social, i) => social.url && (
+                <motion.a
+                  key={i}
+                  href={social.url}
+                  whileHover={{ y: -5, scale: 1.1 }}
+                  className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-primary transition-colors group"
                 >
-                  <span className="sr-only">Facebook</span>
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                  </svg>
-                </a>
-              )}
-              {businessSocials.instagram && (
-                <a
-                  href={businessSocials.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-colors"
-                >
-                  <span className="sr-only">Instagram</span>
-                  <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                  </svg>
-                </a>
-              )}
+                  <social.icon className="h-5 w-5 text-slate-400 group-hover:text-white" />
+                </motion.a>
+              ))}
+            </div>
+          </div>
+
+          <div className="md:col-span-7 grid sm:grid-cols-2 gap-12">
+            <div className="space-y-6">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">{t('booking.footer.contact_title')}</h3>
+              <div className="space-y-4">
+                <div className="group cursor-pointer">
+                  <p className="text-[10px] uppercase font-bold text-slate-500 mb-1">Ubicación</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold group-hover:text-primary transition-colors">{businessAddress}</span>
+                    <ArrowUpRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </div>
+                <div className="group cursor-pointer">
+                  <p className="text-[10px] uppercase font-bold text-slate-500 mb-1">Teléfono</p>
+                  <a href={`tel:${businessPhone}`} className="text-sm font-bold group-hover:text-primary transition-colors">
+                    {businessPhone}
+                  </a>
+                </div>
+                <div className="group cursor-pointer">
+                  <p className="text-[10px] uppercase font-bold text-slate-500 mb-1">Email</p>
+                  <a href={`mailto:${businessEmail}`} className="text-sm font-bold group-hover:text-primary transition-colors">
+                    {businessEmail}
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">{t('booking.footer.hours_title')}</h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-end border-b border-white/5 pb-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('booking.footer.days.mon_fri')}</span>
+                  <span className="text-sm font-black italic">07:00 — 21:00</span>
+                </div>
+                <div className="flex justify-between items-end border-b border-white/5 pb-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('booking.footer.days.sat')}</span>
+                  <span className="text-sm font-black italic">08:00 — 14:00</span>
+                </div>
+                <div className="flex justify-between items-end border-b border-white/5 pb-2">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('booking.footer.days.sun')}</span>
+                  <span className="text-sm font-black italic opacity-30">{t('common.closed')}</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="border-t pt-8 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} {t('booking.footer.copyright')}</p>
-          <p className="mt-2">{t('booking.footer.powered_by')}</p>
+        <div className="pt-12 flex flex-col md:flex-row items-center justify-between gap-6 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+          <p>© {new Date().getFullYear()} {businessAddress !== "{{business_address}}" ? businessAddress.split(',')[0] : "Business"}. {t('booking.footer.copyright')}</p>
+          <div className="flex items-center gap-2">
+            <span>Powered by</span>
+            <span className="text-white italic font-black tracking-tighter text-sm">BookPro</span>
+          </div>
         </div>
       </div>
     </footer>

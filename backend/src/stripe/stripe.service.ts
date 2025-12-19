@@ -8,9 +8,12 @@ import { Payment, PaymentDocument } from './schemas/payment.schema';
 import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
 import { Lead, LeadDocument } from '../leads/schemas/lead.schema';
 import { User, UserDocument } from '../users/schemas/user.schema';
+import { Booking, BookingDocument, PaymentStatus, BookingStatus } from '../bookings/schemas/booking.schema';
 import { NotificationService } from '../services/notification.service';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
+import { CustomerAssetsService } from '../customer-assets/customer-assets.service';
+import { ProductsService } from '../products/products.service';
 
 @Injectable()
 export class StripeService {
@@ -26,7 +29,10 @@ export class StripeService {
         @InjectModel(Business.name) private businessModel: Model<BusinessDocument>,
         @InjectModel(Lead.name) private leadModel: Model<LeadDocument>,
         @InjectModel(User.name) private userModel: Model<UserDocument>,
+        @InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
         private readonly notificationService: NotificationService,
+        private readonly customerAssetsService: CustomerAssetsService,
+        private readonly productsService: ProductsService,
     ) {
         const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
         if (!secretKey) {
@@ -281,6 +287,18 @@ export class StripeService {
             return;
         }
 
+        // Check if this is a booking payment
+        if (type === 'booking_payment') {
+            await this.handleBookingPaymentCompleted(session);
+            return;
+        }
+
+        // Check if this is a product purchase
+        if (type === 'product_purchase') {
+            await this.handleProductPaymentCompleted(session);
+            return;
+        }
+
         // Regular checkout flow (authenticated user)
         const { userId, businessId } = metadata;
 
@@ -345,8 +363,10 @@ export class StripeService {
             businessId,
             userId,
             amount: session.amount_total || 0,
+            netAmount: session.amount_total || 0,
+            platformFee: 0,
             currency: session.currency || 'mxn',
-            status: 'paid',
+            status: 'PAID',
             description: 'Subscription checkout completed',
         });
 
@@ -464,8 +484,10 @@ export class StripeService {
             businessId: String(newBusiness._id),
             userId: String(newUser._id),
             amount: session.amount_total || 0,
+            netAmount: session.amount_total || 0,
+            platformFee: 0,
             currency: session.currency || 'mxn',
-            status: 'paid',
+            status: 'PAID',
             description: 'Direct purchase - subscription started',
         });
 
@@ -489,6 +511,142 @@ export class StripeService {
         });
 
         this.logger.log(`Direct purchase account created for lead: ${leadId}, user: ${newUser._id}, business: ${newBusiness._id}`);
+    }
+
+    /**
+     * Handle booking payment completion
+     */
+    private async handleBookingPaymentCompleted(session: Stripe.Checkout.Session): Promise<void> {
+        const metadata = session.metadata || {};
+        const { bookingId, businessId, paymentModel } = metadata;
+
+        if (!bookingId || !businessId) {
+            this.logger.error('Missing bookingId or businessId in session metadata for booking payment');
+            return;
+        }
+
+        // State mapping logic:
+        // INTERMEDIATED -> PENDING_PAYOUT (The money is in Platform's main account)
+        // STRIPE_CONNECT -> PAID (The money was automatically routed to Business via Destination Charge)
+        const sessionStatus = paymentModel === 'INTERMEDIATED' ? 'PENDING_PAYOUT' : 'PAID';
+
+        // Update payment record
+        const payment = await this.paymentModel.findOne({ stripeSessionId: session.id });
+        if (payment) {
+            payment.status = sessionStatus;
+            payment.stripePaymentIntentId = session.payment_intent as string;
+            await payment.save();
+        } else {
+            // Backup in case record wasn't created during session creation
+            // Note: platformFee is hardcoded to 0 as per business model (No transaction fee SaaS)
+            await this.paymentModel.create({
+                stripeSessionId: session.id,
+                stripePaymentIntentId: session.payment_intent as string,
+                bookingId,
+                businessId,
+                amount: session.amount_total || 0,
+                netAmount: session.amount_total || 0, // netAmount = total because fee is 0
+                platformFee: 0,
+                currency: session.currency || 'mxn',
+                status: sessionStatus,
+                paymentModel: paymentModel as any,
+                description: 'Booking payment completed (webhook backup)',
+            });
+        }
+
+        // Update booking record
+        const booking = await this.bookingModel.findById(bookingId);
+        if (booking) {
+            booking.paymentStatus = PaymentStatus.Paid;
+            booking.status = BookingStatus.Confirmed;
+            booking.paymentMethod = 'stripe';
+            await booking.save();
+
+            // Send confirmation notification
+            try {
+                await this.notificationService.sendBookingConfirmation(booking as any);
+            } catch (error) {
+                this.logger.error(`Error sending booking confirmation email: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
+        }
+
+        this.logger.log(`Booking ${bookingId} marked as PAID and CONFIRMED`);
+    }
+
+    /**
+     * Create a Stripe Checkout Session for a product purchase (Package/Pass)
+     */
+    async createProductCheckout(params: {
+        productId: string;
+        businessId: string;
+        clientEmail: string;
+        clientName?: string;
+        successUrl?: string;
+        cancelUrl?: string;
+    }): Promise<{ sessionId: string; url: string }> {
+        const { productId, businessId, clientEmail, clientName, successUrl, cancelUrl } = params;
+
+        const product = await this.productsService.findOne(productId);
+        const business = await this.businessModel.findById(businessId);
+
+        if (!business) throw new NotFoundException('Business not found');
+
+        const session = await this.stripe.checkout.sessions.create({
+            mode: 'payment',
+            customer_email: clientEmail,
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'mxn',
+                        product_data: {
+                            name: product.name,
+                            description: product.description || `Compra de ${product.name}`,
+                        },
+                        unit_amount: Math.round(product.price * 100),
+                    },
+                    quantity: 1,
+                },
+            ],
+            success_url: successUrl || `${this.frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=product`,
+            cancel_url: cancelUrl || `${this.frontendUrl}/payment/cancel?type=product`,
+            metadata: {
+                type: 'product_purchase',
+                productId,
+                businessId,
+                clientEmail,
+                clientName: clientName || '',
+            },
+        });
+
+        if (!session.url) throw new BadRequestException('Failed to create checkout session');
+
+        return { sessionId: session.id, url: session.url };
+    }
+
+    private async handleProductPaymentCompleted(session: Stripe.Checkout.Session): Promise<void> {
+        const { productId, businessId, clientEmail } = session.metadata || {};
+
+        if (!productId || !businessId || !clientEmail) {
+            this.logger.error('Missing metadata for product purchase completion');
+            return;
+        }
+
+        // Create the CustomerAsset
+        await this.customerAssetsService.createFromPurchase(businessId, clientEmail, productId);
+
+        // Record the payment
+        await this.paymentModel.create({
+            stripeSessionId: session.id,
+            businessId,
+            amount: session.amount_total || 0,
+            netAmount: session.amount_total || 0,
+            platformFee: 0,
+            currency: session.currency || 'mxn',
+            status: 'PAID',
+            description: `Product purchase: ${productId}`,
+        });
+
+        this.logger.log(`Product ${productId} purchased by ${clientEmail}`);
     }
 
     /**
@@ -543,8 +701,10 @@ export class StripeService {
                 businessId: subscription.businessId,
                 userId: subscription.userId,
                 amount: invoice.amount_paid || 0,
+                netAmount: invoice.amount_paid || 0,
+                platformFee: 0,
                 currency: invoice.currency || 'mxn',
-                status: 'paid',
+                status: 'PAID',
                 description: 'Subscription payment succeeded',
             });
 
@@ -583,8 +743,10 @@ export class StripeService {
                 businessId: subscription.businessId,
                 userId: subscription.userId,
                 amount: invoice.amount_due || 0,
+                netAmount: invoice.amount_due || 0,
+                platformFee: 0,
                 currency: invoice.currency || 'mxn',
-                status: 'failed',
+                status: 'FAILED',
                 description: 'Subscription payment failed',
             });
 
@@ -676,6 +838,92 @@ export class StripeService {
      */
     async getPaymentsByBusinessId(businessId: string): Promise<PaymentDocument[]> {
         return this.paymentModel.find({ businessId }).sort({ createdAt: -1 }).exec();
+    }
+
+    /**
+     * Create a Stripe Checkout Session for a booking payment
+     */
+    async createBookingCheckout(params: {
+        bookingId: string;
+        businessId: string;
+        amount: number; // in cents
+        currency?: string;
+        serviceName: string;
+        successUrl?: string;
+        cancelUrl?: string;
+    }): Promise<{ sessionId: string; url: string }> {
+        const { bookingId, businessId, amount, currency = 'mxn', serviceName, successUrl, cancelUrl } = params;
+
+        const business = await this.businessModel.findById(businessId);
+        if (!business) {
+            throw new NotFoundException('Business not found');
+        }
+
+        const paymentModel = business.paymentModel || 'INTERMEDIATED';
+        const sessionData: Stripe.Checkout.SessionCreateParams = {
+            mode: 'payment',
+            line_items: [
+                {
+                    price_data: {
+                        currency: currency.toLowerCase(),
+                        product_data: {
+                            name: serviceName,
+                            description: `Reserva para ${serviceName}`,
+                        },
+                        unit_amount: amount,
+                    },
+                    quantity: 1,
+                },
+            ],
+            success_url: successUrl || `${this.frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=booking`,
+            cancel_url: cancelUrl || `${this.frontendUrl}/payment/cancel?type=booking`,
+            // Architectural note: We use Destination Charges (transfer_data.destination) 
+            // instead of Direct Charges (stripeAccount header in creation).
+            // This allows the Platform (BookPro) to control the flow and keeps the Checkout Session 
+            // under the Platform's Stripe configuration (branding, terms, etc.) while 
+            // routing funds to the Business.
+            metadata: {
+                bookingId,
+                businessId,
+                type: 'booking_payment',
+                paymentModel,
+            },
+        };
+
+        if (paymentModel === 'STRIPE_CONNECT' && business.stripeConnectAccountId) {
+            sessionData.payment_intent_data = {
+                transfer_data: {
+                    destination: business.stripeConnectAccountId,
+                },
+            };
+        }
+
+        // Always create session on Platform account (Destination Charge pattern)
+        const session = await this.stripe.checkout.sessions.create(sessionData);
+
+        if (!session.url) {
+            throw new BadRequestException('Failed to create checkout session URL');
+        }
+
+        // Create a Payment record in CREATED status
+        await this.paymentModel.create({
+            stripeSessionId: session.id,
+            bookingId,
+            businessId,
+            userId: business.ownerUserId,
+            amount,
+            netAmount: amount, // No platform fee
+            platformFee: 0,
+            currency: currency.toLowerCase(),
+            status: 'CREATED',
+            paymentModel,
+            description: `Payment for booking: ${serviceName}`,
+        });
+
+        return {
+            sessionId: session.id,
+            url: session.url,
+        };
     }
 
     /**

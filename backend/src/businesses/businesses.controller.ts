@@ -65,6 +65,12 @@ export class BusinessesController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Put(':id/payment-config')
+  updatePaymentConfig(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+    return this.businessesService.updatePaymentConfig(id, body, req.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string, @Req() req: any) {
     return this.businessesService.remove(id, req.user);

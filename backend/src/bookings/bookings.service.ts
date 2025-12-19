@@ -3,9 +3,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { startOfDay, endOfDay } from 'date-fns';
 import { UserRole } from '../users/schemas/user.schema';
-import { Booking, BookingDocument, BookingStatus } from './schemas/booking.schema';
+import { Booking, BookingDocument, BookingStatus, PaymentStatus } from './schemas/booking.schema';
 import { NotificationService } from '../services/notification.service';
 import { Service, ServiceDocument } from '../services/schemas/service.schema';
+import { CustomerAssetsService } from '../customer-assets/customer-assets.service';
 
 export interface CreateBookingPayload {
   clientName: string;
@@ -19,6 +20,10 @@ export interface CreateBookingPayload {
   notes?: string;
   userId?: string;
   accessCode?: string;
+  resourceId?: string;
+  assetId?: string;
+  paymentStatus?: string;
+  paymentMethod?: string;
 }
 
 export type UpdateBookingPayload = Partial<CreateBookingPayload>;
@@ -36,7 +41,8 @@ export class BookingsService {
   constructor(
     @InjectModel(Booking.name) private readonly bookingModel: Model<BookingDocument>,
     @InjectModel(Service.name) private readonly serviceModel: Model<ServiceDocument>,
-    private readonly notificationService: NotificationService
+    private readonly notificationService: NotificationService,
+    private readonly customerAssetsService: CustomerAssetsService,
   ) { }
 
   private buildFilter(authUser: AuthUser) {
@@ -122,6 +128,19 @@ export class BookingsService {
       throw new ForbiddenException('Service is inactive');
     }
 
+    // Business Rule: Ensure product/package is provided if service requires it
+    if (service.requireProduct && !payload.assetId) {
+      throw new ForbiddenException('Este servicio requiere la compra previa de un pase o paquete.');
+    }
+
+    // Handle Asset Consumption
+    if (payload.assetId) {
+      await this.customerAssetsService.consumeUse(payload.assetId);
+      payload.paymentStatus = PaymentStatus.Paid;
+      payload.status = BookingStatus.Confirmed;
+      payload.paymentMethod = 'package';
+    }
+
     const booking = new this.bookingModel(payload);
     const savedBooking = await booking.save();
 
@@ -173,6 +192,18 @@ export class BookingsService {
       existing.status !== BookingStatus.Completed
     ) {
       await this.notificationService.sendBookingCompletedNotification(updated as Booking);
+    } else if (
+      payload.status === BookingStatus.Cancelled &&
+      existing.assetId
+    ) {
+      // Refund criteria: ONLY if booking has not started yet
+      const now = new Date();
+      if (existing.scheduledAt > now) {
+        await this.customerAssetsService.refundUse(existing.assetId);
+      } else {
+        // Log or handle case where cancellation is too late for refund
+        // We still cancel the booking, but don't give back the use.
+      }
     }
 
     return updated;
@@ -181,7 +212,6 @@ export class BookingsService {
   async findByEmailAndCode(clientEmail: string, accessCode: string, businessId?: string) {
     const filter: any = {
       clientEmail,
-      accessCode,
     };
     if (businessId) filter.businessId = businessId;
     return this.bookingModel.find(filter).lean();
@@ -199,6 +229,15 @@ export class BookingsService {
     }
 
     booking.status = BookingStatus.Cancelled;
+
+    // Refund Logic for Customer Assets
+    if (booking.assetId) {
+      const now = new Date();
+      if (booking.scheduledAt > now) {
+        await this.customerAssetsService.refundUse(booking.assetId);
+      }
+    }
+
     const cancelledBooking = await booking.save();
 
     // Enviar notificación de cancelación
@@ -220,6 +259,55 @@ export class BookingsService {
       scheduledAt: { $gte: start, $lte: end },
       status: { $ne: BookingStatus.Cancelled },
     }).lean();
+  }
+
+  async confirmPaymentTransfer(id: string, paymentDetails: { bank?: string; clabe?: string; holderName?: string }) {
+    const booking = await this.bookingModel.findById(id);
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    booking.paymentStatus = PaymentStatus.PendingVerification;
+    booking.status = BookingStatus.PendingPayment;
+    booking.paymentDetails = {
+      ...paymentDetails,
+      transferDate: new Date(),
+    };
+    booking.paymentMethod = 'bank_transfer';
+
+    return booking.save();
+  }
+
+  async verifyPaymentTransfer(id: string, authUser: AuthUser) {
+    const booking = await this.bookingModel.findById(id);
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const filter = this.buildFilter(authUser);
+    if (filter.businessId && booking.businessId !== filter.businessId) {
+      throw new ForbiddenException('Not allowed');
+    }
+
+    booking.paymentStatus = PaymentStatus.Paid;
+    booking.status = BookingStatus.Confirmed;
+
+    const saved = await booking.save();
+
+    // Optionally notify customer
+    await this.notificationService.sendBookingConfirmation(saved as Booking);
+
+    return saved;
+  }
+
+  async rejectPaymentTransfer(id: string, authUser: AuthUser) {
+    const booking = await this.bookingModel.findById(id);
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const filter = this.buildFilter(authUser);
+    if (filter.businessId && booking.businessId !== filter.businessId) {
+      throw new ForbiddenException('Not allowed');
+    }
+
+    booking.paymentStatus = PaymentStatus.Rejected;
+    // We could keep it as PendingPayment or change it
+    return booking.save();
   }
 }
 

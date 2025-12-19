@@ -16,8 +16,23 @@ export interface CreatePortalSessionResponse {
     };
 }
 
+export interface CreateBookingCheckoutParams {
+    bookingId: string;
+    businessId: string;
+    amount: number;
+    currency?: string;
+    serviceName: string;
+    successUrl?: string;
+    cancelUrl?: string;
+}
+
 export const createCheckoutSession = async (params: CreateCheckoutSessionParams) => {
     const { data } = await apiClient.post('/stripe/checkout/subscription', params);
+    return data;
+};
+
+export const createBookingCheckout = async (params: CreateBookingCheckoutParams) => {
+    const { data } = await apiClient.post('/stripe/checkout/booking', params);
     return data;
 };
 

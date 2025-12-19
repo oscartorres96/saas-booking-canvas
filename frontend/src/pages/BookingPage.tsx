@@ -3,7 +3,9 @@ import { HeroSection } from "../components/booking/HeroSection";
 import { ServicesSection } from "../components/booking/ServicesSection";
 import { BookingCalendar } from "../components/booking/BookingCalendar";
 import { BookingForm } from "../components/booking/BookingForm";
+import { ProductsStore } from "../components/booking/ProductsStore";
 import { Footer } from "../components/booking/Footer";
+import { BookingStepper } from "../components/booking/BookingStepper";
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useBusinessData } from "../hooks/useBusinessData";
@@ -14,6 +16,7 @@ const BookingPage = () => {
     const { data: businessData, isLoading } = useBusinessData(businessSlug);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
+    const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
     const { i18n } = useTranslation();
 
     useEffect(() => {
@@ -33,6 +36,31 @@ const BookingPage = () => {
         );
     }
 
+    // Determine current step based on selections
+    const getCurrentStep = () => {
+        if (!selectedServiceId) return 1;
+        if (!selectedDate || !selectedTime) return 2;
+        return 3;
+    };
+
+    const steps = [
+        {
+            id: 1,
+            title: "Servicio",
+            description: "Elige tu opción"
+        },
+        {
+            id: 2,
+            title: "Fecha y Hora",
+            description: "Selecciona el momento"
+        },
+        {
+            id: 3,
+            title: "Confirma",
+            description: "Completa tu reserva"
+        }
+    ];
+
     return (
         <div className="min-h-screen bg-background">
             <Header
@@ -47,9 +75,16 @@ const BookingPage = () => {
                     primaryColor={businessData.primaryColor}
                 />
 
+                <BookingStepper
+                    steps={steps}
+                    currentStep={getCurrentStep()}
+                />
+
                 <ServicesSection
                     services={businessData.services}
                     primaryColor={businessData.primaryColor}
+                    selectedServiceId={selectedServiceId || undefined}
+                    onServiceSelect={setSelectedServiceId}
                 />
 
                 <BookingCalendar
@@ -58,6 +93,12 @@ const BookingPage = () => {
                     setSelectedDate={setSelectedDate}
                     selectedTime={selectedTime}
                     setSelectedTime={setSelectedTime}
+                    isEnabled={!!selectedServiceId}
+                />
+
+                <ProductsStore
+                    businessId={businessData._id || businessSlug || ""}
+                    primaryColor={businessData.primaryColor}
                 />
 
                 <BookingForm
@@ -67,6 +108,8 @@ const BookingPage = () => {
                     businessName={businessData.businessName}
                     businessId={businessData._id || businessSlug}
                     services={businessData.services}
+                    paymentConfig={businessData.paymentConfig}
+                    paymentModel={businessData.paymentModel}
                 />
             </main>
 

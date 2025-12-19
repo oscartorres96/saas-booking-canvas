@@ -21,23 +21,38 @@ export class Payment {
     userId!: string;
 
     @Prop({ required: true })
-    amount!: number; // Amount in cents
+    amount!: number; // Amount in cents (Total paid by client)
+
+    @Prop({ required: true })
+    netAmount!: number; // Amount to be received by the business (amount - platformFee)
+
+    @Prop({ required: true, default: 0 })
+    platformFee!: number; // Platform commission (currently 0)
 
     @Prop({ required: true, default: 'mxn' })
     currency!: string;
 
     @Prop({
         required: true,
-        enum: ['paid', 'failed', 'pending', 'refunded'],
-        default: 'pending',
+        enum: ['CREATED', 'PAID', 'PENDING_PAYOUT', 'PAID_OUT', 'FAILED', 'REFUNDED'],
+        default: 'CREATED',
     })
     status!: string;
+
+    @Prop({
+        type: String,
+        enum: ['INTERMEDIATED', 'STRIPE_CONNECT'],
+    })
+    paymentModel?: 'INTERMEDIATED' | 'STRIPE_CONNECT';
 
     @Prop()
     description?: string;
 
     @Prop({ type: Object })
     metadata?: Record<string, unknown>;
+
+    @Prop()
+    bookingId?: string;
 
     createdAt?: Date;
     updatedAt?: Date;
@@ -51,3 +66,6 @@ PaymentSchema.index({ userId: 1 });
 PaymentSchema.index({ stripeSessionId: 1 });
 PaymentSchema.index({ stripeInvoiceId: 1 });
 PaymentSchema.index({ stripePaymentIntentId: 1 });
+PaymentSchema.index({ bookingId: 1 });
+PaymentSchema.index({ status: 1 });
+PaymentSchema.index({ businessId: 1, status: 1 });

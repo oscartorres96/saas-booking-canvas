@@ -136,8 +136,8 @@ export function PricingSection() {
                             <CardTitle className="text-2xl font-bold">
                                 {t('pricing.trial.name')}
                             </CardTitle>
-                            <CardDescription className="mt-4">
-                                <div className="flex items-baseline justify-center gap-1">
+                            <CardDescription className="mt-4 space-y-2">
+                                <span className="flex items-baseline justify-center gap-1">
                                     <span className="text-5xl font-bold text-foreground">
                                         {t('pricing.trial.price')}
                                     </span>
@@ -147,10 +147,10 @@ export function PricingSection() {
                                     <span className="text-muted-foreground">
                                         / {t('pricing.trial.period')}
                                     </span>
-                                </div>
-                                <p className="text-sm text-muted-foreground mt-2">
+                                </span>
+                                <span className="block text-sm text-muted-foreground mt-2">
                                     {t('pricing.trial.subtitle')}
-                                </p>
+                                </span>
                             </CardDescription>
                         </CardHeader>
 
@@ -196,8 +196,8 @@ export function PricingSection() {
                             <CardTitle className="text-2xl font-bold">
                                 {isAnnual ? t('pricing.plan.name_annual') : t('pricing.plan.name')}
                             </CardTitle>
-                            <CardDescription className="mt-4">
-                                <div className="flex items-baseline justify-center gap-1">
+                            <CardDescription className="mt-4 space-y-2">
+                                <span className="flex items-baseline justify-center gap-1">
                                     <span className="text-5xl font-bold text-foreground">
                                         ${displayPrice.toLocaleString()}
                                     </span>
@@ -207,11 +207,11 @@ export function PricingSection() {
                                     <span className="text-muted-foreground">
                                         / {isAnnual ? t('pricing.plan.period_annual') : t('pricing.plan.period')}
                                     </span>
-                                </div>
+                                </span>
                                 {isAnnual && (
-                                    <p className="text-sm text-primary mt-2 font-medium">
+                                    <span className="block text-sm text-primary mt-2 font-medium">
                                         {t('pricing.plan.annual_savings')}
-                                    </p>
+                                    </span>
                                 )}
                             </CardDescription>
                         </CardHeader>

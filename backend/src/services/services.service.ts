@@ -11,6 +11,9 @@ export interface CreateServicePayload {
   price: number;
   active?: boolean;
   isOnline?: boolean;
+  requirePayment?: boolean;
+  requireResource?: boolean;
+  requireProduct?: boolean;
   businessId?: string;
 }
 

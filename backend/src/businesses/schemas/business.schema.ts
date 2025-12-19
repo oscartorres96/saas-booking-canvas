@@ -94,7 +94,69 @@ export class Business {
       intervals?: { startTime: string; endTime: string; }[];
     }[];
   };
+  @Prop({
+    type: {
+      method: { type: String, default: 'none' },
+      bank: String,
+      clabe: String,
+      holderName: String,
+      instructions: String,
+    },
+  })
+  paymentConfig?: {
+    method: 'none' | 'bank_transfer';
+    bank?: string;
+    clabe?: string;
+    holderName?: string;
+    instructions?: string;
+  };
+
+  @Prop({
+    type: String,
+    enum: ['INTERMEDIATED', 'STRIPE_CONNECT'],
+    default: 'INTERMEDIATED',
+  })
+  paymentModel?: 'INTERMEDIATED' | 'STRIPE_CONNECT';
+
+  @Prop({ trim: true })
+  stripeConnectAccountId?: string;
+
+  @Prop({
+    type: {
+      enabled: { type: Boolean, default: false },
+      resourceType: String,
+      resourceLabel: String,
+      rows: { type: Number, default: 5 },
+      cols: { type: Number, default: 5 },
+      resources: [{
+        id: String,
+        label: String,
+        isActive: { type: Boolean, default: true },
+        position: {
+          row: Number,
+          col: Number
+        }
+      }]
+    }
+  })
+  resourceConfig?: {
+    enabled: boolean;
+    resourceType?: string;
+    resourceLabel?: string;
+    rows?: number;
+    cols?: number;
+    resources?: {
+      id: string;
+      label: string;
+      isActive: boolean;
+      position: {
+        row: number;
+        col: number;
+      };
+    }[];
+  };
 }
+
 
 export const BusinessSchema = SchemaFactory.createForClass(Business);
 

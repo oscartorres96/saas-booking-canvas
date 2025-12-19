@@ -6,6 +6,7 @@ import { BookingsService } from './bookings.service';
 import { Booking, BookingSchema } from './schemas/booking.schema';
 import { Service, ServiceSchema } from '../services/schemas/service.schema';
 import { ServicesModule } from '../services/services.module';
+import { CustomerAssetsModule } from '../customer-assets/customer-assets.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ServicesModule } from '../services/services.module';
       { name: Service.name, schema: ServiceSchema },
     ]),
     forwardRef(() => ServicesModule),
+    CustomerAssetsModule,
   ],
   controllers: [BookingsController],
   providers: [BookingsService, JwtAuthGuard],

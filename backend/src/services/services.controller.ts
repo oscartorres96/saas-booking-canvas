@@ -28,6 +28,18 @@ class CreateServiceDto {
   isOnline?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  requirePayment?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requireResource?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requireProduct?: boolean;
+
+  @IsOptional()
   @IsString()
   businessId?: string;
 }
@@ -60,13 +72,25 @@ class UpdateServiceDto {
   isOnline?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  requirePayment?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requireResource?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requireProduct?: boolean;
+
+  @IsOptional()
   @IsString()
   businessId?: string;
 }
 
 @Controller('services')
 export class ServicesController {
-  constructor(private readonly servicesService: ServicesService) {}
+  constructor(private readonly servicesService: ServicesService) { }
 
   @Get()
   findAll(@Req() req: any, @Query('businessId') businessId?: string) {

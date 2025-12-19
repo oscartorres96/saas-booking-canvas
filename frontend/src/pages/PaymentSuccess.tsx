@@ -14,10 +14,12 @@ export default function PaymentSuccess() {
     const purchaseType = searchParams.get('type'); // Check if it's a direct purchase
 
     const isDirectPurchase = purchaseType === 'direct_purchase';
+    const bookingId = searchParams.get('bookingId');
+    const isBooking = !!bookingId || purchaseType === 'booking';
 
     useEffect(() => {
         // Only auto-redirect for regular purchases (logged in users)
-        if (!isDirectPurchase) {
+        if (!isDirectPurchase && !isBooking) {
             const timer = setInterval(() => {
                 setCountdown((prev) => {
                     if (prev <= 1) {
@@ -149,6 +151,30 @@ export default function PaymentSuccess() {
                                 </ol>
                             </div>
                         </>
+                    ) : isBooking ? (
+                        // Booking Payment Flow
+                        <>
+                            <div className="bg-primary/5 border-2 border-primary/20 rounded-xl p-6 text-center animate-in zoom-in-95 duration-500">
+                                <h3 className="font-bold text-xl mb-2">{t('payment.success.booking_confirmed', '¡Cita Confirmada y Pagada!')}</h3>
+                                <p className="text-muted-foreground">
+                                    {t('payment.success.booking_desc', 'Tu pago ha sido procesado correctamente y tu cita está agendada.')}
+                                </p>
+                                {bookingId && (
+                                    <div className="mt-4 p-3 bg-background rounded-lg border border-dashed font-mono font-bold text-primary">
+                                        ID: {bookingId}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4 mt-6">
+                                <Button onClick={() => navigate('/my-bookings')} variant="default" className="h-12 text-lg">
+                                    {t('payment.success.view_my_bookings', 'Ver mis citas')}
+                                </Button>
+                                <Button onClick={() => navigate('/')} variant="outline" className="h-12">
+                                    {t('payment.success.back_home', 'Volver al Inicio')}
+                                </Button>
+                            </div>
+                        </>
                     ) : (
                         // Regular Flow - Already logged in
                         <>
@@ -189,11 +215,13 @@ export default function PaymentSuccess() {
                     )}
                 </CardContent>
 
-                <CardFooter className="flex justify-center pb-8">
-                    <Button onClick={handleGoToDashboard} size="lg" className="w-full sm:w-auto">
-                        {isDirectPurchase ? '🏠 Volver al Inicio' : t('payment.success.cta')}
-                    </Button>
-                </CardFooter>
+                {!isBooking && (
+                    <CardFooter className="flex justify-center pb-8">
+                        <Button onClick={handleGoToDashboard} size="lg" className="w-full sm:w-auto">
+                            {isDirectPurchase ? '🏠 Volver al Inicio' : t('payment.success.cta')}
+                        </Button>
+                    </CardFooter>
+                )}
             </Card>
         </div>
     );

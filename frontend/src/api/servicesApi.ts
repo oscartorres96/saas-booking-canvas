@@ -9,6 +9,9 @@ export interface Service {
     price: number;
     active?: boolean;
     isOnline?: boolean;
+    requirePayment?: boolean;
+    requireResource?: boolean;
+    requireProduct?: boolean;
     createdAt?: string;
 }
 
