@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -80,7 +80,8 @@ import { BusinessThemeToggle } from "@/components/BusinessThemeToggle";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "react-i18next";
 import { ResourceSelector } from "@/components/booking/ResourceSelector";
-import { BookingStepper } from "@/components/booking/BookingStepper";
+import AnimatedStepper, { AnimatedStep } from "@/components/booking/AnimatedStepper";
+import { ServiceCard } from "@/components/booking/ServiceCard";
 import { ProductsStore } from "@/components/booking/ProductsStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -125,6 +126,8 @@ const BusinessBookingPage = () => {
     const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [activeFilter, setActiveFilter] = useState<"all" | "presencial" | "online" | "packages">("all");
+    const [step, setStep] = useState(1);
+    const [bookingSuccessCode, setBookingSuccessCode] = useState<string | null>(null);
     const { theme, setTheme } = useTheme();
     const { t, i18n } = useTranslation();
 
@@ -174,6 +177,16 @@ const BusinessBookingPage = () => {
     // Watch email and phone to fetch assets automatically for guest users
     const clientEmail = form.watch("clientEmail");
     const clientPhone = form.watch("clientPhone");
+    const prevStepRef = useRef(step);
+
+    // Auto-scroll to top on step change
+    useEffect(() => {
+        if (step !== prevStepRef.current) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            prevStepRef.current = step;
+        }
+    }, [step]);
+
     useEffect(() => {
         const fetchAssetsForContact = async () => {
             const hasValidEmail = clientEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail);
@@ -223,6 +236,7 @@ const BusinessBookingPage = () => {
         if (serviceId) {
             const service = services.find(s => s._id === serviceId);
             setSelectedService(service || null);
+            setStep(2); // Auto advance to calendar
         } else {
             setSelectedService(null);
         }
@@ -359,6 +373,7 @@ const BusinessBookingPage = () => {
         form.setValue('productId', product._id);
         form.setValue('assetId', undefined);
         toast.info(`Has seleccionado: ${product.name}. Procede a confirmar para realizar el pago.`);
+        setStep(3); // Direct to checkout if buying package only
     };
 
     const onSubmit = async (values: z.infer<typeof bookingFormSchema>) => {
@@ -422,14 +437,9 @@ const BusinessBookingPage = () => {
 
             const booking = await createBooking(bookingData);
 
+            setBookingSuccessCode(booking.accessCode || null);
             setBookingSuccess(true);
             toast.success(t('booking.form.toasts.confirmed_desc'));
-
-            setTimeout(() => {
-                navigate(
-                    `/my-bookings?email=${encodeURIComponent(values.clientEmail)}&code=${encodeURIComponent(booking.accessCode || "")}&businessId=${encodeURIComponent(businessId)}`
-                );
-            }, 2000);
 
             if (user?.userId) {
                 const bookingsData = await getBookingsByClient(user.userId);
@@ -657,9 +667,12 @@ const BusinessBookingPage = () => {
     return (
         <div
             className="min-h-screen transition-colors duration-300"
-            style={theme === 'custom' && business.settings?.secondaryColor ? {
-                backgroundColor: business.settings.secondaryColor + '15'
-            } : {}}
+            style={{
+                ...(theme === 'custom' && business.settings?.secondaryColor ? {
+                    backgroundColor: business.settings.secondaryColor + '10'
+                } : {}),
+                transition: 'background-color 0.5s ease-in-out'
+            }}
         >
             <div
                 className="border-b shadow-sm transition-colors duration-300"
@@ -703,799 +716,505 @@ const BusinessBookingPage = () => {
 
             <div className="max-w-5xl mx-auto px-3 md:px-4 py-6 md:py-8 space-y-6 md:space-y-8">
                 {/* Stepper */}
-                <div className="mb-8">
-                    <BookingStepper
+                {!bookingSuccess ? (
+                    <AnimatedStepper
+                        currentStep={step}
+                        onStepChange={(s) => setStep(s)}
                         steps={[
                             { id: 1, title: "Servicio", description: "Elige tu opción" },
-                            { id: 2, title: "Fecha y Hora", description: "Selecciona el momento" },
-                            { id: 3, title: "Confirma", description: "Completa tu reserva" }
+                            { id: 2, title: "Horario", description: "Cuándo vienes" },
+                            { id: 3, title: "Tus Datos", description: "Quién reserva" },
+                            { id: 4, title: "Confirmar", description: "Paga y finaliza" }
                         ]}
-                        currentStep={
-                            !selectedServiceId && !selectedProduct ? 1 :
-                                (selectedProduct && !selectedServiceId) ? 3 :
-                                    (!selectedDate || !selectedTime) ? 2 : 3
-                        }
-                    />
-                </div>
-                {
-                    bookingSuccess && (
-                        <Card className="border-green-200 bg-green-50">
-                            <CardContent className="pt-6">
-                                <div className="flex items-center gap-3">
-                                    <CheckCircle2 className="h-8 w-8 text-green-600" />
-                                    <div>
-                                        <h3 className="font-semibold text-green-900">{t('booking.form.confirmation_title')}</h3>
-                                        <p className="text-sm text-green-700">
-                                            {t('booking.form.need_code')}
-                                        </p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )
-                }
-
-                <AnimatePresence mode="wait">
-                    {(!selectedServiceId && !selectedProduct) && (
-                        <motion.div
-                            key="step1"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.5 }}
-                        >
-                            <Card className={cn("shadow-xl border-2 transition-all duration-500 overflow-hidden", selectedServiceId && "opacity-50 grayscale scale-[0.98]")}>
+                    >
+                        <AnimatedStep>
+                            <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
                                 <CardHeader className="pb-2">
-                                    <div className="text-center mb-4 md:mb-6 px-2">
-                                        <div className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full bg-primary/10 text-primary text-xs md:text-sm font-semibold mb-3 md:mb-4">
-                                            <span className="relative flex h-2 w-2">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                                            </span>
-                                            Paso 1 de 3
-                                        </div>
-                                        <CardTitle className="text-2xl md:text-3xl lg:text-4xl font-black uppercase italic tracking-tighter dark:text-white leading-tight">
-                                            Nuestros <span className="text-primary italic">Servicios</span>
+                                    <div className="text-center mb-6 px-2">
+                                        <CardTitle className="text-3xl lg:text-5xl font-black uppercase italic tracking-tighter dark:text-white leading-tight">
+                                            NUESTROS <span className="text-primary italic">SERVICIOS</span>
                                         </CardTitle>
-                                        <CardDescription className="text-sm md:text-base mt-2 px-4">Encuentra la experiencia perfecta para tu transformación</CardDescription>
+                                        <CardDescription className="text-base mt-2 px-4 font-medium italic opacity-70">Encuentra la experiencia perfecta para tu transformación</CardDescription>
                                     </div>
 
                                     {/* Search & Filter Bar */}
-                                    <div className="flex flex-col gap-3 mb-4 md:mb-6 px-2">
-                                        {/* Search Input */}
-                                        <div className="bg-slate-50 dark:bg-slate-900 px-4 py-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                    <div className="flex flex-col gap-4 mb-4 px-2 max-w-3xl mx-auto w-full">
+                                        <div className="bg-slate-50 dark:bg-slate-900 px-4 py-1 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                                             <div className="relative group">
                                                 <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                                 <input
                                                     type="text"
-                                                    placeholder="¿Qué servicio buscas?"
-                                                    className="w-full pl-8 pr-2 h-12 bg-transparent outline-none text-sm font-medium"
+                                                    placeholder="¿Qué servicio buscas hoy?"
+                                                    className="w-full pl-8 pr-2 h-14 bg-transparent outline-none text-base font-bold italic"
                                                     value={searchTerm}
                                                     onChange={(e) => setSearchTerm(e.target.value)}
                                                 />
                                             </div>
                                         </div>
-                                        {/* Filter Buttons */}
-                                        <div className="grid grid-cols-2 md:flex md:items-center md:justify-center gap-2 p-2 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-                                            <Button
-                                                variant={activeFilter === 'all' ? 'default' : 'ghost'}
-                                                size="sm"
-                                                className="rounded-xl font-bold text-[11px] md:text-[10px] uppercase tracking-wider h-12 md:h-10 px-3 md:px-4"
-                                                onClick={() => setActiveFilter('all')}
-                                            >
-                                                Todos
-                                            </Button>
-                                            <Button
-                                                variant={activeFilter === 'presencial' ? 'default' : 'ghost'}
-                                                size="sm"
-                                                className="rounded-xl font-bold text-[11px] md:text-[10px] uppercase tracking-wider h-12 md:h-10 px-3 md:px-4"
-                                                onClick={() => setActiveFilter('presencial')}
-                                            >
-                                                Presencial
-                                            </Button>
-                                            <Button
-                                                variant={activeFilter === 'online' ? 'default' : 'ghost'}
-                                                size="sm"
-                                                className="rounded-xl font-bold text-[11px] md:text-[10px] uppercase tracking-wider h-12 md:h-10 px-3 md:px-4"
-                                                onClick={() => setActiveFilter('online')}
-                                            >
-                                                Online
-                                            </Button>
-                                            {products.length > 0 && (
-                                                <Button
-                                                    variant={activeFilter === 'packages' ? 'default' : 'ghost'}
-                                                    size="sm"
-                                                    className="rounded-xl font-bold text-[11px] md:text-[10px] uppercase tracking-wider h-12 md:h-10 px-3 md:px-4 col-span-2 md:col-span-1"
-                                                    onClick={() => setActiveFilter('packages')}
-                                                >
-                                                    Paquetes
-                                                </Button>
-                                            )}
+                                        <div className="flex items-center justify-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-900 rounded-[1.2rem] border border-slate-200 dark:border-slate-800">
+                                            {[
+                                                { id: 'all', label: 'Todos' },
+                                                { id: 'presencial', label: 'Presencial' },
+                                                { id: 'online', label: 'Online' },
+                                                { id: 'packages', label: 'Ver Paquetes' }
+                                            ].map((filter) => (
+                                                (filter.id !== 'packages' || products.length > 0) && (
+                                                    <Button
+                                                        key={filter.id}
+                                                        variant={activeFilter === filter.id ? 'default' : 'ghost'}
+                                                        size="sm"
+                                                        className={cn(
+                                                            "rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-[0.15em] h-9 px-4 flex-1 md:flex-none transition-all duration-300",
+                                                            activeFilter === filter.id && "shadow-lg shadow-primary/20"
+                                                        )}
+                                                        onClick={() => setActiveFilter(filter.id as any)}
+                                                    >
+                                                        {filter.label}
+                                                    </Button>
+                                                )
+                                            ))}
                                         </div>
                                     </div>
                                 </CardHeader>
-                                <CardContent className="pt-4 md:pt-6 px-3 md:px-6 pb-4 md:pb-6">
+                                <CardContent className="pt-6 px-3 md:px-8 pb-10">
                                     {services.length === 0 ? (
-                                        <div className="text-center py-16 md:py-20 border-2 border-dashed rounded-[2rem] border-slate-200 dark:border-slate-800 mx-2">
-                                            <Zap className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-3 md:mb-4 text-slate-300" />
-                                            <p className="text-muted-foreground font-medium text-sm px-4">No hay servicios disponibles en este momento</p>
+                                        <div className="text-center py-20 border-2 border-dashed rounded-[2rem] border-slate-100 dark:border-slate-800 opacity-50">
+                                            <Zap className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                                            <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">No hay servicios disponibles</p>
                                         </div>
                                     ) : (
-                                        <div className="space-y-8">
+                                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                                             {(() => {
                                                 if (activeFilter === 'packages') {
-                                                    const filteredProducts = products.filter(p =>
-                                                        (p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                            p.description?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-                                                        (p.type === ProductType.Package || p.type === ProductType.Pass)
-                                                    );
-
-                                                    if (filteredProducts.length === 0) {
-                                                        return (
-                                                            <div className="text-center py-12 md:py-16 px-4">
-                                                                <Zap className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-3 md:mb-4 text-slate-300" />
-                                                                <p className="text-muted-foreground font-medium text-sm">No hay paquetes disponibles con ese nombre</p>
-                                                            </div>
-                                                        );
-                                                    }
-
-                                                    return (
-                                                        <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                                                            {filteredProducts.map((product, index) => (
-                                                                <motion.div
-                                                                    key={product._id}
-                                                                    initial={{ opacity: 0, y: 20 }}
-                                                                    animate={{ opacity: 1, y: 0 }}
-                                                                    transition={{ duration: 0.4, delay: index * 0.05 }}
-                                                                    whileHover={{ y: -8 }}
-                                                                    className="h-full"
-                                                                >
-                                                                    <Card
-                                                                        className={cn(
-                                                                            "group cursor-pointer transition-all duration-500 relative overflow-hidden h-full flex flex-col",
-                                                                            "border-2 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)]",
-                                                                            selectedProduct?._id === product._id
-                                                                                ? "border-primary shadow-2xl shadow-primary/20 bg-primary/5"
-                                                                                : "border-slate-100 dark:border-slate-800/50 hover:border-primary/30 bg-card"
-                                                                        )}
-                                                                        onClick={() => {
-                                                                            handleBuyPackage(product);
-                                                                            // Clear service selection when picking a product standalone
-                                                                            handleServiceSelect("");
-                                                                        }}
-                                                                    >
-                                                                        {selectedProduct?._id === product._id && (
-                                                                            <div className="absolute top-4 left-4 z-20">
-                                                                                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg border-4 border-white dark:border-slate-900">
-                                                                                    <Check className="h-5 w-5 text-white" strokeWidth={4} />
-                                                                                </div>
-                                                                            </div>
-                                                                        )}
-
-                                                                        <div className="flex justify-end p-4 relative z-10">
-                                                                            <Badge className="bg-gradient-to-r from-amber-400 to-amber-600 border-0 text-[8px] font-black uppercase tracking-widest italic px-2 py-1">
-                                                                                {product.type === ProductType.Package ? 'Paquete' : 'Pase'}
-                                                                            </Badge>
-                                                                        </div>
-
-                                                                        <div className="px-6 py-2 flex-grow space-y-3">
-                                                                            <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none group-hover:text-primary transition-colors duration-300">
-                                                                                {product.name}
-                                                                            </h4>
-                                                                            {product.description && (
-                                                                                <p className="text-[11px] text-muted-foreground font-medium line-clamp-2">
-                                                                                    {product.description}
-                                                                                </p>
-                                                                            )}
-                                                                        </div>
-
-                                                                        <div className="mt-auto p-6 space-y-6">
-                                                                            <div className="flex items-center gap-6 border-t border-slate-100 dark:border-slate-800/50 pt-4">
-                                                                                <div className="flex flex-col gap-1">
-                                                                                    <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60">Contenido</span>
-                                                                                    <div className="font-black italic text-sm">
-                                                                                        {product.isUnlimited ? 'Ilimitado' : `${product.totalUses} Clases`}
-                                                                                    </div>
-                                                                                </div>
-                                                                                <div className="flex flex-col gap-1">
-                                                                                    <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60">Precio</span>
-                                                                                    <div className="font-black italic text-lg text-primary">
-                                                                                        ${product.price}
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                            <Button
-                                                                                variant={selectedProduct?._id === product._id ? "default" : "outline"}
-                                                                                className="w-full h-12 rounded-2xl text-[10px] font-black uppercase italic tracking-widest"
-                                                                            >
-                                                                                {selectedProduct?._id === product._id ? "Seleccionado" : "Elegir Plan"}
-                                                                            </Button>
-                                                                        </div>
-                                                                    </Card>
-                                                                </motion.div>
-                                                            ))}
-                                                        </div>
-                                                    );
-                                                }
-
-                                                const filtered = services.filter(s => {
-                                                    const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                        s.description?.toLowerCase().includes(searchTerm.toLowerCase());
-                                                    const matchesFilter = activeFilter === 'all' ||
-                                                        (activeFilter === 'online' ? s.isOnline : !s.isOnline);
-                                                    return matchesSearch && matchesFilter;
-                                                });
-
-                                                if (filtered.length === 0) {
-                                                    return (
-                                                        <motion.div
-                                                            initial={{ opacity: 0 }}
-                                                            animate={{ opacity: 1 }}
-                                                            className="text-center py-12 md:py-16 px-4"
-                                                        >
-                                                            <div className="h-16 w-16 md:h-20 md:w-20 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center mx-auto mb-3 md:mb-4 rotate-12">
-                                                                <Search className="h-6 w-6 md:h-8 md:w-8 text-slate-400" />
-                                                            </div>
-                                                            <p className="text-slate-500 font-bold uppercase tracking-[0.15em] md:tracking-[0.2em] text-[9px] md:text-[10px]">No hay coincidencias para tu búsqueda</p>
-                                                        </motion.div>
-                                                    );
-                                                }
-
-                                                return (
-                                                    <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                                                        {filtered.map((service, index) => (
-                                                            <motion.div
-                                                                key={service._id}
-                                                                initial={{ opacity: 0, y: 20 }}
-                                                                animate={{ opacity: 1, y: 0 }}
-                                                                transition={{ duration: 0.4, delay: index * 0.05 }}
-                                                                whileHover={{ y: -8 }}
-                                                                className="h-full"
-                                                            >
+                                                    return products
+                                                        .filter(p => p.active && (p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.description?.toLowerCase().includes(searchTerm.toLowerCase())))
+                                                        .map((product) => (
+                                                            <motion.div key={product._id} whileHover={{ y: -5 }}>
                                                                 <Card
-                                                                    className={cn(
-                                                                        "group cursor-pointer transition-all duration-500 relative overflow-hidden h-full flex flex-col",
-                                                                        "border-2 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)]",
-                                                                        selectedService?._id === service._id
-                                                                            ? "border-primary shadow-2xl shadow-primary/20 bg-primary/5"
-                                                                            : "border-slate-100 dark:border-slate-800/50 hover:border-primary/30 bg-card"
-                                                                    )}
-                                                                    onClick={() => handleServiceSelect(service._id)}
+                                                                    onClick={() => handleBuyPackage(product)}
+                                                                    className="cursor-pointer border-2 border-slate-100 dark:border-slate-800/50 hover:border-amber-500/50 transition-all p-6 rounded-[2rem] h-full flex flex-col group"
                                                                 >
-                                                                    {/* Selection Glow */}
-                                                                    {selectedService?._id === service._id && (
-                                                                        <div className="absolute inset-0 bg-primary/5 animate-pulse" />
-                                                                    )}
-
-                                                                    {/* Selected Indicator */}
-                                                                    {selectedService?._id === service._id && (
-                                                                        <div className="absolute top-4 left-4 z-20">
-                                                                            <motion.div
-                                                                                initial={{ scale: 0, rotate: -45 }}
-                                                                                animate={{ scale: 1, rotate: 0 }}
-                                                                                className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/40 border-4 border-white dark:border-slate-900"
-                                                                            >
-                                                                                <Check className="h-5 w-5 text-white" strokeWidth={4} />
-                                                                            </motion.div>
-                                                                        </div>
-                                                                    )}
-
-                                                                    <div className="flex justify-end p-4 gap-2 relative z-10">
-                                                                        {service.isOnline && (
-                                                                            <Badge variant="outline" className="bg-sky-500/10 text-sky-500 border-sky-500/20 text-[8px] font-black uppercase tracking-[0.2em] italic px-2 py-1">
-                                                                                En Línea
-                                                                            </Badge>
-                                                                        )}
-                                                                        {(service.requirePayment || service.requireProduct) && (
-                                                                            <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 border-0 text-[8px] font-black uppercase tracking-[0.2em] italic shadow-lg shadow-orange-500/20 px-2 py-1">
-                                                                                <Sparkles className="h-2 w-2 mr-1" />
-                                                                                Premium
-                                                                            </Badge>
-                                                                        )}
+                                                                    <div className="flex justify-between items-start mb-4">
+                                                                        <Badge className="bg-amber-500 text-white border-0 text-[8px] font-black uppercase italic italic px-2">Paquete</Badge>
+                                                                        <span className="text-2xl font-black italic text-amber-500 group-hover:scale-110 transition-transform">${product.price}</span>
                                                                     </div>
-
-                                                                    <div className="px-6 py-2 flex-grow space-y-3">
-                                                                        <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none group-hover:text-primary transition-colors duration-300 pt-2">
-                                                                            {service.name}
-                                                                        </h4>
-                                                                        {service.description && (
-                                                                            <p className="text-[11px] text-muted-foreground font-medium leading-relaxed line-clamp-2">
-                                                                                {service.description}
-                                                                            </p>
-                                                                        )}
-                                                                    </div>
-
-                                                                    <div className="mt-auto p-6 space-y-6">
-                                                                        <div className="flex items-center gap-6 border-t border-slate-100 dark:border-slate-800/50 pt-6">
-                                                                            <div className="flex flex-col gap-1">
-                                                                                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Tiempo</span>
-                                                                                <div className="flex items-center gap-2 font-black italic text-base">
-                                                                                    <Clock className="h-3.5 w-3.5 text-primary" />
-                                                                                    {service.durationMinutes}m
-                                                                                </div>
-                                                                            </div>
-                                                                            <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 rotate-12" />
-                                                                            <div className="flex flex-col gap-1">
-                                                                                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Valor</span>
-                                                                                <div className="flex items-center gap-2 font-black italic text-base text-primary">
-                                                                                    <DollarSign className="h-3.5 w-3.5" />
-                                                                                    {service.price}
-                                                                                </div>
-                                                                            </div>
+                                                                    <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none mb-2 group-hover:text-amber-500 transition-colors">{product.name}</h4>
+                                                                    <p className="text-[10px] text-muted-foreground font-medium mb-6 line-clamp-2">{product.description}</p>
+                                                                    <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800/50">
+                                                                        <div className="flex justify-between items-center text-[10px] font-black uppercase italic tracking-widest text-slate-400">
+                                                                            <span>Contenido</span>
+                                                                            <span className="text-foreground">{product.isUnlimited ? 'Ilimitado' : `${product.totalUses} Usos`}</span>
                                                                         </div>
-
-                                                                        <Button
-                                                                            variant={selectedService?._id === service._id ? "default" : "outline"}
-                                                                            className={cn(
-                                                                                "w-full h-12 rounded-2xl text-[10px] font-black uppercase italic tracking-[0.2em] gap-2 transition-all duration-500",
-                                                                                selectedService?._id === service._id
-                                                                                    ? "shadow-xl shadow-primary/30"
-                                                                                    : "group-hover:bg-primary group-hover:text-white group-hover:border-primary group-hover:shadow-lg group-hover:shadow-primary/20"
-                                                                            )}
-                                                                        >
-                                                                            {selectedService?._id === service._id ? (
-                                                                                <>Seleccionado <Check className="h-3.5 w-3.5" /></>
-                                                                            ) : (
-                                                                                <>Reservar Ahora <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" /></>
-                                                                            )}
-                                                                        </Button>
+                                                                        <Button className="w-full mt-4 rounded-xl font-black uppercase italic text-[10px] bg-amber-500 hover:bg-amber-600">Elegir Plan</Button>
                                                                     </div>
                                                                 </Card>
                                                             </motion.div>
-                                                        ))}
-                                                    </div>
-                                                );
+                                                        ));
+                                                }
+                                                return services
+                                                    .filter(s => {
+                                                        const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
+                                                        const matchesFilter = activeFilter === 'all' || (activeFilter === 'online' ? s.isOnline : !s.isOnline);
+                                                        return matchesSearch && matchesFilter;
+                                                    })
+                                                    .map(service => (
+                                                        <ServiceCard
+                                                            key={service._id}
+                                                            service={{
+                                                                id: service._id,
+                                                                ...service,
+                                                                duration: `${service.durationMinutes} min`,
+                                                                price: `$${service.price}`
+                                                            }}
+                                                            onBook={() => handleServiceSelect(service._id)}
+                                                            isSelected={selectedServiceId === service._id}
+                                                            primaryColor={business.settings?.primaryColor}
+                                                        />
+                                                    ));
                                             })()}
                                         </div>
                                     )}
                                 </CardContent>
-                                {selectedServiceId && (
-                                    <div className="px-6 pb-8 pt-2 flex justify-center">
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                        >
-                                            <Button
-                                                onClick={() => {
-                                                    const el = document.getElementById('step2-anchor');
-                                                    el?.scrollIntoView({ behavior: 'smooth' });
-                                                }}
-                                                className="px-10 h-14 rounded-2xl font-black uppercase italic tracking-widest gap-3 shadow-xl hover:shadow-2xl transition-all"
-                                            >
-                                                Continuar al Paso 2 <ArrowDown className="h-4 w-4 animate-bounce" />
-                                            </Button>
-                                        </motion.div>
-                                    </div>
-                                )}
-                                {selectedProduct && !selectedServiceId && (
-                                    <div className="px-6 pb-8 pt-2 flex justify-center">
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                        >
-                                            <Button
-                                                onClick={() => {
-                                                    const el = document.getElementById('step3-anchor-direct');
-                                                    el?.scrollIntoView({ behavior: 'smooth' });
-                                                }}
-                                                className="px-10 h-14 rounded-2xl font-black uppercase italic tracking-widest gap-3 shadow-xl hover:shadow-2xl transition-all"
-                                            >
-                                                Continuar al Paso Final <ArrowRight className="h-4 w-4" />
-                                            </Button>
-                                        </motion.div>
-                                    </div>
-                                )}
                             </Card>
-                        </motion.div>
-                    )}
+                        </AnimatedStep>
 
-                    {(selectedServiceId || selectedProduct) && (
-                        <motion.div
-                            key="booking-steps-2-3"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            id="step2-anchor"
-                            className="space-y-8"
-                        >
-                            {/* Selected Item Summary (Sticky-ish) */}
-                            <motion.div
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className="flex items-center gap-4 p-4 rounded-2xl bg-primary/5 border border-primary/10 shadow-sm"
-                            >
-                                <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg">
-                                    <CheckCircle2 className="h-6 w-6" />
+                        <AnimatedStep>
+                            <div className="space-y-6">
+                                {/* Selected Info Summary */}
+                                <div className="bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 rounded-[2.5rem] p-6 flex items-center justify-between shadow-sm transition-all duration-500">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-xl shadow-primary/20 transform -rotate-3 transition-transform hover:rotate-0">
+                                            <Check className="w-8 h-8" strokeWidth={4} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase italic text-primary/70 tracking-widest leading-none mb-1">Has elegido</p>
+                                            <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none">{selectedService?.name}</h4>
+                                        </div>
+                                    </div>
+                                    <Button variant="ghost" className="rounded-xl font-bold uppercase italic text-[10px] text-muted-foreground" onClick={() => setStep(1)}>Cambiar Servicio</Button>
                                 </div>
-                                <div className="flex-1">
-                                    <p className="text-[10px] font-black italic text-primary uppercase tracking-[0.2em]">
-                                        {selectedService ? 'Servicio Seleccionado' : 'Paquete Seleccionado'}
-                                    </p>
-                                    <h4 className="text-lg font-black italic uppercase tracking-tighter leading-none pt-1">
-                                        {selectedService?.name || selectedProduct?.name}
-                                    </h4>
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-[10px] font-black uppercase italic tracking-[0.1em] hover:bg-primary/20 hover:text-primary transition-all rounded-xl border border-transparent hover:border-primary/20"
-                                    onClick={() => {
-                                        if (selectedService) handleServiceSelect("");
-                                        if (selectedProduct) setSelectedProduct(null);
-                                    }}
-                                >
-                                    Cambiar
-                                </Button>
-                            </motion.div>
 
+                                <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
+                                    <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b py-8">
+                                        <div className="text-center">
+                                            <CardTitle className="text-4xl font-black uppercase italic tracking-tighter leading-none mb-2">ELIGE TU <span className="text-primary">HORARIO</span></CardTitle>
+                                            <CardDescription className="font-medium italic">Selecciona el día y la hora que mejor se adapte a ti</CardDescription>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="p-4 md:p-8">
+                                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                                            <div className="lg:col-span-7 flex flex-col items-center">
+                                                <div className="w-full max-w-[400px] border-2 border-slate-50 dark:border-slate-800 rounded-[2.5rem] p-4 bg-white dark:bg-black/20 shadow-inner">
+                                                    <Calendar
+                                                        mode="single"
+                                                        selected={selectedDate}
+                                                        onSelect={(date) => {
+                                                            form.setValue("date", date);
+                                                            form.setValue("time", "");
+                                                        }}
+                                                        disabled={isDateDisabled}
+                                                        initialFocus
+                                                        className="w-full"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="lg:col-span-5 space-y-4">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <Clock className="w-5 h-5 text-primary" />
+                                                    <h5 className="font-black uppercase italic tracking-widest text-xs">Horas disponibles</h5>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
+                                                    {!selectedDate ? (
+                                                        <div className="col-span-full py-16 text-center border-2 border-dashed rounded-[2rem] border-slate-100 dark:border-slate-800 opacity-40">
+                                                            <CalendarIcon className="w-10 h-10 mx-auto mb-3" />
+                                                            <p className="text-[10px] font-black uppercase italic tracking-widest">Siguiente: Elige un día</p>
+                                                        </div>
+                                                    ) : isLoadingSlots ? (
+                                                        <div className="col-span-full py-20 flex flex-col items-center justify-center gap-4">
+                                                            <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+                                                            <p className="text-[10px] font-black uppercase italic text-primary animate-pulse">Buscando espacios...</p>
+                                                        </div>
+                                                    ) : slots?.length === 0 ? (
+                                                        <div className="col-span-full py-16 text-center bg-orange-50 dark:bg-orange-950/20 rounded-[2rem] border-2 border-orange-100 text-orange-600">
+                                                            <X className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                                                            <p className="text-[10px] font-black uppercase italic tracking-widest px-6">Día completo. ¡Elige otra fecha!</p>
+                                                        </div>
+                                                    ) : (
+                                                        slots?.map((slot) => (
+                                                            <motion.div key={slot} whileTap={{ scale: 0.95 }}>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant={selectedTime === slot ? "default" : "outline"}
+                                                                    className={cn(
+                                                                        "w-full h-14 font-black italic transition-all duration-300 rounded-2xl text-base shadow-sm",
+                                                                        selectedTime === slot
+                                                                            ? "bg-primary text-white scale-105 shadow-xl shadow-primary/30"
+                                                                            : "hover:border-primary/50 hover:bg-primary/5"
+                                                                    )}
+                                                                    onClick={() => {
+                                                                        form.setValue("time", slot);
+                                                                        // Short delay for the ripple effect then auto-advance to step 3
+                                                                        setTimeout(() => setStep(3), 300);
+                                                                    }}
+                                                                >
+                                                                    {slot}
+                                                                </Button>
+                                                            </motion.div>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </AnimatedStep>
+
+                        <AnimatedStep>
+                            <Form {...form}>
+                                <form className="space-y-6">
+                                    <Card className="shadow-2xl border-2 border-primary/10 overflow-hidden bg-white dark:bg-slate-950 rounded-[2.5rem]">
+                                        <CardHeader className="text-center pb-6 pt-10">
+                                            <CardTitle className="text-3xl font-black uppercase italic tracking-tighter">TUS <span className="text-primary">DATOS</span></CardTitle>
+                                            <CardDescription className="italic font-medium">¿A nombre de quién hacemos la reserva?</CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="space-y-6 max-w-2xl mx-auto pb-10">
+                                            <div className="grid gap-6">
+                                                <FormField
+                                                    control={form.control}
+                                                    name="clientName"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-xs font-bold uppercase tracking-wider">Nombre Completo</FormLabel>
+                                                            <FormControl>
+                                                                <Input placeholder="Tu nombre" className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-0 shadow-inner" {...field} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <FormField
+                                                        control={form.control}
+                                                        name="clientEmail"
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel className="text-xs font-bold uppercase tracking-wider">Email</FormLabel>
+                                                                <FormControl>
+                                                                    <Input type="email" placeholder="tu@email.com" className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-0 shadow-inner" {...field} />
+                                                                </FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                    <FormField
+                                                        control={form.control}
+                                                        name="clientPhone"
+                                                        render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel className="text-xs font-bold uppercase tracking-wider">Teléfono</FormLabel>
+                                                                <FormControl>
+                                                                    <PhoneInput
+                                                                        country={business?.settings?.language?.startsWith('en') ? 'us' : 'mx'}
+                                                                        enableSearch
+                                                                        countryCodeEditable={false}
+                                                                        value={field.value}
+                                                                        onChange={(value) => field.onChange(value)}
+                                                                        placeholder={business?.settings?.language?.startsWith('en') ? '+1 (555) 000-0000' : '+52 55 1234 5678'}
+                                                                        containerClass="w-full"
+                                                                        inputClass="!w-full !h-12 !text-base !bg-slate-50 dark:!bg-slate-900 !border-0 !rounded-xl !pl-14 !text-foreground focus:!ring-2 focus:!ring-primary/50 shadow-inner"
+                                                                        buttonClass="!h-12 !bg-transparent !border-0 !rounded-l-xl !px-3"
+                                                                        dropdownClass="!bg-popover !text-foreground !shadow-lg !border !rounded-xl"
+                                                                        inputStyle={{ paddingLeft: '3.5rem' }}
+                                                                        inputProps={{ required: true }}
+                                                                    />
+                                                                </FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )}
+                                                    />
+                                                </div>
+
+                                                <FormField
+                                                    control={form.control}
+                                                    name="notes"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-xs font-bold uppercase tracking-wider">¿Algo que debamos saber? (Opcional)</FormLabel>
+                                                            <FormControl>
+                                                                <Input placeholder="Notas para tu servicio..." className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-0 shadow-inner" {...field} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
+
+                                            {/* Invoicing Section inside Data Step */}
+                                            {business?.taxConfig?.invoicingEnabled && (
+                                                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                                                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50">
+                                                        <div className="flex items-center gap-3">
+                                                            <Receipt className="h-5 w-5 text-muted-foreground" />
+                                                            <h4 className="text-xs font-black uppercase italic">¿Necesitas Factura?</h4>
+                                                        </div>
+                                                        <FormField
+                                                            control={form.control}
+                                                            name="needsInvoice"
+                                                            render={({ field }) => (
+                                                                <FormItem className="flex items-center">
+                                                                    <FormControl>
+                                                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                                                    </FormControl>
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                    </div>
+
+                                                    <AnimatePresence>
+                                                        {form.watch("needsInvoice") && (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, height: 0 }}
+                                                                animate={{ opacity: 1, height: 'auto' }}
+                                                                exit={{ opacity: 0, height: 0 }}
+                                                                className="mt-4 space-y-4 overflow-hidden"
+                                                            >
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                    <FormField
+                                                                        control={form.control}
+                                                                        name="rfc"
+                                                                        render={({ field }) => (
+                                                                            <FormItem>
+                                                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest">{business.taxConfig?.taxIdLabel || 'ID Fiscal'}</FormLabel>
+                                                                                <FormControl>
+                                                                                    <Input {...field} placeholder="XAXX010101000" className="h-10 rounded-xl bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                                                                                </FormControl>
+                                                                                <FormMessage />
+                                                                            </FormItem>
+                                                                        )}
+                                                                    />
+                                                                    <FormField
+                                                                        control={form.control}
+                                                                        name="razonSocial"
+                                                                        render={({ field }) => (
+                                                                            <FormItem>
+                                                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest">Razón Social</FormLabel>
+                                                                                <FormControl>
+                                                                                    <Input {...field} placeholder="Nombre o Empresa" className="h-10 rounded-xl bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
+                                                                                </FormControl>
+                                                                                <FormMessage />
+                                                                            </FormItem>
+                                                                        )}
+                                                                    />
+                                                                </div>
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </div>
+                                            )}
+
+                                            <Button
+                                                type="button"
+                                                className="w-full font-black uppercase italic tracking-widest h-14 shadow-lg hover:shadow-primary/20 transition-all rounded-2xl gap-3"
+                                                onClick={async () => {
+                                                    const isValid = await form.trigger(['clientName', 'clientEmail', 'clientPhone']);
+                                                    if (isValid) setStep(4);
+                                                }}
+                                            >
+                                                Siguiente Paso <ArrowRight className="h-5 w-5" />
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                </form>
+                            </Form>
+                        </AnimatedStep>
+
+                        <AnimatedStep>
                             <Form {...form}>
                                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                                    {/* Step 2 Card */}
-                                    {selectedServiceId && (
-                                        <motion.div
-                                            key="step2"
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ duration: 0.5 }}
-                                        >
-                                            <Card className={cn("shadow-xl border-2 overflow-hidden transition-all duration-500", (selectedDate && selectedTime) && "opacity-70")}>
-                                                <CardHeader className="bg-primary/5 border-b mb-6">
-                                                    <div className="text-center">
-                                                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-3">
-                                                            Paso 2 de 3
+                                    <div id="step4-anchor" className="scroll-mt-6" />
+                                    <Card className="shadow-2xl border-2 border-primary/20 overflow-hidden bg-gradient-to-br from-background to-primary/5 rounded-[2.5rem]">
+                                        <CardHeader className="text-center pb-8 pt-10">
+                                            <CardTitle className="text-4xl font-black uppercase italic tracking-tighter">CONFIRMA <span className="text-primary">Y PAGA</span></CardTitle>
+                                            <CardDescription className="italic font-medium opacity-70">Revisa que todo esté correcto antes de finalizar</CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="space-y-8 max-w-3xl mx-auto pb-12">
+                                            {/* Selection Recap */}
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                                                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transform hover:scale-[1.02] transition-transform">
+                                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0"><Zap className="w-5 h-5" /></div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-[9px] font-black uppercase text-muted-foreground opacity-60">Servicio</p>
+                                                        <p className="text-xs font-black italic uppercase leading-none truncate">{selectedService?.name || selectedProduct?.name}</p>
+                                                    </div>
+                                                </div>
+                                                {selectedDate && (
+                                                    <>
+                                                        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transform hover:scale-[1.02] transition-transform">
+                                                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0"><CalendarIcon className="w-5 h-5" /></div>
+                                                            <div>
+                                                                <p className="text-[9px] font-black uppercase text-muted-foreground opacity-60">Fecha</p>
+                                                                <p className="text-xs font-black italic uppercase leading-none">{format(selectedDate, "PP", { locale: i18n.language === 'es' ? es : enUS })}</p>
+                                                            </div>
                                                         </div>
-                                                        <CardTitle className="text-2xl font-bold">Selecciona tu horario</CardTitle>
-                                                        <CardDescription>Elige el momento perfecto para tu sesión</CardDescription>
-                                                    </div>
-                                                </CardHeader>
-                                                <CardContent className="space-y-6">
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                                        <FormField
-                                                            control={form.control}
-                                                            name="date"
-                                                            render={({ field }) => (
-                                                                <FormItem className="flex flex-col">
-                                                                    <FormLabel className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Fecha</FormLabel>
-                                                                    <div className="border rounded-2xl p-2 bg-background shadow-inner">
-                                                                        <Calendar
-                                                                            mode="single"
-                                                                            selected={field.value}
-                                                                            onSelect={(date) => {
-                                                                                field.onChange(date);
-                                                                                form.setValue("time", "");
-                                                                            }}
-                                                                            disabled={isDateDisabled}
-                                                                            initialFocus
-                                                                            className="mx-auto"
-                                                                        />
-                                                                    </div>
-                                                                    <FormMessage />
-                                                                </FormItem>
-                                                            )}
-                                                        />
+                                                        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transform hover:scale-[1.02] transition-transform">
+                                                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0"><Clock className="w-5 h-5" /></div>
+                                                            <div>
+                                                                <p className="text-[9px] font-black uppercase text-muted-foreground opacity-60">Hora</p>
+                                                                <p className="text-xs font-black italic uppercase leading-none">{selectedTime}</p>
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
 
-                                                        <FormField
-                                                            control={form.control}
-                                                            name="time"
-                                                            render={({ field }) => (
-                                                                <FormItem className="flex flex-col">
-                                                                    <FormLabel className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Hora Disponible</FormLabel>
-                                                                    <FormControl>
-                                                                        <div className="grid grid-cols-3 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                                                            {!selectedDate ? (
-                                                                                <div className="col-span-full flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-2xl text-muted-foreground opacity-50">
-                                                                                    <CalendarIcon className="h-8 w-8 mb-2" />
-                                                                                    <p className="text-xs font-bold uppercase">Primero selecciona una fecha</p>
-                                                                                </div>
-                                                                            ) : isLoadingSlots ? (
-                                                                                <div className="col-span-full py-12 flex flex-col items-center gap-2">
-                                                                                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                                                                                    <p className="text-xs font-bold uppercase">Buscando espacios...</p>
-                                                                                </div>
-                                                                            ) : slots?.length === 0 ? (
-                                                                                <div className="col-span-full py-12 text-center bg-orange-50 dark:bg-orange-950/20 rounded-2xl border-2 border-orange-200 text-orange-600">
-                                                                                    <X className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                                                                    <p className="text-xs font-bold uppercase">No hay horarios disponibles</p>
-                                                                                </div>
-                                                                            ) : (
-                                                                                slots?.map((slot) => (
-                                                                                    <Button
-                                                                                        key={slot}
-                                                                                        type="button"
-                                                                                        variant={field.value === slot ? "default" : "outline"}
-                                                                                        className={cn(
-                                                                                            "h-12 font-black italic transition-all duration-300 rounded-xl",
-                                                                                            field.value === slot ? "bg-primary text-white scale-105 shadow-lg shadow-primary/20" : "hover:border-primary/50"
-                                                                                        )}
-                                                                                        onClick={() => field.onChange(slot)}
-                                                                                    >
-                                                                                        {slot}
-                                                                                    </Button>
-                                                                                ))
-                                                                            )}
-                                                                        </div>
-                                                                    </FormControl>
-                                                                    <FormMessage />
-                                                                </FormItem>
-                                                            )}
-                                                        />
-                                                    </div>
+                                            {/* Selection Recap for client */}
+                                            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-between text-xs font-medium">
+                                                <div className="flex items-center gap-3 text-muted-foreground">
+                                                    <Building2 className="w-4 h-4" />
+                                                    <span>{form.watch('clientName')} ({form.watch('clientEmail')})</span>
+                                                </div>
+                                                <Button variant="ghost" size="sm" className="h-7 text-[10px] font-black uppercase text-primary" onClick={() => setStep(3)}>Editar Datos</Button>
+                                            </div>
 
-                                                    {selectedDate && selectedTime && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, height: 0 }}
-                                                            animate={{ opacity: 1, height: 'auto' }}
-                                                            className="pt-6 border-t flex justify-center"
-                                                        >
+                                            {/* Price & Payment Logic */}
+                                            <div className="space-y-4">
+                                                {form.watch('productId') ? (
+                                                    <div className="space-y-4">
+                                                        <div className="p-6 rounded-[2rem] bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-800/50 relative overflow-hidden group transition-all">
+                                                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                                                                <Sparkles className="w-16 h-16 text-amber-500" />
+                                                            </div>
+                                                            <div className="flex justify-between items-start mb-4">
+                                                                <div>
+                                                                    <Badge className="bg-amber-500 text-white border-none mb-2 text-[10px] font-black uppercase italic">Paquete Premium</Badge>
+                                                                    <h3 className="text-2xl font-black italic uppercase tracking-tighter text-amber-700 dark:text-amber-400">
+                                                                        {products.find(p => p._id === form.getValues('productId'))?.name}
+                                                                    </h3>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="text-2xl font-black italic text-amber-600 dark:text-amber-500">
+                                                                        ${products.find(p => p._id === form.getValues('productId'))?.price}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
                                                             <Button
                                                                 type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="rounded-full border-amber-200 text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-800/50 h-8 text-[10px] font-bold uppercase"
                                                                 onClick={() => {
-                                                                    const el = document.getElementById('step3-anchor-direct');
-                                                                    el?.scrollIntoView({ behavior: 'smooth' });
+                                                                    form.setValue('productId', undefined);
+                                                                    setActiveTab('single');
                                                                 }}
-                                                                className="px-12 h-12 rounded-full font-black uppercase italic tracking-widest"
                                                             >
-                                                                Confirmar Horario <Check className="ml-2 h-4 w-4" />
+                                                                Cambiar a Clase Suelta
                                                             </Button>
-                                                        </motion.div>
-                                                    )}
-                                                </CardContent>
-                                            </Card>
-                                        </motion.div>
-                                    )}
-
-                                    {/* Step 3 Card */}
-                                    <div id="step3-anchor-direct" className="scroll-mt-6" />
-                                    {((selectedDate && selectedTime) || (selectedProduct && !selectedServiceId)) && (
-                                        <motion.div
-                                            id="step3-anchor"
-                                            key="step3"
-                                            initial={{ opacity: 0, y: 30 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ duration: 0.6 }}
-                                        >
-                                            <Card className="shadow-2xl border-2 border-primary/20 overflow-hidden bg-gradient-to-br from-background to-primary/5">
-                                                <CardHeader className="text-center pb-8 pt-10">
-                                                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
-                                                        <span className="relative flex h-2 w-2">
-                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                                                        </span>
-                                                        Paso 3 de 3 - ¡Estás a un paso!
-                                                    </div>
-                                                    <CardTitle className="text-4xl font-black uppercase italic tracking-tighter">Completa tu Reserva</CardTitle>
-                                                    <CardDescription className="text-base">Necesitamos unos últimos detalles para confirmar tu lugar</CardDescription>
-                                                </CardHeader>
-                                                <CardContent className="space-y-8 max-w-2xl mx-auto">
-
-                                                    <div className="relative group">
-                                                        <div className="grid grid-cols-2 gap-4 p-4 bg-white dark:bg-slate-900 rounded-2xl border-2 border-primary/10 shadow-sm transition-all group-hover:border-primary/30">
-                                                            <div className="flex items-center gap-3">
-                                                                <CalendarIcon className="h-5 w-5 text-primary" />
-                                                                <div>
-                                                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Fecha</p>
-                                                                    <p className="text-sm font-black italic">{format(selectedDate, "PP", { locale: i18n.language === 'es' ? es : enUS })}</p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-3">
-                                                                <Clock className="h-5 w-5 text-primary" />
-                                                                <div>
-                                                                    <p className="text-[10px] font-bold text-muted-foreground uppercase">Hora</p>
-                                                                    <p className="text-sm font-black italic">{selectedTime}</p>
-                                                                </div>
-                                                            </div>
                                                         </div>
-                                                        <Button
-                                                            type="button"
-                                                            variant="secondary"
-                                                            size="sm"
-                                                            className="absolute -top-3 -right-3 h-8 shadow-lg border-2 border-white dark:border-slate-800 rounded-full text-[10px] font-black uppercase italic tracking-wider px-4 hover:scale-105 active:scale-95 transition-all"
-                                                            onClick={() => {
-                                                                form.setValue("time", "");
-                                                                const el = document.getElementById('step2-anchor');
-                                                                el?.scrollIntoView({ behavior: 'smooth' });
-                                                            }}
-                                                        >
-                                                            Cambiar Horario
-                                                        </Button>
+                                                        <div className="bg-primary/5 dark:bg-primary/900/20 p-4 rounded-2xl text-[10px] text-primary font-bold uppercase tracking-wider flex gap-3 items-center">
+                                                            <Info className="w-4 h-4 shrink-0" />
+                                                            <p>Incluye la reserva inmediata de este servicio.</p>
+                                                        </div>
                                                     </div>
+                                                ) : (business.paymentConfig?.paymentPolicy === 'PACKAGES' || products.length > 0 || availableAssets.length > 0) ? (
+                                                    <Tabs defaultValue={availableAssets.length > 0 ? "credits" : "single"} value={activeTab} onValueChange={(val) => {
+                                                        setActiveTab(val);
+                                                        if (val === 'credits' && availableAssets.length > 0) {
+                                                            form.setValue('assetId', availableAssets[0]._id);
+                                                        } else if (val !== 'credits') {
+                                                            form.setValue('assetId', undefined);
+                                                        }
+                                                    }} className="w-full">
+                                                        <TabsList className="grid grid-cols-3 mb-6 h-auto p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                                                            <TabsTrigger value="single" className="rounded-xl py-3 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-sm">
+                                                                <CreditCard className="w-3.5 h-3.5 mr-2" /> Un Solo Pago
+                                                            </TabsTrigger>
+                                                            <TabsTrigger value="packages" className="rounded-xl py-3 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-sm">
+                                                                <Sparkles className="w-3.5 h-3.5 mr-2 text-amber-500" /> Paquetes
+                                                            </TabsTrigger>
+                                                            <TabsTrigger value="credits" disabled={availableAssets.length === 0} className="rounded-xl py-3 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-sm">
+                                                                <Ticket className="w-3.5 h-3.5 mr-2 text-primary" /> Créditos
+                                                            </TabsTrigger>
+                                                        </TabsList>
 
-
-                                                    {/* Price & Fiscal Logic Breakdown */}
-                                                    <div className="space-y-4">
-                                                        {/* Step 3: Selection Logic */}
-                                                        {form.watch('productId') ? (
-                                                            /* User ALREADY selected a package in Step 1 */
-                                                            <div className="space-y-4">
-                                                                <div className="p-6 rounded-[2rem] bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-800/50 relative overflow-hidden group">
-                                                                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                                                                        <Sparkles className="w-16 h-16 text-amber-500" />
-                                                                    </div>
-                                                                    <div className="flex justify-between items-start mb-4">
-                                                                        <div>
-                                                                            <Badge className="bg-amber-500 text-white border-none mb-2">Paquete Seleccionado</Badge>
-                                                                            <h3 className="text-2xl font-black italic uppercase tracking-tighter text-amber-700 dark:text-amber-400">
-                                                                                {products.find(p => p._id === form.getValues('productId'))?.name}
-                                                                            </h3>
-                                                                        </div>
-                                                                        <div className="text-right">
-                                                                            <p className="text-2xl font-black italic text-amber-600 dark:text-amber-500">
-                                                                                ${products.find(p => p._id === form.getValues('productId'))?.price}
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className="flex gap-4">
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            className="rounded-full border-amber-200 text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-800/50 h-8 text-[10px] font-bold uppercase"
-                                                                            onClick={() => {
-                                                                                form.setValue('productId', undefined);
-                                                                                setActiveTab('single');
-                                                                            }}
-                                                                        >
-                                                                            Cambiar a Clase Suelta
-                                                                        </Button>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl text-[11px] text-blue-700 dark:text-blue-300 font-bold uppercase tracking-wider border border-blue-100 dark:border-blue-900/50 flex gap-3 items-center">
-                                                                    <Info className="w-5 h-5 shrink-0" />
-                                                                    <p>Al confirmar, comprarás el paquete y esta clase se reservará automáticamente usando tu primer crédito.</p>
-                                                                </div>
-                                                            </div>
-                                                        ) : (business.paymentConfig?.paymentPolicy === 'PACKAGES' || products.length > 0 || availableAssets.length > 0) ? (
-                                                            /* Standard Selection with Tabs */
-                                                            <Tabs defaultValue={availableAssets.length > 0 ? "credits" : "single"} value={activeTab} onValueChange={(val) => {
-                                                                setActiveTab(val);
-                                                                if (val === 'credits' && availableAssets.length > 0) {
-                                                                    form.setValue('assetId', availableAssets[0]._id);
-                                                                } else if (val !== 'credits') {
-                                                                    form.setValue('assetId', undefined);
-                                                                }
-                                                            }} className="w-full">
-                                                                <TabsList className={`grid w-full ${[products.length > 0, availableAssets.length > 0, true].filter(Boolean).length === 3 ? 'grid-cols-3' : ([products.length > 0, availableAssets.length > 0, true].filter(Boolean).length === 2 ? 'grid-cols-2' : 'grid-cols-1')} mb-6 h-auto p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800`}>
-                                                                    <TabsTrigger value="single" className="rounded-xl py-3 text-xs font-black uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-lg mx-1 my-1">
-                                                                        <CreditCard className="w-4 h-4 mr-2" /> Pago Único
-                                                                    </TabsTrigger>
-                                                                    {products.length > 0 && (
-                                                                        <TabsTrigger value="packages" className="rounded-xl py-3 text-xs font-black uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-lg mx-1 my-1">
-                                                                            <Sparkles className="w-4 h-4 mr-2 text-amber-500" /> Ver Paquetes
-                                                                        </TabsTrigger>
-                                                                    )}
-                                                                    {availableAssets.length > 0 && (
-                                                                        <TabsTrigger value="credits" className="rounded-xl py-3 text-xs font-black uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 data-[state=active]:shadow-lg mx-1 my-1">
-                                                                            <Ticket className="w-4 h-4 mr-2 text-blue-500" /> Mis Créditos
-                                                                        </TabsTrigger>
-                                                                    )}
-                                                                </TabsList>
-
-                                                                <TabsContent value="single" className="space-y-4 mt-0">
-                                                                    <div className="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 space-y-4">
-                                                                        <div className="flex justify-between items-center text-sm">
-                                                                            <span className="text-muted-foreground font-medium">Subtotal</span>
-                                                                            <span className="font-bold tabular-nums">
-                                                                                ${((selectedService?.price || 0) / (business?.taxConfig?.enabled ? (1 + (business?.taxConfig?.taxRate || 0.16)) : 1)).toFixed(2)}
-                                                                            </span>
-                                                                        </div>
-
-                                                                        {business?.taxConfig?.enabled && (
-                                                                            <div className="flex justify-between items-center text-sm">
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <span className="text-muted-foreground font-medium">{business.taxConfig.taxName || 'Impuesto'} ({((business.taxConfig.taxRate || 0) * 100)}%)</span>
-                                                                                    <Badge variant="outline" className="text-[8px] h-4 uppercase tracking-tighter text-blue-500 border-blue-200">Fiscal</Badge>
-                                                                                </div>
-                                                                                <span className="font-bold tabular-nums text-blue-500">
-                                                                                    +${((selectedService?.price || 0) - ((selectedService?.price || 0) / (1 + (business.taxConfig.taxRate || 0.16)))).toFixed(2)}
-                                                                                </span>
-                                                                            </div>
-                                                                        )}
-
-                                                                        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between items-end">
-                                                                            <div className="space-y-1">
-                                                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total de la Inversión</p>
-                                                                                <h3 className="text-3xl font-black italic uppercase tracking-tighter text-primary">
-                                                                                    ${selectedService?.price}
-                                                                                    <span className="text-xs ml-1 not-italic font-bold text-muted-foreground">{business.settings?.currency || 'MXN'}</span>
-                                                                                </h3>
-                                                                            </div>
-                                                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20">
-                                                                                <ShieldCheck className="h-3.5 w-3.5" />
-                                                                                <span className="text-[10px] font-black uppercase tracking-tight">Pago Seguro</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-
-                                                                    {products.length > 0 && (
-                                                                        <div
-                                                                            onClick={() => setActiveTab('packages')}
-                                                                            className="cursor-pointer p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20 flex items-center justify-between group"
-                                                                        >
-                                                                            <div className="flex items-center gap-3">
-                                                                                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
-                                                                                    <Sparkles className="w-4 h-4 text-amber-600" />
-                                                                                </div>
-                                                                                <span className="text-xs font-bold text-amber-700 dark:text-amber-400">🎁 Ahorra hasta un 25% con un paquete</span>
-                                                                            </div>
-                                                                            <ArrowRight className="w-4 h-4 text-amber-500 group-hover:translate-x-1 transition-transform" />
-                                                                        </div>
-                                                                    )}
-                                                                </TabsContent>
-
-                                                                <TabsContent value="packages" className="space-y-4 mt-0">
-                                                                    <div className="space-y-4">
-                                                                        <div className="grid grid-cols-1 gap-4">
-                                                                            {products.filter(p => (p.type === ProductType.Package || p.type === ProductType.Pass) && p.active && (!p.allowedServiceIds || p.allowedServiceIds.length === 0 || p.allowedServiceIds.includes(selectedService?._id || ""))).map(product => (
-                                                                                <div key={product._id} className="flex items-center justify-between p-4 border-2 border-primary/10 hover:border-primary/30 rounded-2xl bg-white dark:bg-slate-950 transition-all cursor-pointer group shadow-sm hover:shadow-md" onClick={() => handleBuyPackage(product)}>
-                                                                                    <div className="space-y-1">
-                                                                                        <h4 className="font-bold text-sm uppercase tracking-wide flex items-center gap-2">
-                                                                                            {product.name}
-                                                                                            {product.price < ((selectedService?.price || 0) * (product.totalUses || 1)) && <Badge variant="destructive" className="text-[8px] h-4 px-1 rounded-sm">MEJOR PRECIO</Badge>}
-                                                                                        </h4>
-                                                                                        <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                                                                                            <span className="bg-secondary px-2 py-0.5 rounded-md">{product.isUnlimited ? 'Ilimitado' : `${product.totalUses} Clases`}</span>
-                                                                                            <span className="border px-2 py-0.5 rounded-md">{product.validityDays} Días</span>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    <div className="text-right pl-4">
-                                                                                        <p className="text-xl font-black italic tracking-tighter text-primary">${product.price}</p>
-                                                                                        <Button size="sm" variant="default" className="mt-1 w-full rounded-full text-[10px] font-black uppercase tracking-widest h-7 px-3">
-                                                                                            Seleccionar
-                                                                                        </Button>
-                                                                                    </div>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
-                                                                </TabsContent>
-
-                                                                <TabsContent value="credits" className="space-y-4 mt-0">
-                                                                    <div className="space-y-4">
-                                                                        {availableAssets.filter(asset => {
-                                                                            if (!selectedServiceId) return true;
-                                                                            const allowed = asset.productId?.allowedServiceIds;
-                                                                            return !allowed || allowed.length === 0 || allowed.includes(selectedServiceId);
-                                                                        }).map(asset => {
-                                                                            const isSelected = form.watch('assetId') === asset._id;
-                                                                            return (
-                                                                                <div key={asset._id}
-                                                                                    onClick={() => {
-                                                                                        form.setValue('assetId', asset._id);
-                                                                                    }}
-                                                                                    className={`p-4 border-2 rounded-2xl cursor-pointer transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 hover:border-primary/50'}`}>
-                                                                                    <div className="flex justify-between items-center">
-                                                                                        <div className="space-y-1">
-                                                                                            <h4 className="font-bold text-sm uppercase tracking-wide">{asset.productId?.name || "Paquete"}</h4>
-                                                                                            <div className="flex gap-2">
-                                                                                                <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full font-bold text-slate-600 dark:text-slate-400">
-                                                                                                    {asset.isUnlimited ? 'Ilimitado' : `${asset.remainingUses} usos restantes`}
-                                                                                                </span>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                        {isSelected && <CheckCircle2 className="w-6 h-6 text-primary" />}
-                                                                                    </div>
-                                                                                </div>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                </TabsContent>
-                                                            </Tabs>
-                                                        ) : (
-                                                            <div className="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 space-y-4">
-                                                                <div className="flex justify-between items-center text-sm">
-                                                                    <span className="text-muted-foreground font-medium">Subtotal</span>
+                                                        <TabsContent value="single" className="space-y-4 mt-0">
+                                                            <div className="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 space-y-4">
+                                                                <div className="flex justify-between items-center text-xs">
+                                                                    <span className="text-muted-foreground font-medium italic">Inversión del servicio</span>
                                                                     <span className="font-bold tabular-nums">
                                                                         ${((selectedService?.price || 0) / (business?.taxConfig?.enabled ? (1 + (business?.taxConfig?.taxRate || 0.16)) : 1)).toFixed(2)}
                                                                     </span>
                                                                 </div>
 
                                                                 {business?.taxConfig?.enabled && (
-                                                                    <div className="flex justify-between items-center text-sm">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <span className="text-muted-foreground font-medium">{business.taxConfig.taxName || 'Impuesto'} ({((business.taxConfig.taxRate || 0) * 100)}%)</span>
-                                                                            <Badge variant="outline" className="text-[8px] h-4 uppercase tracking-tighter text-blue-500 border-blue-200">Fiscal</Badge>
+                                                                    <div className="flex justify-between items-center text-xs">
+                                                                        <div className="flex items-center gap-2 italic">
+                                                                            <span className="text-muted-foreground font-medium">{business.taxConfig.taxName || 'IVA'} ({((business.taxConfig.taxRate || 0.16) * 100)}%)</span>
+                                                                            <Badge variant="outline" className="text-[8px] h-4 uppercase tracking-tighter text-primary border-primary/20">Fiscal</Badge>
                                                                         </div>
-                                                                        <span className="font-bold tabular-nums text-blue-500">
+                                                                        <span className="font-bold tabular-nums text-primary">
                                                                             +${((selectedService?.price || 0) - ((selectedService?.price || 0) / (1 + (business.taxConfig.taxRate || 0.16)))).toFixed(2)}
                                                                         </span>
                                                                     </div>
@@ -1503,239 +1222,156 @@ const BusinessBookingPage = () => {
 
                                                                 <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between items-end">
                                                                     <div className="space-y-1">
-                                                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total de la Inversión</p>
-                                                                        <h3 className="text-3xl font-black italic uppercase tracking-tighter text-primary">
+                                                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total a Confirmar</p>
+                                                                        <h3 className="text-4xl font-black italic uppercase tracking-tighter text-primary leading-none">
                                                                             ${selectedService?.price}
                                                                             <span className="text-xs ml-1 not-italic font-bold text-muted-foreground">{business.settings?.currency || 'MXN'}</span>
                                                                         </h3>
                                                                     </div>
-                                                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20">
+                                                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 shadow-sm">
                                                                         <ShieldCheck className="h-3.5 w-3.5" />
-                                                                        <span className="text-[10px] font-black uppercase tracking-tight">Pago Seguro</span>
+                                                                        <span className="text-[9px] font-black uppercase tracking-tight italic">Checkout seguro</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                        )}
-                                                    </div>
+                                                        </TabsContent>
 
-                                                    {/* Invoicing Selector for Fiscal Businesses */}
-                                                    {business?.taxConfig?.invoicingEnabled && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, scale: 0.95 }}
-                                                            animate={{ opacity: 1, scale: 1 }}
-                                                            className="relative overflow-hidden p-6 rounded-[2rem] border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 transition-all hover:border-primary/20"
-                                                        >
-                                                            <div className="flex items-center justify-between gap-4">
-                                                                <div className="flex items-center gap-4">
-                                                                    <div className="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                                                                        <Receipt className="h-6 w-6 text-slate-600 dark:text-slate-400" />
-                                                                    </div>
-                                                                    <div>
-                                                                        <h4 className="text-sm font-black uppercase italic tracking-tighter">¿Necesitas Factura?</h4>
-                                                                        <p className="text-[10px] text-muted-foreground font-medium">Emitimos comprobantes fiscales legales</p>
-                                                                    </div>
-                                                                </div>
-                                                                <FormField
-                                                                    control={form.control}
-                                                                    name="needsInvoice"
-                                                                    render={({ field }) => (
-                                                                        <FormItem className="flex items-center">
-                                                                            <FormControl>
-                                                                                <Switch
-                                                                                    checked={field.value}
-                                                                                    onCheckedChange={field.onChange}
-                                                                                />
-                                                                            </FormControl>
-                                                                        </FormItem>
-                                                                    )}
-                                                                />
-                                                            </div>
-
-                                                            <AnimatePresence>
-                                                                {form.watch("needsInvoice") && (
-                                                                    <motion.div
-                                                                        initial={{ opacity: 0, height: 0 }}
-                                                                        animate={{ opacity: 1, height: 'auto' }}
-                                                                        exit={{ opacity: 0, height: 0 }}
-                                                                        className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4 overflow-hidden"
-                                                                    >
-                                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                            <FormField
-                                                                                control={form.control}
-                                                                                name="rfc"
-                                                                                render={({ field }) => (
-                                                                                    <FormItem>
-                                                                                        <FormLabel className="text-[10px] font-black uppercase tracking-widest">{business.taxConfig?.taxIdLabel || 'ID Fiscal'}</FormLabel>
-                                                                                        <FormControl>
-                                                                                            <Input {...field} placeholder="XAXX010101000" className="h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border-0" />
-                                                                                        </FormControl>
-                                                                                        <FormMessage />
-                                                                                    </FormItem>
-                                                                                )}
-                                                                            />
-                                                                            <FormField
-                                                                                control={form.control}
-                                                                                name="razonSocial"
-                                                                                render={({ field }) => (
-                                                                                    <FormItem>
-                                                                                        <FormLabel className="text-[10px] font-black uppercase tracking-widest">Razón Social</FormLabel>
-                                                                                        <FormControl>
-                                                                                            <Input {...field} placeholder="Nombre o Empresa" className="h-11 rounded-xl bg-slate-50 dark:bg-slate-900 border-0" />
-                                                                                        </FormControl>
-                                                                                        <FormMessage />
-                                                                                    </FormItem>
-                                                                                )}
-                                                                            />
+                                                        <TabsContent value="packages" className="space-y-4 mt-0">
+                                                            <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                                                {products.filter(p => (p.type === ProductType.Package || p.type === ProductType.Pass) && p.active && (!p.allowedServiceIds || p.allowedServiceIds.length === 0 || p.allowedServiceIds.includes(selectedService?._id || ""))).map(product => (
+                                                                    <div key={product._id} className="flex items-center justify-between p-4 border-2 border-primary/5 hover:border-primary/20 rounded-2xl bg-white dark:bg-slate-900 transition-all cursor-pointer group shadow-sm" onClick={() => handleBuyPackage(product)}>
+                                                                        <div className="space-y-1">
+                                                                            <h4 className="font-black text-xs uppercase italic tracking-wide">{product.name}</h4>
+                                                                            <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-black uppercase italic">{product.isUnlimited ? 'Ilimitado' : `${product.totalUses} Usos`}</span>
                                                                         </div>
-                                                                        <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[10px] text-amber-700 dark:text-amber-400 leading-tight">
-                                                                            <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                                                                            La factura se emitirá conforme a las disposiciones fiscales vigentes.
+                                                                        <div className="text-right">
+                                                                            <p className="text-lg font-black italic tracking-tighter text-primary">${product.price}</p>
+                                                                            <span className="text-[8px] font-bold text-muted-foreground uppercase">Elegir</span>
                                                                         </div>
-                                                                    </motion.div>
-                                                                )}
-                                                            </AnimatePresence>
-                                                        </motion.div>
-                                                    )}
-                                                    {selectedService?.requireResource && (
-                                                        <div className="space-y-4">
-                                                            <h4 className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
-                                                                <Building2 className="h-4 w-4 text-primary" />
-                                                                Selección de Lugar
-                                                            </h4>
-                                                            <ResourceSelector
-                                                                businessId={businessId || ""}
-                                                                scheduledAt={(() => {
-                                                                    const [hours, minutes] = selectedTime.split(":").map(Number);
-                                                                    const d = new Date(selectedDate);
-                                                                    d.setHours(hours, minutes, 0, 0);
-                                                                    return d.toISOString();
-                                                                })()}
-                                                                onResourceSelected={setSelectedResourceId}
-                                                                primaryColor={business.settings?.primaryColor}
-                                                            />
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </TabsContent>
+
+                                                        <TabsContent value="credits" className="space-y-4 mt-0">
+                                                            <div className="space-y-3">
+                                                                {availableAssets.filter(asset => {
+                                                                    if (!selectedServiceId) return true;
+                                                                    const allowed = asset.productId?.allowedServiceIds;
+                                                                    return !allowed || allowed.length === 0 || allowed.includes(selectedServiceId);
+                                                                }).map(asset => {
+                                                                    const isSelected = form.watch('assetId') === asset._id;
+                                                                    return (
+                                                                        <div key={asset._id}
+                                                                            onClick={() => form.setValue('assetId', asset._id)}
+                                                                            className={`p-4 border-2 rounded-2xl cursor-pointer transition-all ${isSelected ? 'border-primary bg-primary/5 shadow-inner shadow-primary/5' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-primary/20 shadow-sm'}`}>
+                                                                            <div className="flex justify-between items-center">
+                                                                                <div className="space-y-1">
+                                                                                    <h4 className="font-black text-xs uppercase italic tracking-wide">{asset.productId?.name || "Paquete"}</h4>
+                                                                                    <span className="text-[10px] font-bold text-primary">
+                                                                                        {asset.isUnlimited ? 'Ilimitado' : `${asset.remainingUses} usos restantes`}
+                                                                                    </span>
+                                                                                </div>
+                                                                                {isSelected && <CheckCircle2 className="w-6 h-6 text-primary" />}
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </TabsContent>
+                                                    </Tabs>
+                                                ) : (
+                                                    <div className="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 space-y-4">
+                                                        <h3 className="text-3xl font-black italic uppercase tracking-tighter text-primary">${selectedService?.price}</h3>
+                                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 italic text-[10px] font-black uppercase">
+                                                            <ShieldCheck className="h-3.5 w-3.5" /> Pago Seguro
                                                         </div>
-                                                    )}
-
-                                                    <div className="grid gap-6">
-                                                        <FormField
-                                                            control={form.control}
-                                                            name="clientName"
-                                                            render={({ field }) => (
-                                                                <FormItem>
-                                                                    <FormLabel className="text-sm font-bold uppercase tracking-wider">Nombre Completo</FormLabel>
-                                                                    <FormControl>
-                                                                        <Input placeholder="Tu nombre" className="h-12 rounded-xl bg-background" {...field} />
-                                                                    </FormControl>
-                                                                    <FormMessage />
-                                                                </FormItem>
-                                                            )}
-                                                        />
-
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            <FormField
-                                                                control={form.control}
-                                                                name="clientEmail"
-                                                                render={({ field }) => (
-                                                                    <FormItem>
-                                                                        <FormLabel className="text-sm font-bold uppercase tracking-wider">Email</FormLabel>
-                                                                        <FormControl>
-                                                                            <Input type="email" placeholder="tu@email.com" className="h-12 rounded-xl bg-background" {...field} />
-                                                                        </FormControl>
-                                                                        <FormMessage />
-                                                                    </FormItem>
-                                                                )}
-                                                            />
-                                                            <FormField
-                                                                control={form.control}
-                                                                name="clientPhone"
-                                                                render={({ field }) => (
-                                                                    <FormItem>
-                                                                        <FormLabel className="text-sm font-bold uppercase tracking-wider">Teléfono</FormLabel>
-                                                                        <FormControl>
-                                                                            <PhoneInput
-                                                                                country={business?.settings?.language?.startsWith('en') ? 'us' : 'mx'}
-                                                                                enableSearch
-                                                                                countryCodeEditable={false}
-                                                                                value={field.value}
-                                                                                onChange={(value) => field.onChange(value)}
-                                                                                placeholder={business?.settings?.language?.startsWith('en') ? '+1 (555) 000-0000' : '+52 55 1234 5678'}
-                                                                                containerClass="w-full"
-                                                                                inputClass="!w-full !h-12 !text-base !bg-background !border !border-input !rounded-xl !pl-14 !text-foreground focus:!ring-2 focus:!ring-primary/50"
-                                                                                buttonClass="!h-12 !bg-background !border !border-input !rounded-l-xl !px-3"
-                                                                                dropdownClass="!bg-popover !text-foreground !shadow-lg !border !rounded-xl"
-                                                                                inputStyle={{ paddingLeft: '3.5rem' }}
-                                                                                inputProps={{ required: true }}
-                                                                            />
-                                                                        </FormControl>
-                                                                        <FormMessage />
-                                                                    </FormItem>
-                                                                )}
-                                                            />
-                                                        </div>
-
-                                                        <FormField
-                                                            control={form.control}
-                                                            name="notes"
-                                                            render={({ field }) => (
-                                                                <FormItem>
-                                                                    <FormLabel className="text-sm font-bold uppercase tracking-wider">Observaciones (Opcional)</FormLabel>
-                                                                    <FormControl>
-                                                                        <Input placeholder="¿Algo que debamos saber?" className="h-12 rounded-xl bg-background" {...field} />
-                                                                    </FormControl>
-                                                                    <FormMessage />
-                                                                </FormItem>
-                                                            )}
-                                                        />
                                                     </div>
+                                                )}
+                                            </div>
 
-                                                    {form.watch('assetId') && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, scale: 0.95 }}
-                                                            animate={{ opacity: 1, scale: 1 }}
-                                                            className="p-4 rounded-2xl bg-primary/10 border-2 border-primary/20 flex items-center gap-4"
-                                                        >
-                                                            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                                                                <Ticket className="h-6 w-6 text-primary" />
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-sm font-bold text-primary italic uppercase tracking-wider">Beneficio aplicado</p>
-                                                                <p className="text-xs text-primary/80 font-medium">Se descontará 1 clase de tu paquete activo automáticamente.</p>
-                                                            </div>
-                                                        </motion.div>
-                                                    )}
+                                            {selectedService?.requireResource && selectedDate && selectedTime && (
+                                                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                                    <h4 className="text-xs font-black uppercase italic tracking-widest flex items-center gap-2">
+                                                        <Building2 className="h-4 w-4 text-primary" /> Selección de Lugar
+                                                    </h4>
+                                                    <ResourceSelector
+                                                        businessId={businessId || ""}
+                                                        scheduledAt={(() => {
+                                                            const [hours, minutes] = selectedTime.split(":").map(Number);
+                                                            const d = new Date(selectedDate);
+                                                            d.setHours(hours, minutes, 0, 0);
+                                                            return d.toISOString();
+                                                        })()}
+                                                        onResourceSelected={setSelectedResourceId}
+                                                        primaryColor={business.settings?.primaryColor}
+                                                    />
+                                                </div>
+                                            )}
 
-                                                    <Button
-                                                        type="submit"
-                                                        className="w-full font-black uppercase italic tracking-widest text-lg h-16 shadow-2xl hover:shadow-primary/20 transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] rounded-2xl"
-                                                        size="lg"
-                                                        disabled={form.formState.isSubmitting}
-                                                    >
-                                                        {form.formState.isSubmitting ? (
-                                                            <span className="flex items-center gap-3">
-                                                                <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                                Confirmando...
-                                                            </span>
-                                                        ) : (
-                                                            <span className="flex items-center gap-3">
-                                                                <CheckCircle2 className="h-6 w-6" />
-                                                                {form.watch('assetId') ? "Confirmar (Usar Crédito)" : "¡Confirmar mi Reserva!"}
-                                                            </span>
-                                                        )}
-                                                    </Button>
+                                            <Button
+                                                type="submit"
+                                                className="w-full font-black uppercase italic tracking-widest text-lg h-16 shadow-2xl hover:shadow-primary/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] rounded-2xl"
+                                                size="lg"
+                                                disabled={form.formState.isSubmitting}
+                                            >
+                                                {form.formState.isSubmitting ? (
+                                                    <span className="flex items-center gap-3">
+                                                        <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                        Procesando...
+                                                    </span>
+                                                ) : (
+                                                    <span className="flex items-center gap-3">
+                                                        <CheckCircle2 className="h-6 w-6" />
+                                                        {form.watch('assetId') ? "Confirmar Reserva" : "Pagar y Confirmar"}
+                                                    </span>
+                                                )}
+                                            </Button>
 
-                                                    <p className="text-[10px] text-center text-muted-foreground uppercase font-bold tracking-tighter opacity-50">
-                                                        Al confirmar aceptas nuestros términos y políticas de cancelación
-                                                    </p>
-                                                </CardContent>
-                                            </Card>
-                                        </motion.div>
-                                    )}
+                                            <p className="text-[10px] text-center text-muted-foreground uppercase font-bold tracking-tighter opacity-50 px-8">
+                                                Al confirmar aceptas nuestras condiciones de servicio y políticas de cancelación inmediata.
+                                            </p>
+                                        </CardContent>
+                                    </Card>
                                 </form>
                             </Form>
-                        </motion.div>
-                    )}
-
-                </AnimatePresence >
+                        </AnimatedStep>
+                    </AnimatedStepper>
+                ) : (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                    >
+                        <Card className="border-green-200 bg-green-50 rounded-[2.5rem] shadow-xl overflow-hidden">
+                            <CardContent className="pt-10 pb-10 text-center">
+                                <div className="flex flex-col items-center gap-6">
+                                    <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                                        <CheckCircle2 className="h-12 w-12 text-green-600" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h3 className="text-3xl font-black uppercase italic tracking-tighter text-green-900 dark:text-green-400">{t('booking.form.confirmation_title')}</h3>
+                                        <p className="text-base text-green-700 dark:text-green-300 font-medium italic">
+                                            {t('booking.form.need_code')}
+                                        </p>
+                                    </div>
+                                    <Button
+                                        onClick={() => {
+                                            const params = new URLSearchParams({
+                                                email: form.getValues('clientEmail'),
+                                                code: bookingSuccessCode || '',
+                                                businessId: businessId || ''
+                                            });
+                                            navigate(`/my-bookings?${params.toString()}`);
+                                        }}
+                                        className="rounded-full font-black uppercase italic tracking-widest"
+                                    >
+                                        Ver mis reservas
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+                )}
 
                 {
                     myBookings.length > 0 && (
@@ -1781,7 +1417,7 @@ const BusinessBookingPage = () => {
                         </Card>
                     )
                 }
-            </div >
+            </div>
 
             {/* Social Media Footer */}
             {
@@ -1870,7 +1506,7 @@ const BusinessBookingPage = () => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div >
+        </div>
     );
 };
 
