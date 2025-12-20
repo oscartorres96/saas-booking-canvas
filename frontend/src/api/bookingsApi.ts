@@ -14,6 +14,7 @@ export interface Booking {
     accessCode?: string;
     serviceName?: string;
     resourceId?: string;
+    assetId?: string;
     paymentStatus?: 'none' | 'pending_verification' | 'paid' | 'rejected';
     paymentMethod?: 'none' | 'bank_transfer' | 'stripe';
     paymentDetails?: {

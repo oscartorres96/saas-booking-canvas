@@ -11,7 +11,7 @@ export class CustomerAssetsService {
         @InjectModel(Product.name) private productModel: Model<ProductDocument>,
     ) { }
 
-    async createFromPurchase(businessId: string, clientEmail: string, productId: string) {
+    async createFromPurchase(businessId: string, clientEmail: string, productId: string, clientPhone?: string) {
         const product = await this.productModel.findById(productId);
         if (!product) throw new BadRequestException('Product not found');
 
@@ -22,9 +22,11 @@ export class CustomerAssetsService {
         const asset = new this.assetModel({
             businessId,
             clientEmail,
+            clientPhone,
             productId: new Types.ObjectId(productId),
-            totalUses: product.totalUses || 1,
-            remainingUses: product.totalUses || 1,
+            totalUses: product.isUnlimited ? 0 : (product.totalUses || 1),
+            remainingUses: product.isUnlimited ? 0 : (product.totalUses || 1),
+            isUnlimited: product.isUnlimited || false,
             expiresAt,
             status: AssetStatus.Active,
         });
@@ -32,17 +34,31 @@ export class CustomerAssetsService {
         return asset.save();
     }
 
-    async findActiveAssets(businessId: string, clientEmail: string, serviceId?: string) {
+    async findActiveAssets(businessId: string, clientEmail: string, serviceId?: string, clientPhone?: string) {
         const now = new Date();
+
+        const identifierMatch: any[] = [{ clientEmail }];
+        if (clientPhone) {
+            identifierMatch.push({ clientPhone });
+        }
+
         const query: any = {
             businessId,
-            clientEmail,
+            $or: identifierMatch,
             status: AssetStatus.Active,
-            remainingUses: { $gt: 0 },
-            // Ensure asset has not expired
-            $or: [
-                { expiresAt: { $exists: false } },
-                { expiresAt: { $gt: now } }
+            $and: [
+                {
+                    $or: [
+                        { isUnlimited: true },
+                        { remainingUses: { $gt: 0 } }
+                    ]
+                },
+                {
+                    $or: [
+                        { expiresAt: { $exists: false } },
+                        { expiresAt: { $gt: now } }
+                    ]
+                }
             ]
         };
 
@@ -63,50 +79,106 @@ export class CustomerAssetsService {
      * Consumes one use from the asset.
      * Uses findOneAndUpdate for atomic decrement to prevent race conditions.
      */
-    async consumeUse(assetId: string) {
+    async consumeUse(assetId: string, verificationContact?: { email?: string; phone?: string }) {
         const now = new Date();
 
-        // Atomic update: only decrement if uses > 0 and not expired
-        const asset = await this.assetModel.findOneAndUpdate(
-            {
-                _id: assetId,
-                status: AssetStatus.Active,
-                remainingUses: { $gt: 0 },
-                $or: [
-                    { expiresAt: { $exists: false } },
-                    { expiresAt: { $gt: now } }
-                ]
-            },
-            {
-                $inc: { remainingUses: -1 }
-            },
-            { new: true }
-        );
+        // First find to check if it's unlimited and verify ownership
+        const existing = await this.assetModel.findById(assetId);
+        if (!existing) throw new BadRequestException('Asset not found');
 
-        if (!asset) {
+        // Verify ownership if contact info is provided
+        if (verificationContact) {
+            const matchesEmail = verificationContact.email && existing.clientEmail === verificationContact.email;
+            const matchesPhone = verificationContact.phone && existing.clientPhone === verificationContact.phone;
+
+            if (!matchesEmail && !matchesPhone) {
+                throw new BadRequestException('El paquete seleccionado no pertenece a tu cuenta (email/teléfono)');
+            }
+        }
+
+        let updatedAsset;
+
+        if (existing.isUnlimited) {
+            // Atomic update for unlimited: just track usage
+            updatedAsset = await this.assetModel.findOneAndUpdate(
+                {
+                    _id: assetId,
+                    status: AssetStatus.Active,
+                    $or: [
+                        { expiresAt: { $exists: false } },
+                        { expiresAt: { $gt: now } }
+                    ]
+                },
+                {
+                    $inc: { timesUsed: 1 },
+                    $set: { lastUsedAt: now }
+                },
+                { new: true }
+            );
+        } else {
+            // Atomic update for limited: decrement uses
+            updatedAsset = await this.assetModel.findOneAndUpdate(
+                {
+                    _id: assetId,
+                    status: AssetStatus.Active,
+                    remainingUses: { $gt: 0 },
+                    $or: [
+                        { expiresAt: { $exists: false } },
+                        { expiresAt: { $gt: now } }
+                    ]
+                },
+                {
+                    $inc: { remainingUses: -1, timesUsed: 1 },
+                    $set: { lastUsedAt: now }
+                },
+                { new: true }
+            );
+        }
+
+        if (!updatedAsset) {
             throw new BadRequestException('El paquete no está disponible, no tiene usos restantes o ha expirado.');
         }
 
-        // Check if we just consumed the last use
-        if (asset.remainingUses === 0) {
-            asset.status = AssetStatus.Consumed;
-            await asset.save();
+        // Check if we just consumed the last use for limited assets
+        if (!updatedAsset.isUnlimited && updatedAsset.remainingUses === 0) {
+            updatedAsset.status = AssetStatus.Consumed;
+            await updatedAsset.save();
         }
 
-        return asset;
+        return updatedAsset;
     }
 
     async refundUse(assetId: string) {
+        const existing = await this.assetModel.findById(assetId);
+        if (!existing) return null;
+
+        if (existing.isUnlimited) {
+            // For unlimited, we "refund" by decrementing timesUsed if we want accuracy,
+            // though usually it doesn't matter much.
+            return this.assetModel.findOneAndUpdate(
+                { _id: assetId },
+                { $inc: { timesUsed: -1 } },
+                { new: true }
+            );
+        }
+
         // Atomic increment for refund
         const asset = await this.assetModel.findOneAndUpdate(
             { _id: assetId },
             {
-                $inc: { remainingUses: 1 },
+                $inc: { remainingUses: 1, timesUsed: -1 },
                 $set: { status: AssetStatus.Active } // Reactive if it was Consumed
             },
             { new: true }
         );
 
         return asset;
+    }
+
+    async findByBusiness(businessId: string) {
+        return this.assetModel.find({ businessId })
+            .populate('productId')
+            .sort({ createdAt: -1 })
+            .lean();
     }
 }

@@ -92,7 +92,7 @@ export const ProductsStore = ({ businessId, primaryColor }: ProductsStoreProps) 
                                     <li className="flex items-center gap-2">
                                         <Check className="h-4 w-4 text-green-500" />
                                         {product.type === ProductType.Package
-                                            ? t('booking.products.feature_sessions', { count: product.totalUses })
+                                            ? (product.isUnlimited ? t('booking.products.feature_unlimited') : t('booking.products.feature_sessions', { count: product.totalUses }))
                                             : t('booking.products.feature_single_use')
                                         }
                                     </li>

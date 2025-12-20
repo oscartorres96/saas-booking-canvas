@@ -2,9 +2,10 @@ import React, { useEffect, useState } from "react";
 import { getResourceAvailability, createResourceHold } from "@/api/resourceMapApi";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, Bike, Search, Sparkles, MapPin, Circle } from "lucide-react";
+import { RefreshCw, Search, Sparkles, MapPin, Circle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { ResourceIcon } from "./ResourceIconRegistry";
 
 interface ResourceSelectorProps {
     businessId: string;
@@ -12,14 +13,6 @@ interface ResourceSelectorProps {
     onResourceSelected: (resourceId: string) => void;
     primaryColor?: string;
 }
-
-const MatIcon = ({ className }: { className?: string }) => (
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-        <rect x="4" y="2" width="16" height="20" rx="3" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="2" />
-        <path d="M4 7H20" stroke="currentColor" strokeWidth="2" strokeDasharray="2 2" />
-        <path d="M4 17H20" stroke="currentColor" strokeWidth="2" strokeDasharray="2 2" />
-    </svg>
-);
 
 export const ResourceSelector = ({ businessId, scheduledAt, onResourceSelected, primaryColor }: ResourceSelectorProps) => {
     const [availability, setAvailability] = useState<any>(null);
@@ -59,26 +52,6 @@ export const ResourceSelector = ({ businessId, scheduledAt, onResourceSelected, 
         }
     };
 
-    const getResourceIcon = (type: string, isSelected: boolean, isOccupied: boolean) => {
-        const lowerType = type.toLowerCase();
-        const iconClass = cn(
-            "h-7 w-7 transition-all duration-300",
-            isSelected
-                ? "text-white drop-shadow-[0_2px_8px_rgba(255,255,255,0.4)]"
-                : isOccupied
-                    ? "text-slate-300 dark:text-slate-700"
-                    : "text-slate-400 dark:text-slate-600 group-hover:text-primary group-hover:scale-110"
-        );
-
-        if (lowerType.includes('bici') || lowerType.includes('bike')) {
-            return <Bike className={iconClass} />;
-        }
-        if (lowerType.includes('tapete') || lowerType.includes('yoga') || lowerType.includes('mat')) {
-            return <MatIcon className={iconClass} />;
-        }
-        return null;
-    };
-
     if (loading) {
         return (
             <div className="space-y-4 py-4">
@@ -97,9 +70,7 @@ export const ResourceSelector = ({ businessId, scheduledAt, onResourceSelected, 
     }
 
     const { resourceConfig, occupiedResourceIds } = availability;
-    const isSpecialType = ['bici', 'bike', 'tapete', 'yoga', 'mat'].some(t =>
-        resourceConfig.resourceType.toLowerCase().includes(t)
-    );
+    const isSpecialType = resourceConfig.layoutType && resourceConfig.layoutType !== 'default';
 
     return (
         <motion.div
@@ -150,7 +121,6 @@ export const ResourceSelector = ({ businessId, scheduledAt, onResourceSelected, 
                         {resourceConfig.resources.map((res: any, index: number) => {
                             const isOccupied = occupiedResourceIds.includes(res.id);
                             const isSelected = selectedId === res.id;
-                            const icon = getResourceIcon(resourceConfig.resourceType, isSelected, isOccupied);
 
                             if (!res.isActive) return <div key={res.id} className={cn(isSpecialType ? "h-20 w-14" : "h-14 w-12")} />;
 
@@ -220,7 +190,11 @@ export const ResourceSelector = ({ businessId, scheduledAt, onResourceSelected, 
 
                                     {/* Content */}
                                     <div className="relative z-10 flex flex-col items-center gap-1.5">
-                                        {icon}
+                                        <ResourceIcon
+                                            type={resourceConfig.layoutType}
+                                            isSelected={isSelected}
+                                            isOccupied={isOccupied}
+                                        />
                                         <span className={cn(
                                             "text-[10px] font-black tracking-wider leading-none",
                                             isSelected

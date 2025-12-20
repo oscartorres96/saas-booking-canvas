@@ -4,11 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { updateBusinessResourceConfig } from "@/api/businessesApi";
-import { Grid3X3, Save, RefreshCw, MousePointer2, Settings2, Eye, Bike, MapPin } from "lucide-react";
+import { Grid3X3, Save, RefreshCw, MousePointer2, Settings2, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { ResourceIcon, ICON_REGISTRY, type LayoutType } from "../booking/ResourceIconRegistry";
 
 interface Resource {
     id: string;
@@ -24,6 +32,7 @@ interface ResourceConfig {
     enabled: boolean;
     resourceType: string;
     resourceLabel: string;
+    layoutType?: string;
     rows: number;
     cols: number;
     resources: Resource[];
@@ -34,19 +43,12 @@ interface ResourceMapEditorProps {
     initialConfig?: ResourceConfig;
 }
 
-const MatIcon = ({ className }: { className?: string }) => (
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-        <rect x="4" y="2" width="16" height="20" rx="3" fill="currentColor" fillOpacity="0.2" stroke="currentColor" strokeWidth="2" />
-        <path d="M4 7H20" stroke="currentColor" strokeWidth="2" strokeDasharray="2 2" />
-        <path d="M4 17H20" stroke="currentColor" strokeWidth="2" strokeDasharray="2 2" />
-    </svg>
-);
-
 export const ResourceMapEditor = ({ businessId, initialConfig }: ResourceMapEditorProps) => {
     const [config, setConfig] = useState<ResourceConfig>(initialConfig || {
         enabled: false,
         resourceType: "Bici",
         resourceLabel: "B",
+        layoutType: "spinning",
         rows: 4,
         cols: 6,
         resources: []
@@ -112,25 +114,7 @@ export const ResourceMapEditor = ({ businessId, initialConfig }: ResourceMapEdit
         }
     };
 
-    const getResourceIcon = (type: string, isActive: boolean) => {
-        const lowerType = type.toLowerCase();
-        const iconClass = cn(
-            "h-6 w-6 transition-colors duration-300",
-            isActive ? "text-primary" : "text-slate-300 dark:text-slate-700"
-        );
-
-        if (lowerType.includes('bici') || lowerType.includes('bike')) {
-            return <Bike className={iconClass} />;
-        }
-        if (lowerType.includes('tapete') || lowerType.includes('yoga') || lowerType.includes('mat')) {
-            return <MatIcon className={iconClass} />;
-        }
-        return <MapPin className={cn(iconClass, "h-4 w-4")} />;
-    };
-
-    const isSpecialType = ['bici', 'bike', 'tapete', 'yoga', 'mat'].some(t =>
-        config.resourceType.toLowerCase().includes(t)
-    );
+    const isSpecialType = config.layoutType && config.layoutType !== 'default';
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -142,10 +126,10 @@ export const ResourceMapEditor = ({ businessId, initialConfig }: ResourceMapEdit
                                 <div className="p-2 bg-primary/10 rounded-lg">
                                     <Grid3X3 className="h-6 w-6 text-primary" />
                                 </div>
-                                Mapa de Recursos
+                                Personalización de Recursos
                             </CardTitle>
                             <CardDescription className="text-base text-muted-foreground">
-                                Diseña la distribución física de tu negocio para que tus clientes elijan su lugar.
+                                Elige los iconos y distribuye tus unidades (bicis, tapetes, estaciones) en el mapa.
                             </CardDescription>
                         </div>
                         <div className="flex items-center gap-3 px-6 py-3 bg-background rounded-full border shadow-sm self-start md:self-auto transition-all hover:shadow-md">
@@ -161,11 +145,32 @@ export const ResourceMapEditor = ({ businessId, initialConfig }: ResourceMapEdit
 
                 <CardContent className="p-4 md:p-8 space-y-8">
                     {/* Panel de Configuración */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border shadow-inner">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border shadow-inner">
                         <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                <Settings2 className="h-3 w-3" /> Tipo de Recurso
+                                <Settings2 className="h-3 w-3" /> Icono Visual
                             </Label>
+                            <Select
+                                value={config.layoutType || 'default'}
+                                onValueChange={(val) => setConfig({ ...config, layoutType: val })}
+                            >
+                                <SelectTrigger className="bg-background rounded-xl border-slate-200 dark:border-slate-800 h-10">
+                                    <SelectValue placeholder="Selecciona un icono" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {ICON_REGISTRY.map((item) => (
+                                        <SelectItem key={item.id} value={item.id}>
+                                            <div className="flex items-center gap-2">
+                                                <item.icon className="h-4 w-4" />
+                                                <span>{item.label}</span>
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Nombre Singular</Label>
                             <Input
                                 value={config.resourceType}
                                 onChange={(e) => setConfig({ ...config, resourceType: e.target.value })}
@@ -216,9 +221,9 @@ export const ResourceMapEditor = ({ businessId, initialConfig }: ResourceMapEdit
                             <div className="flex flex-col gap-0.5">
                                 <div className="flex items-center gap-2">
                                     <Eye className="h-4 w-4 text-primary" />
-                                    <h3 className="font-black text-lg uppercase tracking-tight">Vista Previa</h3>
+                                    <h3 className="font-black text-lg uppercase tracking-tight">Vista Previa Interactiva</h3>
                                 </div>
-                                <p className="text-[10px] text-muted-foreground font-bold tracking-widest">ASÍ LO VERÁN TUS CLIENTES</p>
+                                <p className="text-[10px] text-muted-foreground font-bold tracking-widest">PERSONALIZA LA DISPOSICIÓN HACIENDO CLIC</p>
                             </div>
                             <Button
                                 variant="outline"
@@ -253,7 +258,11 @@ export const ResourceMapEditor = ({ businessId, initialConfig }: ResourceMapEdit
                                         onClick={() => toggleResource(res.id)}
                                     >
                                         <div className="flex flex-col items-center gap-1.5">
-                                            {getResourceIcon(config.resourceType, res.isActive)}
+                                            <ResourceIcon
+                                                type={config.layoutType}
+                                                isActive={res.isActive}
+                                                className="h-6 w-6"
+                                            />
                                             <span className="text-[10px] font-black tracking-tighter leading-none">
                                                 {res.label}
                                             </span>
@@ -307,7 +316,7 @@ export const ResourceMapEditor = ({ businessId, initialConfig }: ResourceMapEdit
                             ) : (
                                 <Save className="h-5 w-5 mr-3" />
                             )}
-                            Guardar Mapa
+                            Guardar Configuración de Sala
                         </Button>
                     </div>
                 </CardContent>
@@ -315,4 +324,3 @@ export const ResourceMapEditor = ({ businessId, initialConfig }: ResourceMapEdit
         </div>
     );
 };
-

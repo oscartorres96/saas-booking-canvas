@@ -15,14 +15,26 @@ export class CustomerAsset {
     @Prop({ required: true })
     clientEmail!: string;
 
+    @Prop()
+    clientPhone?: string;
+
     @Prop({ type: Types.ObjectId, ref: 'Product', required: true })
     productId!: Types.ObjectId;
 
     @Prop({ required: true })
     totalUses!: number;
 
-    @Prop({ required: true })
-    remainingUses!: number;
+    @Prop()
+    remainingUses?: number;
+
+    @Prop({ default: false })
+    isUnlimited!: boolean;
+
+    @Prop({ default: 0 })
+    timesUsed!: number;
+
+    @Prop()
+    lastUsedAt?: Date;
 
     @Prop()
     expiresAt?: Date;
@@ -39,3 +51,4 @@ export const CustomerAssetSchema = SchemaFactory.createForClass(CustomerAsset);
 
 // Index for quick lookup of active assets by client
 CustomerAssetSchema.index({ businessId: 1, clientEmail: 1, status: 1 });
+CustomerAssetSchema.index({ businessId: 1, clientPhone: 1, status: 1 });

@@ -14,6 +14,7 @@ export interface Product {
     type: ProductType;
     price: number;
     totalUses?: number;
+    isUnlimited?: boolean;
     validityDays?: number;
     allowedServiceIds: string[];
     active: boolean;
@@ -42,6 +43,7 @@ export const createProductCheckout = async (payload: {
     productId: string;
     businessId: string;
     clientEmail: string;
+    clientPhone?: string;
     clientName?: string;
     successUrl?: string;
     cancelUrl?: string;

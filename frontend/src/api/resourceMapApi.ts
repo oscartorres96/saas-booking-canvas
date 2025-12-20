@@ -5,6 +5,7 @@ export interface ResourceAvailability {
     enabled: boolean;
     resourceType: string;
     resourceLabel: string;
+    layoutType?: string;
     rows: number;
     cols: number;
     resources: Array<{

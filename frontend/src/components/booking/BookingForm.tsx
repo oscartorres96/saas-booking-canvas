@@ -21,7 +21,7 @@ interface BookingFormProps {
   selectedTime: string | null;
   businessName: string;
   businessId?: string;
-  services?: Array<{ id: string; name: string; price?: string; requirePayment?: boolean; requireResource?: boolean; }>;
+  services?: Array<{ id: string; name: string; price?: string; requirePayment?: boolean; requireResource?: boolean; requireProduct?: boolean; }>;
   paymentConfig?: {
     method: string;
     bank?: string;
@@ -438,7 +438,9 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
                             <div className="flex justify-between items-start">
                               <span className="font-bold text-[15px]">{(asset.productId as any).name || 'Paquete'}</span>
                               <Badge variant="outline" className="bg-primary/5 border-primary/20 text-primary text-[10px] uppercase tracking-wider font-bold">
-                                {t('booking.assets.uses_remaining', { count: asset.remainingUses })}
+                                {asset.isUnlimited
+                                  ? t('booking.assets.unlimited_uses')
+                                  : t('booking.assets.uses_remaining', { count: asset.remainingUses })}
                               </Badge>
                             </div>
                             {asset.expiresAt && (

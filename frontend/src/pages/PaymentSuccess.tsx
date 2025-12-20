@@ -3,15 +3,20 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import { createBooking } from '@/api/bookingsApi';
+import { getActiveAssets } from '@/api/customerAssetsApi';
+import { toast } from 'sonner';
 
 export default function PaymentSuccess() {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [countdown, setCountdown] = useState(10);
+    const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
     const sessionId = searchParams.get('session_id');
-    const purchaseType = searchParams.get('type'); // Check if it's a direct purchase
+    const purchaseType = searchParams.get('type');
+    const bookingDataRaw = searchParams.get('booking_data');
 
     const isDirectPurchase = purchaseType === 'direct_purchase';
     const bookingId = searchParams.get('bookingId');
@@ -35,7 +40,7 @@ export default function PaymentSuccess() {
         }
     }, [navigate, isDirectPurchase]);
 
-    // Auto-trigger account creation for direct purchases (for testing when webhooks don't work)
+    // Auto-trigger account creation for direct purchases
     useEffect(() => {
         if (isDirectPurchase && sessionId) {
             const triggerAccountCreation = async () => {
@@ -56,6 +61,69 @@ export default function PaymentSuccess() {
             triggerAccountCreation();
         }
     }, [isDirectPurchase, sessionId]);
+
+    // Handle Product Purchase Booking Completion
+    useEffect(() => {
+        if (purchaseType === 'product' && sessionId && bookingDataRaw) {
+            const completeProductBooking = async () => {
+                setStatus('processing');
+                try {
+                    // 1. Manually complete product payment (for local testing without webhooks)
+                    // In production, the webhook will do this, but this ensures speed
+                    try {
+                        await fetch('http://localhost:3000/api/stripe/product-purchase/complete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ sessionId }),
+                        });
+                    } catch (e) {
+                        // Ignore errors as webhooks might have already processed the payment
+                    }
+
+                    // 2. Parse booking data
+                    const bookingData = JSON.parse(atob(bookingDataRaw));
+
+                    // 3. Wait/Retry for the asset to be ready
+                    let userAsset = null;
+                    for (let i = 0; i < 5; i++) {
+                        const assets = await getActiveAssets({
+                            businessId: bookingData.businessId,
+                            email: bookingData.clientEmail,
+                            phone: bookingData.clientPhone,
+                        });
+
+                        // Check if we have a compatible asset
+                        userAsset = assets.find(a => {
+                            const allowed = a.productId?.allowedServiceIds;
+                            return !allowed || allowed.length === 0 || allowed.includes(bookingData.serviceId);
+                        });
+
+                        if (userAsset) break;
+                        await new Promise(r => setTimeout(r, 2000)); // Wait 2s
+                    }
+
+                    if (!userAsset) {
+                        throw new Error("No available assets found after purchase");
+                    }
+
+                    // 4. Create the actual booking using the new asset
+                    await createBooking({
+                        ...bookingData,
+                        assetId: userAsset._id,
+                    });
+
+                    setStatus('success');
+                    toast.success("¡Reserva confirmada exitosamente!");
+                } catch (error) {
+                    console.error("Failed to complete product booking:", error);
+                    setStatus('error');
+                    toast.error("Tu paquete está listo, pero no pudimos confirmar la reserva automáticamente.");
+                }
+            };
+
+            completeProductBooking();
+        }
+    }, [purchaseType, sessionId, bookingDataRaw]);
 
     const handleGoToDashboard = () => {
         if (isDirectPurchase) {
@@ -151,6 +219,42 @@ export default function PaymentSuccess() {
                                 </ol>
                             </div>
                         </>
+                    ) : purchaseType === 'product' ? (
+                        // Product Purchase Flow (Packages/Passes)
+                        <div className="space-y-6">
+                            <div className="bg-primary/5 border-2 border-primary/20 rounded-xl p-6 text-center animate-in zoom-in-95 duration-500">
+                                <h3 className="font-bold text-xl mb-2">¡Paquete Adquirido!</h3>
+                                <p className="text-muted-foreground">
+                                    Tu compra ha sido procesada con éxito y tus créditos están listos para usar.
+                                </p>
+                            </div>
+
+                            {status === 'processing' ? (
+                                <div className="flex flex-col items-center gap-4 py-8">
+                                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                                    <p className="font-medium animate-pulse">Confirmando tu reserva...</p>
+                                </div>
+                            ) : status === 'error' ? (
+                                <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm">
+                                    <p>Hubo un problema al confirmar tu reserva, pero tu paquete ya está activo. Por favor contacta al negocio.</p>
+                                </div>
+                            ) : (
+                                <div className="bg-green-50 border border-green-100 rounded-xl p-6 text-center">
+                                    <CheckCircle2 className="h-10 w-10 text-green-600 mx-auto mb-3" />
+                                    <h4 className="font-bold text-green-800">¡Reserva Confirmada!</h4>
+                                    <p className="text-green-700 text-sm mt-1">Hemos usado uno de tus nuevos créditos para confirmar tu cita.</p>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 gap-4">
+                                <Button onClick={() => navigate('/my-bookings')} variant="default" className="h-12 text-lg">
+                                    Ver mis citas y créditos
+                                </Button>
+                                <Button onClick={() => navigate('/')} variant="outline" className="h-12">
+                                    Volver al Inicio
+                                </Button>
+                            </div>
+                        </div>
                     ) : isBooking ? (
                         // Booking Payment Flow
                         <>

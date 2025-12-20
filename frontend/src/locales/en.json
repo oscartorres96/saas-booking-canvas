@@ -339,6 +339,46 @@
             "disclaimer": "Payment is made directly to the business. BookPro does not process these payments.",
             "stripe_error_title": "Payment initialization error",
             "stripe_error_desc": "We couldn't connect with Stripe. Please contact the business."
+        },
+        "products": {
+            "section_title": "Passes & Packages",
+            "section_subtitle": "Save by purchasing session packages or single passes for your favorite classes",
+            "badge_popular": "MOST POPULAR",
+            "price_currency": "MXN",
+            "feature_sessions": "{{count}} sessions included",
+            "feature_unlimited": "Unlimited Sessions",
+            "feature_single_use": "1 individual use",
+            "feature_validity": "Valid for {{days}} days",
+            "feature_no_hidden": "No hidden fees",
+            "btn_buy": "Buy Now",
+            "dialog_title": "Complete Purchase",
+            "dialog_description": "Enter your details to purchase",
+            "name_label": "Full Name",
+            "name_placeholder": "Your name",
+            "email_label": "Email Address",
+            "email_placeholder": "example@email.com",
+            "email_hint": "* This email will be used to identify your classes when booking.",
+            "btn_proceed": "Proceed to Payment",
+            "btn_loading": "Loading..."
+        },
+        "assets": {
+            "detected_title": "We see you have an active package!",
+            "detected_subtitle": "Select the package you want to use for this booking:",
+            "uses_remaining": "{{count}} uses",
+            "unlimited_uses": "Unlimited Uses",
+            "expires_on": "Expires on {{date}}",
+            "pay_individual": "Pay individually",
+            "required_title": "This service requires an active pass or package",
+            "required_message": "We haven't found an active package under this email. Please purchase one below or use another email to continue.",
+            "no_assets_title": "You don't have an active pass for this service",
+            "no_assets_message": "You can purchase one to continue.",
+            "package_expired": "Your package has expired",
+            "package_no_uses": "Your package has no uses available",
+            "confirmation_asset_used": "1 use has been deducted from your package"
+        },
+        "service_type": {
+            "direct_booking": "This service is booked directly",
+            "requires_package": "This service requires an active pass or package"
         }
     },
     "days": {
@@ -354,6 +394,28 @@
         "welcome": "Welcome",
         "subtitle": "Management panel for your business",
         "viewBookingPage": "View booking page",
+        "v2": {
+            "kpis": {
+                "bookings_today": "Today's Bookings",
+                "customers_week": "Unique Customers (Week)",
+                "pending": "Pending Confirmation",
+                "packages": "Active Packages"
+            },
+            "activity": {
+                "title": "Recent Activity",
+                "description": "What's happening right now",
+                "used_package": "Used package",
+                "recurring": "Recurring",
+                "empty": "No recent activity",
+                "view_all": "View all history"
+            },
+            "attention": {
+                "title": "Requires attention"
+            },
+            "customers": {
+                "title": "Relevant Customers"
+            }
+        },
         "copyInvitation": "Copy Invitation",
         "invitationCopied": "Invitation copied to clipboard",
         "invitationMessage": "Hi! 👋\n\nI invite you to book your appointment at *{{businessName}}* quickly and easily. 📅✨\n\nClick here to see our services and available times: 👇\n{{url}}\n\nSee you soon!",
@@ -399,6 +461,12 @@
             "edit_description": "Modify the service details.",
             "delete_title": "Delete Service",
             "delete_description": "This action cannot be undone. Do you want to delete \"{{name}}\"?",
+            "form": {
+                "name": "Service Name",
+                "description": "Description",
+                "duration": "Duration (minutes)",
+                "price": "Price"
+            },
             "toasts": {
                 "created": "Service created successfully",
                 "updated": "Service updated",
@@ -477,13 +545,31 @@
             }
         },
         "qr": {
-            "dialog_title": "Share Profile",
-            "title": "Booking QR Code",
-            "description": "Share this code on your stories or print it so your clients can scan and book easily.",
+            "dialog_title": "Get More Clients",
+            "title": "Make booking easier",
+            "subtitle": "Create smart QR codes that connect directly to your services and convert visitors into clients.",
+            "type_label": "What do you want to share?",
+            "type_general": "General QR",
+            "type_general_desc": "Links to your complete booking page",
+            "type_service": "Service QR",
+            "type_service_desc": "Promote a specific service",
+            "type_package": "Package QR",
+            "type_package_desc": "Boost package sales",
+            "select_service": "Select service",
+            "select_package": "Select package",
+            "context_label": "Where will you use it?",
+            "context_instagram": "Instagram / Social Media",
+            "context_flyer": "Printed Flyer",
+            "context_card": "Business Card",
+            "context_reception": "Reception / Front Desk",
+            "context_tip_instagram": "Perfect for stories and posts",
+            "context_tip_flyer": "Optimized for printing",
+            "context_tip_card": "Perfect size for cards",
+            "context_tip_reception": "Visible for in-store clients",
             "download": "Download QR",
-            "copy_link": "Copy Link for Bio",
-            "tip": "💡 Instagram Tip: Add this link to your bio.",
-            "toast_download": "QR Code downloaded",
+            "copy_link": "Copy Link",
+            "final_tip": "Place this code where your clients can easily see it. Every scan is a sales opportunity.",
+            "toast_download": "QR downloaded successfully",
             "toast_error": "Error generating QR code",
             "toast_copy": "Link copied to clipboard"
         }
@@ -576,11 +662,24 @@
             "online_title": "Online Payments (Stripe)",
             "online_desc": "Select how you wish to receive card payments.",
             "powered_by": "Powered by Stripe",
+            "model_locked_title": "Payment model configured",
             "models": {
                 "intermediated": "Intermediated Model",
+                "intermediated_tagline": "Perfect to start without complications",
                 "intermediated_desc": "Ideal if you don't have a formal business account. BookPro collects for you and you request payout.",
                 "connect": "Stripe Connect",
+                "connect_tagline": "Maximum control for established businesses",
                 "connect_desc": "Money goes directly to your Stripe account. Requires a linked formal account."
+            },
+            "features": {
+                "intermediated_1": "No business account required",
+                "intermediated_2": "BookPro processes payments for you",
+                "intermediated_3": "Request payout whenever you want",
+                "intermediated_4": "Quick and simple setup",
+                "connect_1": "Direct payments to your Stripe account",
+                "connect_2": "Full control over your funds",
+                "connect_3": "Requires active business account",
+                "connect_4": "BookPro assisted linking"
             },
             "connect_id": "Stripe Account ID",
             "connect_id_hint": "Provided by the BookPro team after linking.",
@@ -735,113 +834,136 @@
         "header": {
             "title": "User Manual",
             "back": "Back",
-            "version": "Version 1.0"
+            "version": "v2.0"
         },
-        "toc": {
-            "title": "Table of Contents",
-            "introduction": "Introduction",
-            "getting_started": "Getting Started",
-            "dashboard": "Dashboard",
-            "services": "Services Management",
-            "bookings": "Bookings Management",
-            "settings": "Configuration",
-            "sharing": "Share Page",
-            "qr": "QR Code",
-            "clients": "Client Guide",
-            "faq": "FAQ"
+        "intro": {
+            "title": "Welcome to BookPro",
+            "subtitle": "Your strategic ally for booking management, client engagement, and growth.",
+            "description": "BookPro is an all-in-one platform designed for businesses that live by their time and need to optimize every minute. Whether you run a medical office, a yoga studio, a barbershop, or a learning center, BookPro automates the entire booking process: from the moment a client discovers you until they complete their payment and confirm their appointment. This allows you to focus on what really matters: delivering exceptional service and growing your business.",
+            "ideal_for": "Who is BookPro for?",
+            "problems_solved": "Problems we solve"
         },
-        "introduction": {
-            "title": "Introduction",
-            "subtitle": "Complete guide for business administrators",
-            "welcome_title": "Welcome to BookPro",
-            "welcome_desc": "A complete platform to manage your business appointments and bookings professionally and efficiently.",
-            "what_can_do": "What can you do with this system?",
-            "features": {
-                "manage_services": "Manage services and their prices",
-                "receive_bookings": "Receive and manage online bookings",
-                "customize_page": "Customize your booking page with your brand",
-                "configure_hours": "Configure business hours",
-                "send_confirmations": "Send automatic email confirmations",
-                "manage_status": "Manage appointment status"
-            }
-        },
-        "getting_started": {
-            "title": "Getting Started",
-            "access_title": "1. System Access",
-            "access_steps": {
-                "step1": "Open your web browser and go to the system URL",
-                "step2": "Click on \"Sign In\"",
-                "step3": "Enter your email and password",
-                "step4": "Click \"Sign In\""
+        "sections": {
+            "getting_started": {
+                "title": "Getting Started",
+                "desc": "Start your BookPro experience quickly and without complications. In this section, you'll learn how to set up your initial account and access the main tools.",
+                "steps": [
+                    "Business Registration: Create your account in less than 3 minutes. You only need to provide your name, email, and basic business data. BookPro will automatically generate your personalized workspace.",
+                    "Dashboard Access: Once registered, you will access your administration panel (Dashboard), the command center from where you will manage bookings, clients, services, and income. All on one screen, no complications.",
+                    "Dashboard Overview: On the main screen, you will see a visual summary of your upcoming appointments, day's income, active services, and your business status. Here you can make quick decisions, identify pending appointments, and know the financial health of your operation in real time."
+                ]
             },
-            "tip_password": "If you forgot your password, click on \"Forgot your password?\" to recover it.",
-            "onboarding_title": "2. Onboarding Process (First time)",
-            "onboarding_desc": "The system will guide you through 4 simple steps"
-        },
-        "dashboard": {
-            "title": "Dashboard",
-            "subtitle": "The dashboard is your operations center."
-        },
-        "services": {
-            "title": "Services Management"
-        },
-        "bookings": {
-            "title": "Bookings Management",
-            "states_title": "Booking States",
-            "states": {
-                "pending": {
-                    "name": "Pending",
-                    "desc": "New booking not confirmed",
-                    "color": "Yellow"
-                },
-                "confirmed": {
-                    "name": "Confirmed",
-                    "desc": "Appointment confirmed by you",
-                    "color": "Green"
-                },
-                "completed": {
-                    "name": "Completed",
-                    "desc": "Service finished",
-                    "color": "Blue"
-                },
-                "cancelled": {
-                    "name": "Cancelled",
-                    "desc": "Booking cancelled",
-                    "color": "Red"
-                }
-            }
-        },
-        "settings": {
-            "title": "Business Configuration",
-            "subtitle": "Access by clicking on the \"Settings\" tab"
-        },
-        "sharing": {
-            "title": "Share Booking Page"
-        },
-        "qr": {
-            "title": "Booking QR Code",
-            "subtitle": "Easy access for your clients",
-            "desc": "The system automatically generates a unique QR code for your business.",
-            "uses": {
-                "print": "Printed material (cards, flyers, reception)",
-                "digital": "Social media and messaging",
-                "access": "Your clients scan it and go directly to your booking page"
+            "config": {
+                "title": "Initial Setup",
+                "desc": "Personalize your business so that BookPro reflects your professional identity. This initial setup is key to projecting trust and making it easier for your clients to book.",
+                "items": [
+                    "General Information: Define your business trade name, upload your logo (it will appear in emails and on the booking page), and write an attractive description that explains what you offer. This information is the first thing your clients see when they visit your booking page, so make it clear and professional.",
+                    "Business Hours: Configure the days and hours you accept appointments. You can define different hours for each day of the week, add multiple intervals (e.g., morning and afternoon), include break blocks, and mark holidays or closed days. BookPro will show only available slots according to your real hours.",
+                    "Currency and Region: Select your local currency (MXN, USD, EUR, etc.) and the communication language with your clients. This affects how prices are presented, email notifications, and date format on your public booking page. You can change the admin panel language from the selector in the top right corner."
+                ]
             },
-            "how_to": {
-                "title": "How to get it?",
-                "steps": {
-                    "step1": "In the Dashboard, look for the \"QR Code\" button (QR icon)",
-                    "step2": "Click to open the code window",
-                    "step3": "Use the \"Download QR\" button to save the image"
-                }
+            "services": {
+                "title": "Service and Package Management (Catalog)",
+                "desc": "Your catalog is the heart of BookPro: here you define WHAT you offer, HOW MUCH it costs, and HOW it is charged. This section allows you to create individual services (like a consultation or haircut) and multi-session packages (like a 10-class plan).",
+                "features": [
+                    "Create services with custom duration, price, and description. Define if they require pre-payment or are paid on-site. You can activate or deactivate services by season.",
+                    "Configure recurring session packages: Offer volume discounts (e.g., '10-class pack for $1,000', ideal for fitness studios). Clients buy credits and BookPro automatically deducts them upon confirming each appointment.",
+                    "Assign specific resources: If you offer services that require rooms, equipment, specific bikes, or instructors, you can manage their availability. BookPro avoids double booking of the same resource.",
+                    "Define payment policies: For each service, you can choose if it's charged upon booking (reduces cancellations by 80%), if it's just a reservation without charge (ideal if you charge cash), or if a package purchase is required (membership model).",
+                    "Copy direct booking links by service: Each service has a unique link you can share on social media, WhatsApp, or print on flyers. This facilitates conversion because it leads directly to the service without needing the client to navigate."
+                ]
+            },
+            "bookings": {
+                "title": "Booking Management",
+                "desc": "Here you manage all your client appointments: from those pending confirmation to those completed. You have full visibility over who booked, when, what service they chose, and the payment status.",
+                "types": [
+                    "Client-created bookings from the public page: They arrive automatically at your panel. You can configure if they are confirmed instantly or require your manual approval (useful if you need to validate real availability).",
+                    "Internal bookings created by you: From your panel, you can schedule appointments for clients who call by phone or walk in without a previous reservation. You can mark them as paid, pending, or free.",
+                    "Automatic or manual confirmation: Depending on your configuration, bookings are confirmed automatically (ideal for 100% automated businesses) or require your approval (useful if you need to review each case).",
+                    "Cancellation management: Define cancellation windows (e.g., 'allow cancellation up to 24 hours before'). BookPro notifies the client and releases the slot automatically. If pre-paid, you can define if the refund is automatic or manual.",
+                    "Manual payment verification: If you accept bank transfer or cash, BookPro allows the client to upload a receipt. You review and manually validate from the panel before confirming the appointment."
+                ]
+            },
+            "public_page": {
+                "title": "Public Page and Growth",
+                "desc": "Your booking page is your 24/7 salesperson. It works without you being present: clients enter, select the service, choose date and time, pay (if applicable), and receive automatic confirmation. Now powered with smart marketing tools.",
+                "steps": [
+                    "Client enters from your unique link (e.g., bookpro.app/your-business) or scans one of your smart QR codes. They see your logo, description, and updated service catalog.",
+                    "They select the service they need and the system automatically shows available slots according to your settings, avoiding blocked or after-hours dates.",
+                    "They complete their details (name, email, phone), choose a payment method, and confirm. They receive an instant email with an access code to check or cancel their booking later.",
+                    "Boost your reach by sharing your link in your Instagram bio, WhatsApp buttons, or Google campaigns. Every digital booking is data saved for your growth."
+                ]
+            },
+            "qr_marketing": {
+                "title": "QR Marketing Strategy",
+                "desc": "Convert the physical world into digital bookings. Your new smart QR codes are designed for different use scenarios and to maximize conversion.",
+                "features": [
+                    "General QR: The ideal entry point for your premises. Use it on the facade or reception for clients to explore your entire service catalog.",
+                    "Service QR: Target specific needs. If you launch a promotion, generate a QR that leads directly to that service. Eliminates friction and increases conversion.",
+                    "Package QR: Boost loyalty. Create specific codes for your session passes and promote them inside your establishment to incentivize volume purchases.",
+                    "Contextual Formats: We optimize the design based on the channel. Choose 'Instagram' for stories, 'Flyer' for high-quality printing, or 'Reception' for clear visibility on the counter.",
+                    "High-Resolution Download: All codes are generated in professional PNG format ready to be sent to printers or shared on your digital social networks.",
+                    "Placement Tips: Place your QRs at eye level and ensure they have good lighting. Every scan is a potential client entering your business."
+                ]
+            },
+            "payments": {
+                "title": "Payments, Packages, and Memberships",
+                "desc": "BookPro allows you to charge in multiple ways: individual appointment payments, pre-paid session packages, and recurring memberships. This gives you flexibility to adapt to different business types and improve your cash flow.",
+                "items": [
+                    "Individual service payments: Charge at the time of booking with a card (through Stripe), or accept transfer/cash with manual validation. You reduce cancellations by ensuring financial commitment.",
+                    "Session packages (Class packs): Ideal for yoga studios, gyms, therapies. For example: '10-class pack for $1,500'. The client buys the package once and BookPro automatically deducts a session upon confirming each appointment. You can define if the package expires or is unlimited in time.",
+                    "Memberships with recurring billing: Offer monthly plans (e.g., 'Unlimited class access for $999/month'). BookPro handles automatic renewal via Stripe, preventing you from having to chase payments month after month.",
+                    "Stripe Connect Configuration (Direct Payments): If you have a business account, BookPro helps you link it. Payments go directly to YOUR Stripe account instead of passing through BookPro. This gives you full control and reduces fees. If you don't have a business account yet, BookPro can mediate payments temporarily while you complete your tax registration.",
+                    "Manual payment methods: Activate bank transfer and/or cash. Define your bank details (Account #, holder, bank) so clients know where to transfer. Manually validate receipts before confirming the appointment."
+                ]
+            },
+            "compliance": {
+                "title": "Tax and Legal Compliance",
+                "desc": "If your business is registered with your tax authority (Hacienda, SAT, etc.), BookPro allows you to activate tax functions to issue invoices, apply taxes, and comply with local regulations.",
+                "features": [
+                    "Tax activation (IVA, VAT, Sales Tax): Configure the tax percentage applied in your country. BookPro automatically includes it in each booking summary and shows it broken down (subtotal + tax = total).",
+                    "Business tax identifiers: Capture your RFC (Mexico), Tax ID (USA), or equivalent. This appears on the receipts and invoices BookPro generates, giving you legal validity and professionalism.",
+                    "Client tax data (Invoicing): If your client requires an invoice, BookPro captures their RFC or business name at the time of booking. You can export this information to generate invoices in your accounting system or send them directly from BookPro (feature in development).",
+                    "Legal cancellation policies: Define if you allow cancellations, until when, and if there is a refund. This appears clearly on the booking page and protects your business from legal disputes."
+                ]
+            },
+            "clients": {
+                "title": "Client Management (CRM)",
+                "desc": "BookPro automatically builds a database of your clients every time someone books with you. From your panel, you can check each client's full history, add private notes, and track package usage.",
+                "features": [
+                    "Full appointment history: See all past, future, and cancelled bookings for each client. Identify attendance patterns, preferred services, and visit frequency.",
+                    "Private internal notes: Add comments about preferences, allergies, medical history (if applicable), or any important detail. Only you can see them, never the client.",
+                    "Control of remaining sessions in packages: Check how many classes or sessions each client has left from their active packages. BookPro clearly shows which packages are about to expire or run out.",
+                    "Quick search: Filter by name, email, phone, or last visit date. Useful for following up, sending targeted promotions, or quickly resolving doubts.",
+                    "Data export (coming soon): You will be able to export your client base to Excel or CSV for external analysis, email marketing campaigns, or backups."
+                ]
+            },
+            "best_practices": {
+                "title": "Best Practices and Strategic Tips",
+                "desc": "Get the most out of BookPro by applying proven techniques that increase your income, reduce cancellations, and improve the client experience.",
+                "tips": [
+                    "Activate pre-payments whenever possible: Studies show that charging at booking reduces cancellations by 80%. If your business suffers from 'no-shows', this is the immediate solution.",
+                    "Configure cleaning/sanitizing blocks between appointments: Add 10-15 minute margins between services to avoid accumulated delays. This improves your punctuality and client satisfaction.",
+                    "Review and update your schedules weekly: Block holidays, vacations, or special events in advance. Avoid bookings on dates you cannot attend.",
+                    "Offer discounted packages: Clients perceive more value in '10-session pack + 2 free' than in 12 individual sessions at the same price. Improve your cash flow by receiving payment for volume.",
+                    "Share your QR code in strategic places: Place it at your reception, on business cards, in Instagram posts, and flyers. Make it easier for new clients to book without friction.",
+                    "Monitor your metrics weekly: BookPro shows you income, occupancy rate, and best-selling services. Use this information to identify what works and what needs adjustment."
+                ]
             }
-        },
-        "clients": {
-            "title": "Client Guide",
-            "subtitle": "How your clients will make a booking"
         },
         "faq": {
-            "title": "Frequently Asked Questions"
+            "title": "Frequently Asked Questions",
+            "items": {
+                "q1": "What happens if a client loses their confirmation email?",
+                "a1": "No problem. From your panel, go to the booking details and click 'Resend confirmation'. The client will receive a new email with their access code and all their appointment details.",
+                "q2": "Can I offer free services or zero cost?",
+                "a2": "Yes, completely. When creating or editing a service, simply set the price to $0. BookPro will automatically skip the payment screen and confirm the booking immediately. Useful for free discovery calls, special events, or courtesy services."
+            }
+        },
+        "support": {
+            "title": "Support",
+            "chat": "Live chat available in your panel.",
+            "email": "support@bookpro.com"
         },
         "checklist": {
             "title": "Quick Start Checklist",

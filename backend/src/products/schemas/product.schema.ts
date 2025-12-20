@@ -25,7 +25,10 @@ export class Product {
     price!: number;
 
     @Prop()
-    totalUses?: number; // Null for SINGLE?
+    totalUses?: number; // Null or 0 if isUnlimited is true
+
+    @Prop({ default: false })
+    isUnlimited!: boolean;
 
     @Prop()
     validityDays?: number;

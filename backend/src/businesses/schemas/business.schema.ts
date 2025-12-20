@@ -64,6 +64,7 @@ export class Business {
       instagram: String,
       twitter: String,
       website: String,
+      currency: { type: String, default: 'MXN' },
       businessHours: [{
         day: String,
         startTime: String,
@@ -86,6 +87,7 @@ export class Business {
     instagram?: string;
     twitter?: string;
     website?: string;
+    currency?: string;
     businessHours?: {
       day: string;
       startTime?: string;
@@ -94,9 +96,46 @@ export class Business {
       intervals?: { startTime: string; endTime: string; }[];
     }[];
   };
+
   @Prop({
     type: {
+      allowMultipleBookingsPerDay: { type: Boolean, default: false },
+      cancellationWindowHours: { type: Number, default: 0 },
+      confirmationType: { type: String, default: 'automatic', enum: ['automatic', 'manual'] },
+    }
+  })
+  bookingConfig?: {
+    allowMultipleBookingsPerDay: boolean;
+    cancellationWindowHours: number;
+    confirmationType: 'automatic' | 'manual';
+  };
+
+  @Prop({
+    type: {
+      enabled: { type: Boolean, default: false },
+      taxName: { type: String, default: 'IVA' },
+      taxRate: { type: Number, default: 0.16 },
+      taxIdLabel: { type: String, default: 'RFC' },
+      invoicingEnabled: { type: Boolean, default: false },
+    }
+  })
+  taxConfig?: {
+    enabled: boolean;
+    taxName?: string;
+    taxRate?: number;
+    taxIdLabel?: string;
+    invoicingEnabled?: boolean;
+  };
+  @Prop({
+    type: {
+      paymentPolicy: {
+        type: String,
+        enum: ['RESERVE_ONLY', 'PAY_AT_BOOKING', 'PACKAGES'],
+        default: 'RESERVE_ONLY'
+      },
       method: { type: String, default: 'none' },
+      allowTransfer: { type: Boolean, default: false },
+      allowCash: { type: Boolean, default: false },
       bank: String,
       clabe: String,
       holderName: String,
@@ -104,7 +143,10 @@ export class Business {
     },
   })
   paymentConfig?: {
+    paymentPolicy: 'RESERVE_ONLY' | 'PAY_AT_BOOKING' | 'PACKAGES';
     method: 'none' | 'bank_transfer';
+    allowTransfer: boolean;
+    allowCash: boolean;
     bank?: string;
     clabe?: string;
     holderName?: string;
@@ -126,6 +168,7 @@ export class Business {
       enabled: { type: Boolean, default: false },
       resourceType: String,
       resourceLabel: String,
+      layoutType: { type: String, default: 'default' },
       rows: { type: Number, default: 5 },
       cols: { type: Number, default: 5 },
       resources: [{
@@ -143,6 +186,7 @@ export class Business {
     enabled: boolean;
     resourceType?: string;
     resourceLabel?: string;
+    layoutType?: string;
     rows?: number;
     cols?: number;
     resources?: {

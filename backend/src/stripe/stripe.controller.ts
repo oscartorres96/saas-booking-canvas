@@ -71,7 +71,7 @@ export class StripeController {
      * POST /api/stripe/checkout/product
      */
     @Post('checkout/product')
-    async createProductCheckout(@Body() body: { productId: string; businessId: string; clientEmail: string; clientName?: string; successUrl?: string; cancelUrl?: string; }) {
+    async createProductCheckout(@Body() body: { productId: string; businessId: string; clientEmail: string; clientPhone?: string; clientName?: string; successUrl?: string; cancelUrl?: string; }) {
         const result = await this.stripeService.createProductCheckout(body);
         return {
             success: true,
@@ -103,6 +103,26 @@ export class StripeController {
             return {
                 success: true,
                 message: 'Account created and email sent successfully',
+            };
+        } catch (error: any) {
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    }
+
+    /**
+     * Manual completion endpoint for product purchases (Packages/Passes)
+     * POST /api/stripe/product-purchase/complete
+     */
+    @Post('product-purchase/complete')
+    async completeProductPurchase(@Body() body: { sessionId: string }) {
+        try {
+            await this.stripeService.manualCompleteProductPurchase(body.sessionId);
+            return {
+                success: true,
+                message: 'Asset created and payment recorded',
             };
         } catch (error: any) {
             return {

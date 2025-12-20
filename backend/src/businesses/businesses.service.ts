@@ -275,6 +275,20 @@ export class BusinessesService {
 
     business.settings = mergedSettings;
 
+    if (settings.bookingConfig) {
+      business.bookingConfig = {
+        ...business.bookingConfig,
+        ...settings.bookingConfig,
+      };
+    }
+
+    if (settings.taxConfig) {
+      business.taxConfig = {
+        ...business.taxConfig,
+        ...settings.taxConfig,
+      };
+    }
+
     return business.save();
   }
 
@@ -370,8 +384,20 @@ export class BusinessesService {
     this.assertAccess(authUser, business);
 
     // Update root level fields if present in config
-    if (config.paymentModel) business.paymentModel = config.paymentModel;
-    if (config.stripeConnectAccountId !== undefined) business.stripeConnectAccountId = config.stripeConnectAccountId;
+    if (config.stripeConnectAccountId !== undefined) {
+      business.stripeConnectAccountId = config.stripeConnectAccountId;
+    }
+
+    // Automatic Decision Logic:
+    // If Stripe Connect Account ID exists -> STRIPE_CONNECT
+    // Else -> INTERMEDIATED
+    if (business.stripeConnectAccountId && business.stripeConnectAccountId.trim() !== '') {
+      business.paymentModel = 'STRIPE_CONNECT';
+    } else {
+      business.paymentModel = 'INTERMEDIATED';
+    }
+
+    // Note: We intentionally ignore config.paymentModel as it is now system-determined.
 
     // Filter out root fields from nested paymentConfig update
     const { paymentModel, stripeConnectAccountId, ...paymentConfig } = config;

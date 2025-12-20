@@ -10,7 +10,13 @@ export class CustomerAssetsController {
         @Query('businessId') businessId: string,
         @Query('email') email: string,
         @Query('serviceId') serviceId?: string,
+        @Query('phone') phone?: string,
     ) {
-        return this.assetsService.findActiveAssets(businessId, email, serviceId);
+        return this.assetsService.findActiveAssets(businessId, email, serviceId, phone);
+    }
+
+    @Get('by-business/:businessId')
+    async findByBusiness(@Param('businessId') businessId: string) {
+        return this.assetsService.findByBusiness(businessId);
     }
 }

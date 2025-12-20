@@ -7,6 +7,7 @@ import { Booking, BookingDocument, BookingStatus, PaymentStatus } from './schema
 import { NotificationService } from '../services/notification.service';
 import { Service, ServiceDocument } from '../services/schemas/service.schema';
 import { CustomerAssetsService } from '../customer-assets/customer-assets.service';
+import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
 
 export interface CreateBookingPayload {
   clientName: string;
@@ -41,6 +42,7 @@ export class BookingsService {
   constructor(
     @InjectModel(Booking.name) private readonly bookingModel: Model<BookingDocument>,
     @InjectModel(Service.name) private readonly serviceModel: Model<ServiceDocument>,
+    @InjectModel(Business.name) private readonly businessModel: Model<BusinessDocument>,
     private readonly notificationService: NotificationService,
     private readonly customerAssetsService: CustomerAssetsService,
   ) { }
@@ -85,34 +87,42 @@ export class BookingsService {
       payload.accessCode = generateAccessCode();
     }
 
-    // Evitar doble reserva el mismo dia para el mismo cliente
-    const sameDayFilter: any = {
-      businessId: payload.businessId,
-      scheduledAt: {
-        $gte: startOfDay(payload.scheduledAt),
-        $lte: endOfDay(payload.scheduledAt),
-      },
-      status: { $ne: BookingStatus.Cancelled },
-    };
-    const identityFilters = [];
-    if (payload.clientEmail) identityFilters.push({ clientEmail: payload.clientEmail });
-    if (payload.userId) identityFilters.push({ userId: payload.userId });
-    if (payload.clientPhone) identityFilters.push({ clientPhone: payload.clientPhone });
+    // Get business settings
+    const business = await this.businessModel.findById(payload.businessId).lean();
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
 
-    if (identityFilters.length > 0) {
-      const existingBooking = await this.bookingModel.findOne({
-        ...sameDayFilter,
-        $or: identityFilters,
-      }).lean();
+    // Business Rule: Double booking prevention (configurable)
+    if (!business.bookingConfig?.allowMultipleBookingsPerDay) {
+      const sameDayFilter: any = {
+        businessId: payload.businessId,
+        scheduledAt: {
+          $gte: startOfDay(payload.scheduledAt),
+          $lte: endOfDay(payload.scheduledAt),
+        },
+        status: { $ne: BookingStatus.Cancelled },
+      };
+      const identityFilters = [];
+      if (payload.clientEmail) identityFilters.push({ clientEmail: payload.clientEmail });
+      if (payload.userId) identityFilters.push({ userId: payload.userId });
+      if (payload.clientPhone) identityFilters.push({ clientPhone: payload.clientPhone });
 
-      if (existingBooking) {
-        throw new ConflictException({
-          message: 'Ya tienes una cita para ese dia. Consulta o cancela tu reserva existente.',
-          code: 'BOOKING_ALREADY_EXISTS',
-          bookingId: existingBooking._id?.toString?.(),
-          accessCode: existingBooking.accessCode,
-          businessId: existingBooking.businessId,
-        });
+      if (identityFilters.length > 0) {
+        const existingBooking = await this.bookingModel.findOne({
+          ...sameDayFilter,
+          $or: identityFilters,
+        }).lean();
+
+        if (existingBooking) {
+          throw new ConflictException({
+            message: 'Ya tienes una cita para ese dia. Consulta o cancela tu reserva existente.',
+            code: 'BOOKING_ALREADY_EXISTS',
+            bookingId: existingBooking._id?.toString?.(),
+            accessCode: existingBooking.accessCode,
+            businessId: existingBooking.businessId,
+          });
+        }
       }
     }
 
@@ -135,7 +145,10 @@ export class BookingsService {
 
     // Handle Asset Consumption
     if (payload.assetId) {
-      await this.customerAssetsService.consumeUse(payload.assetId);
+      await this.customerAssetsService.consumeUse(payload.assetId, {
+        email: payload.clientEmail,
+        phone: payload.clientPhone,
+      });
       payload.paymentStatus = PaymentStatus.Paid;
       payload.status = BookingStatus.Confirmed;
       payload.paymentMethod = 'package';
@@ -196,13 +209,18 @@ export class BookingsService {
       payload.status === BookingStatus.Cancelled &&
       existing.assetId
     ) {
-      // Refund criteria: ONLY if booking has not started yet
+      // Refund criteria: Based on business configuration (cancellationWindowHours)
+      const business = await this.businessModel.findById(existing.businessId).lean();
+      const windowHours = business?.bookingConfig?.cancellationWindowHours || 0;
+
       const now = new Date();
-      if (existing.scheduledAt > now) {
+      const deadline = new Date(existing.scheduledAt.getTime() - windowHours * 60 * 60 * 1000);
+
+      if (now <= deadline) {
         await this.customerAssetsService.refundUse(existing.assetId);
       } else {
         // Log or handle case where cancellation is too late for refund
-        // We still cancel the booking, but don't give back the use.
+        console.log(`[REFUND] Cancellation too late for booking ${id}. Deadline was ${deadline}`);
       }
     }
 
@@ -232,8 +250,13 @@ export class BookingsService {
 
     // Refund Logic for Customer Assets
     if (booking.assetId) {
+      const business = await this.businessModel.findById(booking.businessId).lean();
+      const windowHours = business?.bookingConfig?.cancellationWindowHours || 0;
+
       const now = new Date();
-      if (booking.scheduledAt > now) {
+      const deadline = new Date(booking.scheduledAt.getTime() - windowHours * 60 * 60 * 1000);
+
+      if (now <= deadline) {
         await this.customerAssetsService.refundUse(booking.assetId);
       }
     }

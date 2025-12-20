@@ -19,7 +19,10 @@ export interface Business {
   isOnboardingCompleted?: boolean;
   metadata?: Record<string, unknown>;
   paymentConfig?: {
+    paymentPolicy: 'RESERVE_ONLY' | 'PAY_AT_BOOKING' | 'PACKAGES';
     method: 'none' | 'bank_transfer';
+    allowTransfer: boolean;
+    allowCash: boolean;
     bank?: string;
     clabe?: string;
     holderName?: string;
@@ -31,6 +34,7 @@ export interface Business {
     enabled: boolean;
     resourceType?: string;
     resourceLabel?: string;
+    layoutType?: string;
     rows?: number;
     cols?: number;
     resources?: Array<{
@@ -53,6 +57,7 @@ export interface Business {
     instagram?: string;
     twitter?: string;
     website?: string;
+    currency?: string;
     businessHours?: Array<{
       day: string;
       isOpen: boolean;
@@ -60,6 +65,18 @@ export interface Business {
       endTime?: string;
       intervals?: Array<{ startTime: string; endTime: string }>;
     }>;
+  };
+  bookingConfig?: {
+    allowMultipleBookingsPerDay: boolean;
+    cancellationWindowHours: number;
+    confirmationType: 'automatic' | 'manual';
+  };
+  taxConfig?: {
+    enabled: boolean;
+    taxName?: string;
+    taxRate?: number;
+    taxIdLabel?: string;
+    invoicingEnabled?: boolean;
   };
 }
 

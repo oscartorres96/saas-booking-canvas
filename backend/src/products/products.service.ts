@@ -10,6 +10,9 @@ export class ProductsService {
     ) { }
 
     async create(businessId: string, data: any) {
+        if (data.isUnlimited) {
+            data.totalUses = 0;
+        }
         const product = new this.productModel({
             ...data,
             businessId,

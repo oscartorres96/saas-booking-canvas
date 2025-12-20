@@ -227,6 +227,27 @@ export class StripeService {
     }
 
     /**
+     * Manual completion for product purchases (Packages/Passes)
+     */
+    async manualCompleteProductPurchase(sessionId: string): Promise<void> {
+        this.logger.log(`Manually completing product purchase for session: ${sessionId}`);
+
+        const session = await this.stripe.checkout.sessions.retrieve(sessionId);
+
+        if (!session) {
+            throw new BadRequestException('Session not found');
+        }
+
+        if (session.metadata?.type !== 'product_purchase') {
+            throw new BadRequestException('This is not a product purchase session');
+        }
+
+        await this.handleProductPaymentCompleted(session as any);
+
+        this.logger.log(`Manual product completion successful for session: ${sessionId}`);
+    }
+
+    /**
      * Handle Stripe webhook events
      */
     async handleWebhook(signature: string, payload: Buffer): Promise<{ received: boolean }> {
@@ -580,11 +601,12 @@ export class StripeService {
         productId: string;
         businessId: string;
         clientEmail: string;
+        clientPhone?: string;
         clientName?: string;
         successUrl?: string;
         cancelUrl?: string;
     }): Promise<{ sessionId: string; url: string }> {
-        const { productId, businessId, clientEmail, clientName, successUrl, cancelUrl } = params;
+        const { productId, businessId, clientEmail, clientPhone, clientName, successUrl, cancelUrl } = params;
 
         const product = await this.productsService.findOne(productId);
         const business = await this.businessModel.findById(businessId);
@@ -614,6 +636,7 @@ export class StripeService {
                 productId,
                 businessId,
                 clientEmail,
+                clientPhone: clientPhone || '',
                 clientName: clientName || '',
             },
         });
@@ -624,7 +647,7 @@ export class StripeService {
     }
 
     private async handleProductPaymentCompleted(session: Stripe.Checkout.Session): Promise<void> {
-        const { productId, businessId, clientEmail } = session.metadata || {};
+        const { productId, businessId, clientEmail, clientPhone } = session.metadata || {};
 
         if (!productId || !businessId || !clientEmail) {
             this.logger.error('Missing metadata for product purchase completion');
@@ -632,7 +655,7 @@ export class StripeService {
         }
 
         // Create the CustomerAsset
-        await this.customerAssetsService.createFromPurchase(businessId, clientEmail, productId);
+        await this.customerAssetsService.createFromPurchase(businessId, clientEmail, productId, clientPhone);
 
         // Record the payment
         await this.paymentModel.create({

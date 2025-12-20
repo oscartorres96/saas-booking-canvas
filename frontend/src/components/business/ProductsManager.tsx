@@ -155,12 +155,23 @@ export const ProductsManager = ({ businessId }: ProductsManagerProps) => {
                                         </div>
                                     </div>
 
-                                    {editingProduct?.type === ProductType.Package && (
+                                    {(editingProduct?.type === ProductType.Package || editingProduct?.type === ProductType.Pass) && (
+                                        <div className="flex items-center space-x-2 py-2">
+                                            <Checkbox
+                                                id="isUnlimited"
+                                                checked={editingProduct?.isUnlimited || false}
+                                                onCheckedChange={(checked) => setEditingProduct({ ...editingProduct, isUnlimited: !!checked })}
+                                            />
+                                            <Label htmlFor="isUnlimited" className="cursor-pointer">Usos Ilimitados (Suscripción o Mensualidad)</Label>
+                                        </div>
+                                    )}
+
+                                    {(editingProduct?.type === ProductType.Package || editingProduct?.type === ProductType.Pass) && !editingProduct?.isUnlimited && (
                                         <div className="space-y-2">
                                             <Label>Número de Usos</Label>
                                             <Input
                                                 type="number"
-                                                value={editingProduct?.totalUses || ""}
+                                                value={editingProduct?.totalUses || (editingProduct?.type === ProductType.Pass ? 1 : "")}
                                                 onChange={(e) => setEditingProduct({ ...editingProduct, totalUses: parseInt(e.target.value) })}
                                                 required
                                             />
@@ -238,18 +249,22 @@ export const ProductsManager = ({ businessId }: ProductsManagerProps) => {
                                         <TableRow key={product._id}>
                                             <TableCell className="font-medium">{product.name}</TableCell>
                                             <TableCell>
-                                                <Badge variant="secondary">
-                                                    {getProductTypeLabel(product.type)}
+                                                <Badge variant={product.type === ProductType.Package ? "default" : (product.type === ProductType.Pass ? "secondary" : "outline")}>
+                                                    {product.type === ProductType.Package ? "Paquete" : (product.type === ProductType.Pass ? "Pase" : "Unico")}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>${product.price}</TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                                                    {product.totalUses && (
+                                                    {product.isUnlimited ? (
+                                                        <span className="flex items-center gap-1 text-primary font-medium">
+                                                            <Repeat className="h-3 w-3" /> Usos Ilimitados
+                                                        </span>
+                                                    ) : product.totalUses ? (
                                                         <span className="flex items-center gap-1">
                                                             <Repeat className="h-3 w-3" /> {product.totalUses} usos
                                                         </span>
-                                                    )}
+                                                    ) : null}
                                                     {product.validityDays && (
                                                         <span className="flex items-center gap-1">
                                                             <Clock className="h-3 w-3" /> {product.validityDays} días
