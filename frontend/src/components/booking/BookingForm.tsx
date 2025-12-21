@@ -29,10 +29,10 @@ interface BookingFormProps {
     holderName?: string;
     instructions?: string;
   };
-  paymentModel?: 'INTERMEDIATED' | 'STRIPE_CONNECT';
+  paymentMode?: 'BOOKPRO_COLLECTS' | 'DIRECT_TO_BUSINESS';
 }
 
-export const BookingForm = ({ primaryColor, selectedDate, selectedTime, businessName, businessId, services, paymentConfig, paymentModel }: BookingFormProps) => {
+export const BookingForm = ({ primaryColor, selectedDate, selectedTime, businessName, businessId, services, paymentConfig, paymentMode }: BookingFormProps) => {
   const { t } = useTranslation();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -157,7 +157,7 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
         scheduledAt: scheduledAt.toISOString(),
         resourceId: selectedResourceId || undefined,
         assetId: selectedAssetId || undefined,
-        status: "pending"
+        status: "pending_payment"
       });
 
       setAccessCode(booking.accessCode || "");
@@ -183,7 +183,7 @@ export const BookingForm = ({ primaryColor, selectedDate, selectedTime, business
         }
 
         // If online payment is configured (Hybrid model)
-        if (paymentModel && booking._id) {
+        if (paymentMode && booking._id) {
           try {
             // Extract numeric amount from price string (e.g., "$800 MXN" -> 800)
             const numericAmount = parseInt(selectedService?.price?.replace(/[^0-9]/g, '') || "0");

@@ -109,7 +109,7 @@ const BookingPage = () => {
                     businessId={businessData._id || businessSlug}
                     services={businessData.services}
                     paymentConfig={businessData.paymentConfig}
-                    paymentModel={businessData.paymentModel}
+                    paymentMode={businessData.paymentMode}
                 />
             </main>
 

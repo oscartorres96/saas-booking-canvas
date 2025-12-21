@@ -102,12 +102,28 @@ export class Business {
       allowMultipleBookingsPerDay: { type: Boolean, default: false },
       cancellationWindowHours: { type: Number, default: 0 },
       confirmationType: { type: String, default: 'automatic', enum: ['automatic', 'manual'] },
+      services: {
+        enabled: { type: Boolean, default: true },
+        paymentTiming: { type: String, default: 'NONE', enum: ['NONE', 'BEFORE_BOOKING'] }
+      },
+      packages: {
+        enabled: { type: Boolean, default: false },
+        paymentTiming: { type: String, default: 'BEFORE_BOOKING' }
+      }
     }
   })
   bookingConfig?: {
     allowMultipleBookingsPerDay: boolean;
     cancellationWindowHours: number;
     confirmationType: 'automatic' | 'manual';
+    services: {
+      enabled: boolean;
+      paymentTiming: 'NONE' | 'BEFORE_BOOKING';
+    };
+    packages: {
+      enabled: boolean;
+      paymentTiming: 'BEFORE_BOOKING';
+    };
   };
 
   @Prop({
@@ -130,7 +146,7 @@ export class Business {
     type: {
       paymentPolicy: {
         type: String,
-        enum: ['RESERVE_ONLY', 'PAY_AT_BOOKING', 'PACKAGES'],
+        enum: ['RESERVE_ONLY', 'PAY_BEFORE_BOOKING', 'PACKAGE_OR_PAY'],
         default: 'RESERVE_ONLY'
       },
       method: { type: String, default: 'none' },
@@ -143,7 +159,7 @@ export class Business {
     },
   })
   paymentConfig?: {
-    paymentPolicy: 'RESERVE_ONLY' | 'PAY_AT_BOOKING' | 'PACKAGES';
+    paymentPolicy: 'RESERVE_ONLY' | 'PAY_BEFORE_BOOKING' | 'PACKAGE_OR_PAY';
     method: 'none' | 'bank_transfer';
     allowTransfer: boolean;
     allowCash: boolean;
@@ -155,10 +171,10 @@ export class Business {
 
   @Prop({
     type: String,
-    enum: ['INTERMEDIATED', 'STRIPE_CONNECT'],
-    default: 'INTERMEDIATED',
+    enum: ['BOOKPRO_COLLECTS', 'DIRECT_TO_BUSINESS'],
+    default: 'BOOKPRO_COLLECTS',
   })
-  paymentModel?: 'INTERMEDIATED' | 'STRIPE_CONNECT';
+  paymentMode?: 'BOOKPRO_COLLECTS' | 'DIRECT_TO_BUSINESS';
 
   @Prop({ trim: true })
   stripeConnectAccountId?: string;

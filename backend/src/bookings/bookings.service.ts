@@ -143,6 +143,19 @@ export class BookingsService {
       throw new ForbiddenException('Este servicio requiere la compra previa de un pase o paquete.');
     }
 
+    // Business Rule: Payment Policy Enforcement for public bookings
+    const policy = business.paymentConfig?.paymentPolicy || 'RESERVE_ONLY';
+    const isPublic = !authUser || authUser.role === 'public';
+
+    if (isPublic) {
+      if ((policy === 'PAY_BEFORE_BOOKING' || policy === 'PACKAGE_OR_PAY') &&
+        !payload.assetId &&
+        payload.paymentStatus !== PaymentStatus.Paid &&
+        service.price > 0) {
+        throw new ForbiddenException('Este negocio requiere el pago previo o el uso de un paquete para confirmar la reserva.');
+      }
+    }
+
     // ✅ Validación de slot disponible (prevenir doble reserva del mismo horario)
     const slotOccupied = await this.bookingModel.findOne({
       businessId: payload.businessId,

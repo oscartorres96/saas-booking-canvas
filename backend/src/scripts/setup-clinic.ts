@@ -58,7 +58,7 @@ async function bootstrap() {
     // - allowCash: false
     // - stripeIntermediated (read-only), so ensure stripeConnectAccountId is empty.
 
-    // Note: 'allowOnlinePayments' is not in the schema explicitly but implied by paymentModel INTERMEDIATED.
+    // Note: 'allowOnlinePayments' is not in the schema explicitly but implied by paymentMode BOOKPRO_COLLECTS.
     // We will set flags found in schema.
 
     const paymentConfigUpdate = {
@@ -78,11 +78,11 @@ async function bootstrap() {
 
     console.log(`Payment Config Updated.`);
     console.log(`Policy: ${updatedBusiness.paymentConfig?.paymentPolicy}`);
-    console.log(`Payment Model: ${updatedBusiness.paymentModel}`);
+    console.log(`Payment Mode: ${updatedBusiness.paymentMode}`);
     console.log(`Stripe Connect ID: ${updatedBusiness.stripeConnectAccountId || '(empty)'}`);
 
-    if (updatedBusiness.paymentModel !== 'INTERMEDIATED') {
-        console.warn(`WARNING: Payment model is ${updatedBusiness.paymentModel}, expected INTERMEDIATED.`);
+    if (updatedBusiness.paymentMode !== 'BOOKPRO_COLLECTS') {
+        console.warn(`WARNING: Payment model is ${updatedBusiness.paymentMode}, expected BOOKPRO_COLLECTS.`);
     }
 
     // --- Step 3: Create Packages ---

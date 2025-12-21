@@ -682,15 +682,15 @@
       "policies": {
         "reserve_only": {
           "title": "Solo Reservar",
-          "desc": "Ideal si cobras en el establecimiento o fuera de la plataforma."
+          "desc": "El cliente puede agendar sin pagar. Ideal si cobras en el establecimiento."
         },
-        "pay_at_booking": {
-          "title": "Pagar al Reservar",
-          "desc": "Recomendado para asegurar asistencia y reducir cancelaciones."
+        "pay_before_booking": {
+          "title": "Pago por Sesión",
+          "desc": "El cliente debe pagar cada sesión individualmente al momento de reservar."
         },
-        "packages": {
-          "title": "Paquetes / Membresías",
-          "desc": "Ideal para clases recurrentes, estudios o planes mensuales."
+        "package_or_pay": {
+          "title": "Paquete o Pago",
+          "desc": "Dinámico: Si tiene paquete se descuenta uso, si no, se le cobra la sesión."
         }
       },
       "methods_title": "Métodos de Pago Aceptados",

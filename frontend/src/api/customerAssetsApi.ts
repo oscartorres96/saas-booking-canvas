@@ -14,6 +14,7 @@ export interface CustomerAsset {
     status: 'ACTIVE' | 'EXPIRED' | 'CONSUMED';
 }
 
+
 export const getActiveAssets = async (params: {
     businessId: string;
     email: string;

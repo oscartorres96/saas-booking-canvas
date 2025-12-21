@@ -48,14 +48,14 @@ const createFormSchema = (t: any) => z.object({
     website: z.string().url(t('settings.validation.url_invalid')).optional().or(z.literal("")),
     allowMultipleBookingsPerDay: z.boolean().default(false),
     cancellationWindowHours: z.coerce.number().min(0).default(0),
-    paymentPolicy: z.enum(['RESERVE_ONLY', 'PAY_AT_BOOKING', 'PACKAGES']).default('RESERVE_ONLY'),
+    paymentPolicy: z.enum(['RESERVE_ONLY', 'PAY_BEFORE_BOOKING', 'PACKAGE_OR_PAY']).default('RESERVE_ONLY'),
     allowTransfer: z.boolean().default(false),
     allowCash: z.boolean().default(false),
     bank: z.string().optional(),
     clabe: z.string().optional(),
     holderName: z.string().optional(),
     instructions: z.string().optional(),
-    paymentModel: z.enum(["INTERMEDIATED", "STRIPE_CONNECT"]).default("INTERMEDIATED"),
+    paymentMode: z.enum(["BOOKPRO_COLLECTS", "DIRECT_TO_BUSINESS"]).default("BOOKPRO_COLLECTS"),
     stripeConnectAccountId: z.string().optional(),
     businessHours: z.array(z.object({
         day: z.string(),
@@ -131,7 +131,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
             clabe: "",
             holderName: "",
             instructions: "",
-            paymentModel: "INTERMEDIATED",
+            paymentMode: "BOOKPRO_COLLECTS",
             stripeConnectAccountId: "",
             businessHours: daysOfWeek.map(d => ({
                 day: d.key,
@@ -168,7 +168,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     clabe: business.paymentConfig?.clabe || "",
                     holderName: business.paymentConfig?.holderName || "",
                     instructions: business.paymentConfig?.instructions || "",
-                    paymentModel: business.paymentModel || "INTERMEDIATED",
+                    paymentMode: business.paymentMode || "BOOKPRO_COLLECTS",
                     stripeConnectAccountId: business.stripeConnectAccountId || "",
                     businessHours: business.settings?.businessHours?.length
                         ? business.settings.businessHours.map((bh) => ({
@@ -187,7 +187,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                             intervals: [{ startTime: "09:00", endTime: "18:00" }],
                         }))
                 });
-                if (business.paymentModel) {
+                if (business.paymentMode) {
                     setHasPaymentModelSet(true);
                 }
             } catch (error) {
@@ -621,7 +621,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                                         defaultValue={field.value}
                                                         className="grid grid-cols-1 md:grid-cols-3 gap-4"
                                                     >
-                                                        {['RESERVE_ONLY', 'PAY_AT_BOOKING', 'PACKAGES'].map((policy) => (
+                                                        {['RESERVE_ONLY', 'PAY_BEFORE_BOOKING', 'PACKAGE_OR_PAY'].map((policy) => (
                                                             <FormItem key={policy}>
                                                                 <FormControl>
                                                                     <RadioGroupItem value={policy} className="peer sr-only" />
@@ -635,7 +635,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                                                 >
                                                                     <div className="font-semibold text-sm mb-1 flex items-center gap-2">
                                                                         {t(`settings.payments.policies.${policy.toLowerCase()}.title`)}
-                                                                        {policy === 'PAY_AT_BOOKING' && (
+                                                                        {policy === 'PAY_BEFORE_BOOKING' && (
                                                                             <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
                                                                                 {t('settings.payments.methods.stripe_badge', 'Recomendado')}
                                                                             </span>
@@ -807,7 +807,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                                 </span>
                                             </h3>
                                             <p className="text-sm text-foreground/80 max-w-2xl">
-                                                {form.getValues().paymentModel === 'STRIPE_CONNECT'
+                                                {form.getValues().paymentMode === 'DIRECT_TO_BUSINESS'
                                                     ? t('settings.payments.models.connect_desc')
                                                     : t('settings.payments.models.intermediated_desc')}
                                             </p>
@@ -820,14 +820,14 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                             <div className="flex items-center gap-3">
                                                 <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
                                                 <span className="font-medium">
-                                                    {form.getValues().paymentModel === 'STRIPE_CONNECT'
+                                                    {form.getValues().paymentMode === 'DIRECT_TO_BUSINESS'
                                                         ? 'Stripe Connect (Direct)'
                                                         : 'Stripe Intermediated (Managed)'}
                                                 </span>
                                             </div>
                                         </div>
 
-                                        {form.getValues().paymentModel === 'STRIPE_CONNECT' && (
+                                        {form.getValues().paymentMode === 'DIRECT_TO_BUSINESS' && (
                                             <div className="space-y-1 p-3 bg-white dark:bg-slate-950 rounded-lg border text-xs font-mono text-muted-foreground">
                                                 <div>ID: {form.getValues().stripeConnectAccountId}</div>
                                             </div>

@@ -657,16 +657,20 @@
             "title": "Payment Collection",
             "description": "Configure how your clients will pay you directly.",
             "method": "Method",
-            "methods": {
-                "none": "None (Only booking)",
-                "bank_transfer": "Bank Transfer"
+            "policies": {
+                "reserve_only": {
+                    "title": "Reserve Only",
+                    "desc": "Clients can book without paying. Ideal if you collect payment in-store."
+                },
+                "pay_before_booking": {
+                    "title": "Pay per Session",
+                    "desc": "Clients must pay for each session individually when booking."
+                },
+                "package_or_pay": {
+                    "title": "Package or Pay",
+                    "desc": "Dynamic: Deducts from package if available, otherwise requires individual payment."
+                }
             },
-            "bank": "Bank",
-            "clabe": "Account Number",
-            "holder": "Account Holder Name",
-            "instructions": "Optional instructions",
-            "disclaimer": "BookPro does not process these payments. Verification and collection are the responsibility of the business.",
-            "online_title": "Online Payments (Stripe)",
             "online_desc": "Select how you wish to receive card payments.",
             "powered_by": "Powered by Stripe",
             "model_locked_title": "Payment model configured",

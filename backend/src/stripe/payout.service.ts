@@ -20,7 +20,7 @@ export class PayoutService {
     async getPendingPayoutsGroupedByBusiness() {
         const pendingPayments = await this.paymentModel.find({
             status: 'PENDING_PAYOUT',
-            paymentModel: 'INTERMEDIATED',
+            paymentMode: 'BOOKPRO_COLLECTS',
         }).sort({ createdAt: 1 }).lean();
 
         const businessIds = [...new Set(pendingPayments.map(p => p.businessId))];

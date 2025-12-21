@@ -389,18 +389,18 @@ export class BusinessesService {
     }
 
     // Automatic Decision Logic:
-    // If Stripe Connect Account ID exists -> STRIPE_CONNECT
-    // Else -> INTERMEDIATED
+    // If Stripe Connect Account ID exists -> DIRECT_TO_BUSINESS
+    // Else -> BOOKPRO_COLLECTS
     if (business.stripeConnectAccountId && business.stripeConnectAccountId.trim() !== '') {
-      business.paymentModel = 'STRIPE_CONNECT';
+      business.paymentMode = 'DIRECT_TO_BUSINESS';
     } else {
-      business.paymentModel = 'INTERMEDIATED';
+      business.paymentMode = 'BOOKPRO_COLLECTS';
     }
 
-    // Note: We intentionally ignore config.paymentModel as it is now system-determined.
+    // Note: We intentionally ignore config.paymentMode as it is now system-determined.
 
     // Filter out root fields from nested paymentConfig update
-    const { paymentModel, stripeConnectAccountId, ...paymentConfig } = config;
+    const { paymentMode, stripeConnectAccountId, ...paymentConfig } = config;
 
     business.paymentConfig = {
       ...business.paymentConfig,

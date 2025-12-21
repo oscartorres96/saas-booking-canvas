@@ -542,7 +542,7 @@ export class StripeService {
      */
     private async handleBookingPaymentCompleted(session: Stripe.Checkout.Session): Promise<void> {
         const metadata = session.metadata || {};
-        const { bookingId, businessId, paymentModel } = metadata;
+        const { bookingId, businessId, paymentMode } = metadata;
 
         if (!bookingId || !businessId) {
             this.logger.error('Missing bookingId or businessId in session metadata for booking payment');
@@ -550,9 +550,9 @@ export class StripeService {
         }
 
         // State mapping logic:
-        // INTERMEDIATED -> PENDING_PAYOUT (The money is in Platform's main account)
-        // STRIPE_CONNECT -> PAID (The money was automatically routed to Business via Destination Charge)
-        const sessionStatus = paymentModel === 'INTERMEDIATED' ? 'PENDING_PAYOUT' : 'PAID';
+        // BOOKPRO_COLLECTS -> PENDING_PAYOUT (The money is in Platform's main account)
+        // DIRECT_TO_BUSINESS -> PAID (The money was automatically routed to Business via Destination Charge)
+        const sessionStatus = paymentMode === 'BOOKPRO_COLLECTS' ? 'PENDING_PAYOUT' : 'PAID';
 
         // Update payment record
         const payment = await this.paymentModel.findOne({ stripeSessionId: session.id });
@@ -573,7 +573,7 @@ export class StripeService {
                 platformFee: 0,
                 currency: session.currency || 'mxn',
                 status: sessionStatus,
-                paymentModel: paymentModel as any,
+                paymentMode: paymentMode as any,
                 description: 'Booking payment completed (webhook backup)',
             });
         }
@@ -662,17 +662,23 @@ export class StripeService {
         // Create the CustomerAsset
         const asset = await this.customerAssetsService.createFromPurchase(businessId, clientEmail, productId, clientPhone, session.id);
 
-        // Record the payment
-        await this.paymentModel.create({
-            stripeSessionId: session.id,
-            businessId,
-            amount: session.amount_total || 0,
-            netAmount: session.amount_total || 0,
-            platformFee: 0,
-            currency: session.currency || 'mxn',
-            status: 'PAID',
-            description: `Product purchase: ${productId}`,
-        });
+        // Check if payment already exists
+        const existingPayment = await this.paymentModel.findOne({ stripeSessionId: session.id });
+        if (existingPayment) {
+            this.logger.log(`Payment already recorded for session ${session.id}`);
+        } else {
+            // Record the payment
+            await this.paymentModel.create({
+                stripeSessionId: session.id,
+                businessId,
+                amount: session.amount_total || 0,
+                netAmount: session.amount_total || 0,
+                platformFee: 0,
+                currency: session.currency || 'mxn',
+                status: 'PAID',
+                description: `Product purchase: ${productId}`,
+            });
+        }
 
         // ✅ AUTO-BOOKING logic
         if (bookingData && bookingData !== '') {
@@ -908,7 +914,7 @@ export class StripeService {
             throw new NotFoundException('Business not found');
         }
 
-        const paymentModel = business.paymentModel || 'INTERMEDIATED';
+        const paymentMode = business.paymentMode || 'BOOKPRO_COLLECTS';
         const sessionData: Stripe.Checkout.SessionCreateParams = {
             mode: 'payment',
             line_items: [
@@ -935,11 +941,11 @@ export class StripeService {
                 bookingId,
                 businessId,
                 type: 'booking_payment',
-                paymentModel,
+                paymentMode,
             },
         };
 
-        if (paymentModel === 'STRIPE_CONNECT' && business.stripeConnectAccountId) {
+        if (paymentMode === 'DIRECT_TO_BUSINESS' && business.stripeConnectAccountId) {
             sessionData.payment_intent_data = {
                 transfer_data: {
                     destination: business.stripeConnectAccountId,
@@ -965,7 +971,7 @@ export class StripeService {
             platformFee: 0,
             currency: currency.toLowerCase(),
             status: 'CREATED',
-            paymentModel,
+            paymentMode,
             description: `Payment for booking: ${serviceName}`,
         });
 

@@ -19,7 +19,7 @@ export interface Business {
   isOnboardingCompleted?: boolean;
   metadata?: Record<string, unknown>;
   paymentConfig?: {
-    paymentPolicy: 'RESERVE_ONLY' | 'PAY_AT_BOOKING' | 'PACKAGES';
+    paymentPolicy: 'RESERVE_ONLY' | 'PAY_BEFORE_BOOKING' | 'PACKAGE_OR_PAY';
     method: 'none' | 'bank_transfer';
     allowTransfer: boolean;
     allowCash: boolean;
@@ -28,7 +28,7 @@ export interface Business {
     holderName?: string;
     instructions?: string;
   };
-  paymentModel?: 'INTERMEDIATED' | 'STRIPE_CONNECT';
+  paymentMode?: 'BOOKPRO_COLLECTS' | 'DIRECT_TO_BUSINESS';
   stripeConnectAccountId?: string;
   resourceConfig?: {
     enabled: boolean;
@@ -70,6 +70,14 @@ export interface Business {
     allowMultipleBookingsPerDay: boolean;
     cancellationWindowHours: number;
     confirmationType: 'automatic' | 'manual';
+    services: {
+      enabled: boolean;
+      paymentTiming: 'NONE' | 'BEFORE_BOOKING';
+    };
+    packages: {
+      enabled: boolean;
+      paymentTiming: 'BEFORE_BOOKING';
+    };
   };
   taxConfig?: {
     enabled: boolean;

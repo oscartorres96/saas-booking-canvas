@@ -9,7 +9,7 @@ export interface Booking {
     clientEmail?: string;
     clientPhone?: string;
     scheduledAt: string;
-    status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+    status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'pending_payment';
     notes?: string;
     accessCode?: string;
     serviceName?: string;

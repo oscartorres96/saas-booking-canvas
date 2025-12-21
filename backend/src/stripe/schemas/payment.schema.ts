@@ -41,9 +41,9 @@ export class Payment {
 
     @Prop({
         type: String,
-        enum: ['INTERMEDIATED', 'STRIPE_CONNECT'],
+        enum: ['BOOKPRO_COLLECTS', 'DIRECT_TO_BUSINESS'],
     })
-    paymentModel?: 'INTERMEDIATED' | 'STRIPE_CONNECT';
+    paymentMode?: 'BOOKPRO_COLLECTS' | 'DIRECT_TO_BUSINESS';
 
     @Prop()
     description?: string;

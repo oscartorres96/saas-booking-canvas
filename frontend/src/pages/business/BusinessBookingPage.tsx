@@ -65,7 +65,10 @@ import {
     Info,
     ShieldCheck,
     CreditCard,
-    Star
+    Star,
+    Bell,
+    User,
+    Mail
 } from "lucide-react";
 import useAuth from "@/auth/useAuth";
 import { getBusinessById, type Business } from "@/api/businessesApi";
@@ -86,11 +89,12 @@ import { ProductsStore } from "@/components/booking/ProductsStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PackageQRModal } from "@/components/booking/PackageQRModal";
+import { generateBookingSteps, StepType } from "@/utils/bookingEngine";
 
 const bookingFormSchema = z.object({
-    serviceId: z.string().min(1, { message: "Selecciona un servicio" }).optional(),
-    date: z.date({ required_error: "Fecha requerida" }).optional(),
-    time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, { message: "Hora inválida (HH:MM)" }).optional(),
+    serviceId: z.string().optional(),
+    date: z.date().optional(),
+    time: z.string().optional(),
     clientName: z.string().min(3, { message: "El nombre es requerido" }),
     clientEmail: z.string().email({ message: "Email inválido" }),
     clientPhone: z.string().min(8, { message: "Teléfono inválido" }),
@@ -101,7 +105,18 @@ const bookingFormSchema = z.object({
     zipCode: z.string().optional(),
     assetId: z.string().optional(),
     productId: z.string().optional(), // Added productId
+    paymentOption: z.string().optional(),
 });
+
+const stepInfo: Record<StepType, { title: string; description: string }> = {
+    SERVICE: { title: "Servicio", description: "Elige tu opción" },
+    PACKAGE: { title: "Paquete", description: "Elige tu paquete" },
+    RESOURCE: { title: "Lugar", description: "Selecciona tu espacio" },
+    SCHEDULE: { title: "Horario", description: "Cuándo vienes" },
+    DETAILS: { title: "Tus Datos", description: "Quién reserva" },
+    PAYMENT: { title: "Pago", description: "Completa el pago" },
+    CONFIRMATION: { title: "Confirmar", description: "Finaliza tu reserva" }
+};
 
 const BusinessBookingPage = () => {
     const { businessId } = useParams<{ businessId: string }>();
@@ -129,12 +144,15 @@ const BusinessBookingPage = () => {
     const [activeFilter, setActiveFilter] = useState<"all" | "presencial" | "online" | "packages">("all");
     const [step, setStep] = useState(1);
     const [bookingSuccessCode, setBookingSuccessCode] = useState<string | null>(null);
+    const [paymentMethod, setPaymentMethod] = useState<'STRIPE' | 'IN_PERSON' | 'ASSET' | null>(null);
+    const [selectedAsset, setSelectedAsset] = useState<CustomerAsset | null>(null);
     const [isCheckingAssets, setIsCheckingAssets] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [preSelectedPackage, setPreSelectedPackage] = useState<Product | null>(null);
     const [showPackageModal, setShowPackageModal] = useState(false);
     const { theme, setTheme } = useTheme();
     const { t, i18n } = useTranslation();
+    const [bookingSteps, setBookingSteps] = useState<StepType[]>(['SERVICE', 'SCHEDULE', 'DETAILS', 'CONFIRMATION']);
 
     const form = useForm<z.infer<typeof bookingFormSchema>>({
         resolver: zodResolver(bookingFormSchema),
@@ -151,6 +169,7 @@ const BusinessBookingPage = () => {
             razonSocial: "",
             zipCode: "",
             assetId: "",
+            paymentOption: "",
         },
     });
 
@@ -164,11 +183,20 @@ const BusinessBookingPage = () => {
         selectedServiceId
     );
 
+    const resources = business?.resourceConfig?.resources || [];
+
     useEffect(() => {
         if (businessId) {
             loadData();
         }
     }, [businessId, user]);
+
+    const handleNext = () => setStep(prev => Math.min(prev + 1, bookingSteps.length));
+    const handleBack = () => setStep(prev => Math.max(prev - 1, 1));
+    const goToStepType = (type: StepType) => {
+        const index = bookingSteps.indexOf(type);
+        if (index !== -1) setStep(index + 1);
+    };
 
     // Change language based on business communication settings
     useEffect(() => {
@@ -178,6 +206,35 @@ const BusinessBookingPage = () => {
             i18n.changeLanguage(lang);
         }
     }, [business, i18n]);
+
+    // Update dynamic steps when context changes
+    useEffect(() => {
+        if (!business) return;
+
+        const isBuyAndBook = !!sessionStorage.getItem('buyAndBookPackage');
+
+        const hasValidPackage = availableAssets.some(asset => {
+            if (!selectedService) return false;
+            const allowed = asset.productId?.allowedServiceIds;
+            return !allowed || allowed.length === 0 || allowed.includes(selectedService._id);
+        });
+
+        const steps = generateBookingSteps({
+            bookingConfig: business.bookingConfig,
+            paymentMode: business.paymentMode,
+            productType: (selectedProduct || preSelectedPackage) ? 'PACKAGE' : 'SERVICE',
+            requiresResource: selectedService?.requireResource || false,
+            userHasValidPackage: hasValidPackage,
+            isBuyAndBook
+        });
+
+        setBookingSteps(steps);
+
+        // Ensure current step is within bounds if steps shrink
+        if (step > steps.length) {
+            setStep(steps.length);
+        }
+    }, [business, selectedService, selectedProduct, preSelectedPackage, availableAssets, step]);
 
     // Watch email and phone to fetch assets automatically for guest users
     const clientEmail = form.watch("clientEmail");
@@ -191,6 +248,17 @@ const BusinessBookingPage = () => {
             prevStepRef.current = step;
         }
     }, [step]);
+
+    useEffect(() => {
+        const currentStepType = bookingSteps[step - 1];
+        if (currentStepType === 'PACKAGE' && activeFilter !== 'packages') {
+            setActiveFilter('packages');
+        } else if (currentStepType === 'SERVICE' && activeFilter === 'packages') {
+            // Only force reset to 'all' if we are actually entering or staying on SERVICE step 
+            // and we had 'packages' filter. This is fine because it only runs when step changes.
+            setActiveFilter('all');
+        }
+    }, [step, bookingSteps]);
 
     const fetchAssetsForContact = async (email?: string, phone?: string) => {
         if (isCheckingAssets) return;
@@ -261,14 +329,18 @@ const BusinessBookingPage = () => {
 
     const handleServiceSelect = (serviceId: string) => {
         form.setValue("serviceId", serviceId);
-        // Clear product selection when selecting a service
-        setSelectedProduct(null);
-        form.setValue("productId", undefined);
+
+        // Only clear product selection if we are NOT in a "Buy and Book" flow
+        const isBuyAndBook = !!sessionStorage.getItem('buyAndBookPackage');
+        if (!isBuyAndBook) {
+            setSelectedProduct(null);
+            form.setValue("productId", undefined);
+        }
 
         if (serviceId) {
             const service = services.find(s => s._id === serviceId);
             setSelectedService(service || null);
-            setStep(2); // Auto advance to calendar
+            goToStepType('SCHEDULE'); // Auto advance to calendar
         } else {
             setSelectedService(null);
         }
@@ -412,12 +484,12 @@ const BusinessBookingPage = () => {
                 packageName: product.name
             }));
             toast.info(`¡Genial! Seleccionaste: ${product.name}. Ahora elige tu horario para reservar.`);
-            setStep(1); // Go to step 1 to choose service/time
+            goToStepType('SERVICE'); // Go to step 1 to choose service/time
             setActiveFilter('all'); // Show services
         } else {
             sessionStorage.removeItem('buyAndBookPackage');
             toast.info(`Has seleccionado: ${product.name}. Procede a confirmar para realizar el pago.`);
-            setStep(3); // Direct to checkout if buying package only
+            goToStepType('DETAILS'); // Direct to checkout if buying package only
         }
     };
 
@@ -429,16 +501,19 @@ const BusinessBookingPage = () => {
 
         if (selectedService?.requireResource && !selectedResourceId) {
             toast.error("Por favor selecciona un lugar en el mapa");
+            setIsSubmitting(false);
             return;
         }
 
         if (values.serviceId && (!values.date || !values.time)) {
             toast.error("Por favor selecciona fecha y hora para tu servicio");
+            setIsSubmitting(false);
             return;
         }
 
         if (!values.serviceId && !values.productId) {
             toast.error("Por favor selecciona un servicio o paquete para continuar");
+            setIsSubmitting(false);
             return;
         }
 
@@ -464,9 +539,23 @@ const BusinessBookingPage = () => {
                 assetId: values.assetId,
             };
 
-            // If buying a package, handle checkout
+            const policy = business.paymentConfig?.paymentPolicy || 'RESERVE_ONLY';
+
+            // Scenario 1: Buying a package
             if (values.productId && !values.assetId) {
                 const isAutoBooking = !!sessionStorage.getItem('buyAndBookPackage');
+
+                // Trim booking data to ensure it fits in Stripe metadata (max 500 chars per value)
+                const trimmedBookingData = isAutoBooking ? {
+                    businessId: businessId.substring(0, 24),
+                    serviceId: (values.serviceId || "").substring(0, 24),
+                    clientName: values.clientName.substring(0, 50),
+                    clientEmail: values.clientEmail.substring(0, 50),
+                    clientPhone: (values.clientPhone || "").substring(0, 20),
+                    scheduledAt: scheduledAt,
+                    resourceId: (selectedResourceId || "").substring(0, 24),
+                    notes: (values.notes || "").substring(0, 100),
+                } : undefined;
 
                 const checkout = await createProductCheckout({
                     productId: values.productId,
@@ -476,7 +565,7 @@ const BusinessBookingPage = () => {
                     clientName: values.clientName,
                     successUrl: `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}&type=${isAutoBooking ? 'product-with-booking' : 'product'}`,
                     cancelUrl: window.location.href,
-                    bookingData: isAutoBooking ? bookingData : undefined,
+                    bookingData: trimmedBookingData,
                 });
 
                 if (isAutoBooking) {
@@ -487,6 +576,34 @@ const BusinessBookingPage = () => {
                 return;
             }
 
+            // Scenario 2: Single session payment (PAY_BEFORE_BOOKING or PACKAGE_OR_PAY without credits)
+            const needsDirectPayment = (policy === 'PAY_BEFORE_BOOKING' || policy === 'PACKAGE_OR_PAY') &&
+                !values.assetId &&
+                selectedService &&
+                selectedService.price > 0;
+
+            if (needsDirectPayment) {
+                import("@/api/stripeApi").then(async ({ createBookingCheckout }) => {
+                    const pendingBooking = await createBooking({
+                        ...bookingData,
+                        status: 'pending_payment'
+                    });
+
+                    const checkout = await createBookingCheckout({
+                        bookingId: pendingBooking._id!,
+                        businessId,
+                        amount: Math.round(selectedService!.price * 100),
+                        serviceName: selectedService!.name,
+                        successUrl: `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}&type=booking`,
+                        cancelUrl: window.location.href,
+                    });
+
+                    window.location.href = checkout.url;
+                });
+                return;
+            }
+
+            // Scenario 3: Direct reservation (RESERVE_ONLY, has assets, or free service)
             const booking = await createBooking(bookingData);
 
             setBookingSuccessCode(booking.accessCode || null);
@@ -521,7 +638,7 @@ const BusinessBookingPage = () => {
 
             if (errData?.code === "SLOT_UNAVAILABLE") {
                 toast.error("Este horario acaba de ser reservado. Por favor elige otro.");
-                setStep(2);
+                goToStepType('SCHEDULE');
                 form.setValue("time", "");
                 return;
             }
@@ -580,7 +697,7 @@ const BusinessBookingPage = () => {
         const errorParam = searchParams.get("error");
         if (errorParam === 'slot_unavailable') {
             toast.error("El horario que habías elegido ya no está disponible. Por favor elige otro para completar tu reserva.");
-            setStep(2); // Go to schedule selection
+            goToStepType('SCHEDULE'); // Go to schedule selection
             form.setValue("time", "");
 
             // Clean up the URL
@@ -629,6 +746,915 @@ const BusinessBookingPage = () => {
             </div>
         );
     }
+
+    const renderStepContent = (type: StepType) => {
+        const timeSlots = slots || []; // Using slots from useSlots
+        switch (type) {
+            case 'SERVICE':
+            case 'PACKAGE':
+                return (
+                    <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
+                        <CardHeader className="pb-2">
+                            <div className="text-center mb-6 px-2">
+                                <div className="flex items-center justify-center gap-2 mb-2">
+                                    <div className="h-1 w-6 bg-primary rounded-full"></div>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Paso 01</span>
+                                </div>
+                                <CardTitle className="text-3xl lg:text-5xl font-black uppercase italic tracking-tighter dark:text-white leading-tight">
+                                    NUESTROS <span className="text-primary italic">SERVICIOS</span>
+                                </CardTitle>
+                                <CardDescription className="text-base mt-2 px-4 font-medium italic opacity-70">Encuentra la experiencia perfecta para tu transformación</CardDescription>
+                            </div>
+
+                            {/* Search & Filter Bar */}
+                            <div className="flex flex-col gap-4 mb-4 px-2 max-w-3xl mx-auto w-full">
+                                <div className="bg-slate-50 dark:bg-slate-900 px-4 py-1 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                    <div className="relative group">
+                                        <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                        <input
+                                            type="text"
+                                            placeholder="¿Qué servicio buscas hoy?"
+                                            className="w-full pl-8 pr-2 h-14 bg-transparent outline-none text-base font-bold italic"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-900 rounded-[1.2rem] border border-slate-200 dark:border-slate-800">
+                                    {[
+                                        { id: 'all', label: 'Todos' },
+                                        { id: 'presencial', label: 'Presencial' },
+                                        { id: 'online', label: 'Online' },
+                                        { id: 'packages', label: 'Ver Paquetes' }
+                                    ].map((filter) => (
+                                        (filter.id !== 'packages' || products.length > 0) && (
+                                            <Button
+                                                key={filter.id}
+                                                variant={activeFilter === filter.id ? 'default' : 'ghost'}
+                                                size="sm"
+                                                className={cn(
+                                                    "rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-[0.15em] h-9 px-4 flex-1 md:flex-none transition-all duration-300",
+                                                    activeFilter === filter.id && "shadow-lg shadow-primary/20"
+                                                )}
+                                                onClick={() => setActiveFilter(filter.id as any)}
+                                            >
+                                                {filter.label}
+                                            </Button>
+                                        )
+                                    ))}
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="pt-6 px-3 md:px-8 pb-10">
+                            {/* Selected Package/Service Banner */}
+                            {selectedProduct && (
+                                <div className="mb-8 animate-in fade-in slide-in-from-top-6 duration-700">
+                                    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-transparent border-2 border-amber-500/20 p-6 group">
+                                        {/* Background decoration */}
+                                        <div className="absolute -right-8 -top-8 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
+                                        <div className="absolute -left-8 -bottom-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
+
+                                        <div className="relative flex items-start gap-4">
+                                            {/* Icon */}
+                                            <div className="shrink-0 h-16 w-16 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                                                <Sparkles className="h-8 w-8 text-white" />
+                                            </div>
+
+                                            {/* Content */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Badge className="bg-amber-500 text-white border-0 text-[9px] font-black uppercase tracking-widest px-2 py-0.5">
+                                                        ✓ Ya seleccionado
+                                                    </Badge>
+                                                    <div className="h-1 w-1 rounded-full bg-amber-500/50 animate-pulse"></div>
+                                                    <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">Vía QR</span>
+                                                </div>
+
+                                                <h3 className="text-xl md:text-2xl font-black uppercase italic tracking-tighter text-amber-700 dark:text-amber-400 mb-1 leading-tight">
+                                                    {selectedProduct.name}
+                                                </h3>
+
+                                                <p className="text-xs text-muted-foreground font-medium mb-3 line-clamp-2">
+                                                    {selectedProduct.description || "Paquete premium seleccionado"}
+                                                </p>
+
+                                                <div className="flex items-center gap-4 flex-wrap">
+                                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 rounded-full border border-amber-500/20">
+                                                        <Star className="w-3.5 h-3.5 text-amber-600 fill-amber-600" />
+                                                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-500">
+                                                            {selectedProduct.isUnlimited ? 'Ilimitado' : `${selectedProduct.totalUses} Sesiones`}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full border border-primary/20">
+                                                        <DollarSign className="w-3.5 h-3.5 text-primary" />
+                                                        <span className="text-[10px] font-black uppercase tracking-wider text-primary">
+                                                            ${selectedProduct.price} {business.settings?.currency || 'MXN'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Action hint */}
+                                        <div className="mt-4 pt-4 border-t border-amber-500/10 flex items-center justify-between">
+                                            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
+                                                <ArrowDown className="w-4 h-4 animate-bounce" />
+                                                <span className="text-[10px] font-black uppercase tracking-widest italic">
+                                                    Elige un servicio para usar este paquete
+                                                </span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedProduct(null);
+                                                    form.setValue('productId', undefined);
+                                                    setActiveFilter('all');
+                                                }}
+                                                className="text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors px-3 py-1 rounded-lg hover:bg-destructive/10"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {services.length === 0 ? (
+                                <div className="text-center py-20 border-2 border-dashed rounded-[2rem] border-slate-100 dark:border-slate-800 opacity-50">
+                                    <Zap className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                                    <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">No hay servicios disponibles</p>
+                                </div>
+                            ) : (
+                                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                                    {(() => {
+                                        if (activeFilter === 'packages') {
+                                            return products
+                                                .filter(p => p.active && (p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.description?.toLowerCase().includes(searchTerm.toLowerCase())))
+                                                .map((product) => (
+                                                    <motion.div key={product._id} whileHover={{ y: -5 }}>
+                                                        <Card
+                                                            onClick={() => handleBuyPackage(product)}
+                                                            className="cursor-pointer border-2 border-slate-100 dark:border-slate-800/50 hover:border-amber-500/50 transition-all p-6 rounded-[2rem] h-full flex flex-col group"
+                                                        >
+                                                            <div className="flex justify-between items-start mb-4">
+                                                                <Badge className="bg-amber-500 text-white border-0 text-[8px] font-black uppercase italic italic px-2">Paquete</Badge>
+                                                                <span className="text-2xl font-black italic text-amber-500 group-hover:scale-110 transition-transform">${product.price}</span>
+                                                            </div>
+                                                            <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none mb-2 group-hover:text-amber-500 transition-colors">{product.name}</h4>
+                                                            <p className="text-[10px] text-muted-foreground font-medium mb-6 line-clamp-2">{product.description}</p>
+                                                            <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800/50">
+                                                                <div className="flex justify-between items-center text-[10px] font-black uppercase italic tracking-widest text-slate-400">
+                                                                    <span>Contenido</span>
+                                                                    <span className="text-foreground">{product.isUnlimited ? 'Ilimitado' : `${product.totalUses} Usos`}</span>
+                                                                </div>
+                                                                <Button className="w-full mt-4 rounded-xl font-black uppercase italic text-[10px] bg-amber-500 hover:bg-amber-600">Elegir Plan</Button>
+                                                            </div>
+                                                        </Card>
+                                                    </motion.div>
+                                                ));
+                                        }
+                                        return services
+                                            .filter(s => {
+                                                const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
+                                                const matchesFilter = activeFilter === 'all' || (activeFilter === 'online' ? s.isOnline : !s.isOnline);
+                                                return matchesSearch && matchesFilter;
+                                            })
+                                            .map(service => (
+                                                <ServiceCard
+                                                    key={service._id}
+                                                    service={{
+                                                        id: service._id,
+                                                        ...service,
+                                                        duration: `${service.durationMinutes} min`,
+                                                        price: `$${service.price}`
+                                                    }}
+                                                    onBook={() => handleServiceSelect(service._id)}
+                                                    isSelected={selectedServiceId === service._id}
+                                                    primaryColor={business?.settings?.primaryColor}
+                                                />
+                                            ));
+                                    })()}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                );
+            case 'SCHEDULE':
+                return (
+                    <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
+                        <CardHeader className="pb-4">
+                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-4">
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-2 w-8 bg-primary rounded-full"></div>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Paso 02</span>
+                                    </div>
+                                    <CardTitle className="text-4xl lg:text-6xl font-black uppercase italic tracking-tighter leading-none dark:text-white">
+                                        ELIGE TU <span className="text-primary italic">HORARIO</span>
+                                    </CardTitle>
+                                    <CardDescription className="text-base font-medium italic opacity-70">Selecciona la fecha y hora que mejor se adapte a ti</CardDescription>
+                                </div>
+
+                                {selectedService && (
+                                    <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-900 px-6 py-4 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+                                        <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                                            <Zap className="h-6 w-6" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Servicio Seleccionado</span>
+                                            <div className="flex items-center gap-3">
+                                                <h4 className="text-lg font-black uppercase italic tracking-tighter leading-none">{selectedService.name}</h4>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="rounded-xl font-black uppercase italic text-[10px] text-primary hover:bg-primary/10 transition-colors"
+                                                    onClick={() => goToStepType('SERVICE')}
+                                                >
+                                                    <ArrowLeft className="w-3.5 h-3.5 mr-2" /> Cambiar
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </CardHeader>
+                        <CardContent className="px-3 md:px-8 pb-10">
+                            <div className="grid lg:grid-cols-[1fr_400px] gap-8">
+                                {/* Left: Calendar */}
+                                <div className="space-y-6">
+                                    <div className="bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] p-4 md:p-8 border border-slate-200 dark:border-slate-800 shadow-inner">
+                                        <Calendar
+                                            mode="single"
+                                            selected={selectedDate}
+                                            onSelect={(date) => {
+                                                if (date) {
+                                                    form.setValue("date", date); // Ensure it matches schema
+                                                    form.setValue("time", "");
+                                                }
+                                            }}
+                                            disabled={isDateDisabled}
+                                            className="rounded-3xl border-0 shadow-none bg-transparent w-full"
+                                            classNames={{
+                                                months: "flex flex-col space-y-4 w-full",
+                                                month: "space-y-6 w-full",
+                                                caption: "flex justify-center pt-1 relative items-center mb-4",
+                                                caption_label: "text-2xl font-black uppercase italic tracking-tighter",
+                                                nav: "flex items-center gap-2",
+                                                nav_button: "h-11 w-11 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700/50 rounded-2xl flex items-center justify-center hover:bg-primary hover:text-white transition-all duration-300",
+                                                table: "w-full border-collapse space-y-1",
+                                                head_row: "flex justify-between mb-4",
+                                                head_cell: "text-muted-foreground w-12 md:w-16 font-black text-[10px] uppercase tracking-widest text-center",
+                                                row: "flex justify-between w-full mt-2",
+                                                cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20",
+                                                day: "h-12 w-12 md:h-16 md:w-16 p-0 font-bold aria-selected:opacity-100 rounded-2xl transition-all duration-300 hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-base",
+                                                day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-xl shadow-primary/20 scale-110 rotate-3",
+                                                day_today: "bg-slate-100 dark:bg-slate-800 text-primary border-2 border-primary/20",
+                                                day_disabled: "text-muted-foreground/20 italic line-through cursor-not-allowed hover:bg-transparent",
+                                                day_outside: "opacity-0",
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-3 px-6 py-4 bg-primary/5 rounded-2xl border border-primary/10">
+                                        <CalendarIcon className="h-5 w-5 text-primary" />
+                                        <p className="text-[11px] font-bold uppercase tracking-widest text-primary/80">
+                                            {selectedDate ? `Reservando para el ${format(selectedDate, "EEEE d 'de' MMMM", { locale: es })}` : 'Selecciona una fecha disponible'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Right: Slots & Resource */}
+                                <div className="space-y-6 flex flex-col">
+                                    <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-10 duration-1000">
+                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground mb-4 pl-1">Horarios Disponibles</h3>
+                                        <div className="bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-6 flex-1 min-h-[400px]">
+                                            {isLoadingSlots ? (
+                                                <div className="h-full flex flex-col items-center justify-center gap-4 opacity-50">
+                                                    <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest italic">Cargando disponibilidad...</p>
+                                                </div>
+                                            ) : timeSlots.length > 0 ? (
+                                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-2 gap-3">
+                                                    {timeSlots.map((slot) => (
+                                                        <motion.button
+                                                            key={slot}
+                                                            whileHover={{ scale: 1.05 }}
+                                                            whileTap={{ scale: 0.95 }}
+                                                            onClick={() => {
+                                                                form.setValue("time", slot);
+                                                                // Short delay for the ripple effect then auto-advance to next step
+                                                                setTimeout(() => handleNext(), 300);
+                                                            }}
+                                                            className={cn(
+                                                                "h-14 rounded-2xl border-2 font-black transition-all duration-300 flex items-center justify-center gap-3 group relative overflow-hidden",
+                                                                selectedTime === slot
+                                                                    ? "bg-primary border-primary text-white shadow-lg shadow-primary/20"
+                                                                    : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700/50 hover:border-primary/50"
+                                                            )}
+                                                        >
+                                                            <div className={cn(
+                                                                "h-1.5 w-1.5 rounded-full transition-all duration-300",
+                                                                selectedTime === slot ? "bg-white scale-150 animate-pulse" : "bg-slate-300 dark:bg-slate-600 group-hover:bg-primary"
+                                                            )}></div>
+                                                            <span className="text-base italic">{slot}</span>
+                                                        </motion.button>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-white/50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                                    <div className="h-20 w-20 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center mb-6">
+                                                        <Clock className="h-10 w-10 text-slate-300" />
+                                                    </div>
+                                                    <p className="text-base font-bold italic text-muted-foreground mb-2">No hay horarios disponibles</p>
+                                                    <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">Prueba con otra fecha o profesional</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                );
+            case 'RESOURCE':
+                return (
+                    <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
+                        <CardHeader className="pb-4">
+                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-4">
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-2 w-8 bg-primary rounded-full"></div>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Paso 03</span>
+                                    </div>
+                                    <CardTitle className="text-4xl lg:text-6xl font-black uppercase italic tracking-tighter leading-none dark:text-white">
+                                        ELIGE TU <span className="text-primary italic">{business?.resourceConfig?.resourceLabel || 'LUGAR'}</span>
+                                    </CardTitle>
+                                    <CardDescription className="text-base font-medium italic opacity-70">Selecciona el profesional o espacio para tu cita</CardDescription>
+                                </div>
+                                {selectedDate && selectedTime && (
+                                    <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-900 px-6 py-4 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+                                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                            <CalendarIcon className="h-5 w-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Fecha Seleccionada</p>
+                                            <p className="text-sm font-bold italic">{format(selectedDate, "d 'de' MMM")} - {selectedTime}</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </CardHeader>
+                        <CardContent className="px-3 md:px-8 pb-10">
+                            <div className="max-w-4xl mx-auto py-8">
+                                {businessId && selectedDate && selectedTime && (() => {
+                                    const [hours, minutes] = selectedTime.split(":").map(Number);
+                                    const scheduledDate = new Date(selectedDate);
+                                    scheduledDate.setHours(hours, minutes, 0, 0);
+                                    const scheduledAt = scheduledDate.toISOString();
+
+                                    return (
+                                        <ResourceSelector
+                                            businessId={businessId}
+                                            scheduledAt={scheduledAt}
+                                            onResourceSelected={(id) => {
+                                                setSelectedResourceId(id);
+                                                form.setValue("assetId", id);
+                                                // Auto advance after short delay
+                                                setTimeout(() => handleNext(), 500);
+                                            }}
+                                            primaryColor={business?.settings?.primaryColor}
+                                        />
+                                    );
+                                })()}
+                                <div className="mt-12 flex justify-between items-center">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={handleBack}
+                                        className="h-14 px-8 rounded-2xl font-black uppercase italic tracking-widest text-muted-foreground"
+                                    >
+                                        <ArrowLeft className="w-4 h-4 mr-2" /> Volver
+                                    </Button>
+                                    <Button
+                                        onClick={() => handleNext()}
+                                        disabled={!selectedResourceId}
+                                        className="h-16 px-12 rounded-2xl font-black uppercase italic tracking-tighter text-xl shadow-xl shadow-primary/20"
+                                    >
+                                        Continuar <ArrowRight className="w-5 h-5 ml-2" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                );
+            case 'DETAILS':
+                return (
+                    <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
+                        <CardHeader className="pb-4">
+                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-4">
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-2 w-8 bg-primary rounded-full"></div>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Paso 04</span>
+                                    </div>
+                                    <CardTitle className="text-4xl lg:text-6xl font-black uppercase italic tracking-tighter leading-none dark:text-white">
+                                        TUS <span className="text-primary italic">DATOS</span>
+                                    </CardTitle>
+                                    <CardDescription className="text-base font-medium italic opacity-70">Casi listos, solo necesitamos contactarte</CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="px-3 md:px-8 pb-10">
+                            <div className="grid lg:grid-cols-[1fr_400px] gap-8">
+                                {/* Left: Form Fields */}
+                                <div className="space-y-6">
+                                    <div className="bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] p-6 md:p-10 border border-slate-200 dark:border-slate-800 shadow-inner">
+                                        <div className="grid md:grid-cols-2 gap-6">
+                                            <FormField
+                                                control={form.control}
+                                                name="clientName"
+                                                render={({ field }) => (
+                                                    <FormItem className="space-y-3">
+                                                        <div className="flex items-center gap-2 ml-1">
+                                                            <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                                                            <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('booking.form.name_label')}</FormLabel>
+                                                        </div>
+                                                        <FormControl>
+                                                            <div className="relative group">
+                                                                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                                                <Input {...field} placeholder="Escribe tu nombre completo" className="h-14 pl-12 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 font-bold italic focus:ring-primary/20 transition-all" />
+                                                            </div>
+                                                        </FormControl>
+                                                        <FormMessage className="text-[10px] font-bold italic" />
+                                                    </FormItem>
+                                                )}
+                                            />
+
+                                            <FormField
+                                                control={form.control}
+                                                name="clientEmail"
+                                                render={({ field }) => (
+                                                    <FormItem className="space-y-3">
+                                                        <div className="flex items-center gap-2 ml-1">
+                                                            <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                                                            <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('booking.form.email_label')}</FormLabel>
+                                                        </div>
+                                                        <FormControl>
+                                                            <div className="relative group">
+                                                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                                                <Input
+                                                                    {...field}
+                                                                    placeholder="tu@email.com"
+                                                                    className="h-14 pl-12 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 font-bold italic focus:ring-primary/20 transition-all"
+                                                                    onBlur={() => fetchAssetsForContact()}
+                                                                />
+                                                            </div>
+                                                        </FormControl>
+                                                        <FormMessage className="text-[10px] font-bold italic" />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+
+                                        <div className="mt-6">
+                                            <FormField
+                                                control={form.control}
+                                                name="clientPhone"
+                                                render={({ field }) => (
+                                                    <FormItem className="space-y-3">
+                                                        <div className="flex items-center gap-2 ml-1">
+                                                            <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                                                            <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('booking.form.phone_label')}</FormLabel>
+                                                        </div>
+                                                        <FormControl>
+                                                            <PhoneInput
+                                                                country={'mx'}
+                                                                value={field.value}
+                                                                onChange={(phone) => field.onChange(phone)}
+                                                                onBlur={() => fetchAssetsForContact()}
+                                                                inputStyle={{
+                                                                    width: '100%',
+                                                                    height: '3.5rem',
+                                                                    borderRadius: '1rem',
+                                                                    border: '2px solid #e2e8f0',
+                                                                    fontSize: '1rem',
+                                                                    fontWeight: '700',
+                                                                    fontStyle: 'italic',
+                                                                    paddingLeft: '3rem'
+                                                                }}
+                                                                buttonStyle={{
+                                                                    border: 'none',
+                                                                    backgroundColor: 'transparent',
+                                                                    paddingLeft: '0.5rem'
+                                                                }}
+                                                                dropdownStyle={{
+                                                                    borderRadius: '1rem',
+                                                                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
+                                                                }}
+                                                            />
+                                                        </FormControl>
+                                                        <FormMessage className="text-[10px] font-bold italic" />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+
+                                        {/* Booking Highlights/Security */}
+                                        <div className="mt-10 pt-10 border-t border-slate-200 dark:border-slate-800 grid md:grid-cols-2 gap-8">
+                                            <div className="flex items-start gap-4">
+                                                <div className="h-10 w-10 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0">
+                                                    <ShieldCheck className="w-5 h-5 text-green-500" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-[11px] font-black uppercase tracking-widest mb-1">Privacidad Asegurada</h4>
+                                                    <p className="text-[10px] text-muted-foreground font-medium italic">Tus datos están protegidos y solo se usarán para gestionar tu reserva.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-start gap-4">
+                                                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                                                    <Bell className="w-5 h-5 text-primary" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-[11px] font-black uppercase tracking-widest mb-1">Recordatorios Gratis</h4>
+                                                    <p className="text-[10px] text-muted-foreground font-medium italic">Te enviaremos un correo de confirmación y recordatorios de tu cita.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex items-center justify-between pt-4">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            onClick={handleBack}
+                                            className="h-14 px-8 rounded-2xl font-black uppercase italic tracking-widest text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800"
+                                        >
+                                            <ArrowLeft className="w-4 h-4 mr-2" /> Volver
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            onClick={async () => {
+                                                const isValid = await form.trigger(['clientName', 'clientEmail', 'clientPhone']);
+                                                if (isValid) handleNext();
+                                            }}
+                                            className="h-16 px-12 rounded-2xl font-black uppercase italic tracking-tighter text-xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                        >
+                                            Continuar <ArrowRight className="w-5 h-5 ml-2" />
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Right: Summary */}
+                                <div className="space-y-6">
+                                    <div className="bg-slate-900 dark:bg-slate-950 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/30 transition-colors duration-500"></div>
+
+                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-6 flex items-center gap-2">
+                                            <Search className="w-3.5 h-3.5" /> Tu Selección
+                                        </h3>
+
+                                        {selectedProduct && (
+                                            <div className="mb-6 pb-6 border-b border-white/10">
+                                                <Badge className="bg-amber-500 text-white border-0 text-[8px] font-black uppercase italic mb-2">Paquete</Badge>
+                                                <h4 className="text-xl font-black uppercase italic tracking-tighter leading-none mb-1 text-amber-500">{selectedProduct.name}</h4>
+                                                <p className="text-2xl font-black italic">${selectedProduct.price}</p>
+                                            </div>
+                                        )}
+
+                                        {selectedService && !selectedProduct && (
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none mb-2">{selectedService.name}</h4>
+                                                    <div className="flex items-center gap-3 opacity-60">
+                                                        <Clock className="w-3.5 h-3.5" />
+                                                        <span className="text-[11px] font-bold uppercase tracking-widest">{selectedService.durationMinutes} min</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-6 mt-6 border-t border-white/5 space-y-4">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center">
+                                                            <CalendarIcon className="w-5 h-5 text-primary" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Fecha Reserva</p>
+                                                            <p className="text-sm font-bold italic">{selectedDate ? format(selectedDate, "d 'de' MMMM, yyyy", { locale: es }) : '---'}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center">
+                                                            <Clock className="w-5 h-5 text-primary" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Horario</p>
+                                                            <p className="text-sm font-bold italic">{selectedTime || '---'}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="mt-10 bg-white/5 rounded-2xl p-4 border border-white/10 flex items-center justify-between">
+                                            <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Total a pagar</span>
+                                            <span className="text-3xl font-black italic text-primary">${selectedProduct ? selectedProduct.price : (selectedService?.price || 0)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                );
+            case 'CONFIRMATION':
+                return (
+                    <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
+                        <CardHeader className="pb-4">
+                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-4">
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-2 w-8 bg-primary rounded-full"></div>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Paso 05</span>
+                                    </div>
+                                    <CardTitle className="text-4xl lg:text-6xl font-black uppercase italic tracking-tighter leading-none dark:text-white">
+                                        REVISA Y <span className="text-primary italic">CONFIRMA</span>
+                                    </CardTitle>
+                                    <CardDescription className="text-base font-medium italic opacity-70">Verifica que todo esté correcto antes de finalizar</CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="px-3 md:px-8 pb-10">
+                            <div className="grid lg:grid-cols-[1fr_400px] gap-8">
+                                {/* Left: Review & Payment Selection */}
+                                <div className="space-y-8">
+                                    {/* Item summary for mobile (cleaner) */}
+                                    <div className="lg:hidden bg-slate-50 dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                                                {selectedProduct ? <Ticket className="w-6 h-6" /> : <Zap className="w-6 h-6" />}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-black uppercase italic tracking-tighter">{selectedProduct?.name || selectedService?.name}</h4>
+                                                <p className="text-xs font-bold text-primary">${selectedProduct?.price || selectedService?.price}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground mb-6 pl-1">Método de Pago</h3>
+                                        <div className="grid gap-4">
+                                            {/* Stripe Payment */}
+                                            {((!selectedProduct && business?.paymentConfig?.paymentPolicy !== 'RESERVE_ONLY') || (selectedProduct)) && (
+                                                <motion.button
+                                                    type="button"
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => {
+                                                        setPaymentMethod('STRIPE');
+                                                        form.setValue('paymentOption', 'STRIPE');
+                                                    }}
+                                                    className={cn(
+                                                        "p-6 rounded-[2rem] border-2 transition-all duration-300 flex items-center justify-between group",
+                                                        paymentMethod === 'STRIPE'
+                                                            ? "bg-primary border-primary text-white shadow-xl shadow-primary/20"
+                                                            : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-primary/50"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={cn(
+                                                            "h-12 w-12 rounded-2xl flex items-center justify-center transition-colors",
+                                                            paymentMethod === 'STRIPE' ? "bg-white/20" : "bg-primary/10 text-primary"
+                                                        )}>
+                                                            <CreditCard className="w-6 h-6" />
+                                                        </div>
+                                                        <div className="text-left">
+                                                            <p className="text-base font-black uppercase italic tracking-tighter">Tarjeta de Crédito/Débito</p>
+                                                            <p className={cn(
+                                                                "text-[10px] font-bold uppercase tracking-widest",
+                                                                paymentMethod === 'STRIPE' ? "text-white/60" : "text-muted-foreground"
+                                                            )}>Pago seguro vía Stripe</p>
+                                                        </div>
+                                                    </div>
+                                                    {paymentMethod === 'STRIPE' && <CheckCircle2 className="w-6 h-6" />}
+                                                </motion.button>
+                                            )}
+
+                                            {/* Packages Wallet (If available) */}
+                                            {selectedService && (availableAssets.length > 0) && (
+                                                <div className="space-y-3">
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary px-1">Tus paquetes disponibles</p>
+                                                    <div className="grid gap-3">
+                                                        {prioritizeAssets(availableAssets).map((asset) => {
+                                                            const isCompatible = !asset.productId?.allowedServiceIds ||
+                                                                asset.productId.allowedServiceIds.length === 0 ||
+                                                                asset.productId.allowedServiceIds.includes(selectedServiceId!);
+
+                                                            return (
+                                                                <motion.button
+                                                                    key={asset._id}
+                                                                    type="button"
+                                                                    disabled={!isCompatible}
+                                                                    whileHover={isCompatible ? { scale: 1.01 } : {}}
+                                                                    onClick={() => {
+                                                                        if (isCompatible) {
+                                                                            setPaymentMethod('ASSET');
+                                                                            setSelectedAsset(asset);
+                                                                            form.setValue('assetId', asset._id);
+                                                                            form.setValue('paymentOption', 'ASSET');
+                                                                        }
+                                                                    }}
+                                                                    className={cn(
+                                                                        "p-4 rounded-2xl border-2 transition-all duration-300 flex items-center justify-between gap-4",
+                                                                        !isCompatible ? "opacity-40 grayscale cursor-not-allowed" : "cursor-pointer",
+                                                                        paymentMethod === 'ASSET' && selectedAsset?._id === asset._id
+                                                                            ? "bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20"
+                                                                            : "bg-amber-50 dark:bg-amber-950/20 border-amber-100 dark:border-amber-900/30 hover:border-amber-500/50"
+                                                                    )}
+                                                                >
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className={cn(
+                                                                            "h-10 w-10 rounded-xl flex items-center justify-center",
+                                                                            paymentMethod === 'ASSET' && selectedAsset?._id === asset._id ? "bg-white/20" : "bg-amber-500/10 text-amber-600"
+                                                                        )}>
+                                                                            <Ticket className="w-5 h-5" />
+                                                                        </div>
+                                                                        <div className="text-left">
+                                                                            <p className="text-sm font-black uppercase italic tracking-tighter">{asset.productId?.name || 'Paquete'}</p>
+                                                                            <p className={cn(
+                                                                                "text-[9px] font-bold uppercase tracking-widest",
+                                                                                paymentMethod === 'ASSET' && selectedAsset?._id === asset._id ? "text-white/70" : "text-amber-600/70"
+                                                                            )}>
+                                                                                {asset.isUnlimited ? 'Uso Ilimitado' : `${asset.remainingUses} usos restantes`}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                    {paymentMethod === 'ASSET' && selectedAsset?._id === asset._id && <CheckCircle2 className="w-5 h-5" />}
+                                                                </motion.button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* In-Person / Cash */}
+                                            {selectedService && !selectedProduct && business?.paymentConfig?.allowCash && (
+                                                <motion.button
+                                                    type="button"
+                                                    whileHover={{ scale: 1.02 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                    onClick={() => {
+                                                        setPaymentMethod('IN_PERSON');
+                                                        form.setValue('paymentOption', 'IN_PERSON');
+                                                        form.setValue('assetId', undefined);
+                                                    }}
+                                                    className={cn(
+                                                        "p-6 rounded-[2rem] border-2 transition-all duration-300 flex items-center justify-between group",
+                                                        paymentMethod === 'IN_PERSON'
+                                                            ? "bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-900/20"
+                                                            : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-900/50"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={cn(
+                                                            "h-12 w-12 rounded-2xl flex items-center justify-center transition-colors",
+                                                            paymentMethod === 'IN_PERSON' ? "bg-white/20" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                                                        )}>
+                                                            <Receipt className="w-6 h-6" />
+                                                        </div>
+                                                        <div className="text-left">
+                                                            <p className="text-base font-black uppercase italic tracking-tighter">Pago en Establecimiento</p>
+                                                            <p className={cn(
+                                                                "text-[10px] font-bold uppercase tracking-widest",
+                                                                paymentMethod === 'IN_PERSON' ? "text-white/60" : "text-muted-foreground"
+                                                            )}>Reserva ahora, paga al llegar</p>
+                                                        </div>
+                                                    </div>
+                                                    {paymentMethod === 'IN_PERSON' && <CheckCircle2 className="w-6 h-6" />}
+                                                </motion.button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Final Action */}
+                                    <div className="flex flex-col gap-4">
+                                        <Button
+                                            type="submit"
+                                            disabled={isSubmitting || !paymentMethod}
+                                            className="h-20 w-full rounded-[2rem] font-black uppercase italic tracking-tighter text-2xl shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all relative overflow-hidden group"
+                                        >
+                                            {isSubmitting ? (
+                                                <div className="flex items-center gap-3">
+                                                    <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                    <span>Procesando...</span>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-center gap-3">
+                                                    <span>Confirmar {selectedProduct ? 'Compra' : 'Reserva'}</span>
+                                                    <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+                                                </div>
+                                            )}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            onClick={handleBack}
+                                            className="h-12 font-black uppercase italic tracking-widest text-muted-foreground"
+                                        >
+                                            Corregir datos
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Right: Detailed Summary Panel */}
+                                <div className="hidden lg:block">
+                                    <div className="sticky top-8 space-y-6">
+                                        <div className="bg-slate-900 dark:bg-slate-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-white/5 relative overflow-hidden h-full">
+                                            {/* Background glow */}
+                                            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-8 ml-1">Resumen de Orden</h3>
+
+                                            <div className="space-y-8">
+                                                {/* The Primary Item */}
+                                                <div className="bg-white/5 rounded-3xl p-6 border border-white/10">
+                                                    <div className="flex items-center gap-3 mb-4">
+                                                        <div className="px-2 py-0.5 bg-primary/20 rounded-md">
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-primary italic">
+                                                                {selectedProduct ? 'Paquete' : 'Servicio'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none mb-4">
+                                                        {selectedProduct?.name || selectedService?.name}
+                                                    </h4>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2 opacity-60">
+                                                            <Clock className="w-3.5 h-3.5" />
+                                                            <span className="text-[10px] font-bold uppercase tracking-widest">
+                                                                {selectedProduct ? (selectedProduct.isUnlimited ? 'Ilimitado' : `${selectedProduct.totalUses} Usos`) : `${selectedService?.durationMinutes} Minutos`}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xl font-black italic text-primary">${selectedProduct?.price || selectedService?.price}</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Date & Time (only for services) */}
+                                                {selectedService && !selectedProduct && (
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                                                            <p className="text-[9px] font-black uppercase tracking-widest opacity-40 mb-2">Fecha</p>
+                                                            <p className="text-sm font-bold italic">{selectedDate ? format(selectedDate, "d MMM", { locale: es }) : '---'}</p>
+                                                        </div>
+                                                        <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
+                                                            <p className="text-[9px] font-black uppercase tracking-widest opacity-40 mb-2">Hora</p>
+                                                            <p className="text-sm font-bold italic">{selectedTime || '--:--'}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Client info preview */}
+                                                <div className="bg-white/5 rounded-3xl p-6 border border-white/10 relative overflow-hidden">
+                                                    <p className="text-[9px] font-black uppercase tracking-widest opacity-40 mb-4">Datos de Contacto</p>
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <User className="w-3.5 h-3.5 text-primary" />
+                                                            <span className="text-xs font-bold truncate opacity-80">{form.watch('clientName') || '---'}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <Mail className="w-3.5 h-3.5 text-primary" />
+                                                            <span className="text-xs font-bold truncate opacity-80">{form.watch('clientEmail') || '---'}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Total amount big */}
+                                                <div className="pt-8 border-t border-white/10">
+                                                    <div className="flex items-end justify-between mb-4">
+                                                        <p className="text-xs font-black uppercase tracking-widest opacity-60">Total Final</p>
+                                                        <p className="text-5xl font-black italic text-primary tracking-tighter">
+                                                            ${selectedProduct ? selectedProduct.price : (selectedService?.price || 0)}
+                                                        </p>
+                                                    </div>
+                                                    <p className="text-[9px] font-bold text-center opacity-30 uppercase tracking-widest">Incluye todos los impuestos y cargos</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-slate-50 dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 flex items-center gap-4">
+                                            <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                                                <Info className="w-5 h-5 text-muted-foreground" />
+                                            </div>
+                                            <p className="text-[10px] text-muted-foreground font-medium italic leading-relaxed">
+                                                Al confirmar, aceptas nuestras políticas de cancelación y términos de servicio.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                );
+            default:
+                return null;
+        }
+    };
 
     if (!business) {
         return (
@@ -693,866 +1719,61 @@ const BusinessBookingPage = () => {
 
             <div className="max-w-5xl mx-auto px-3 md:px-4 py-6 md:py-8 space-y-6 md:space-y-8">
                 {/* Stepper */}
-                {!bookingSuccess ? (
-                    <AnimatedStepper
-                        currentStep={step}
-                        onStepChange={(s) => setStep(s)}
-                        disableStepIndicators={true}
-                        steps={[
-                            { id: 1, title: "Servicio", description: "Elige tu opción" },
-                            { id: 2, title: "Horario", description: "Cuándo vienes" },
-                            { id: 3, title: "Tus Datos", description: "Quién reserva" },
-                            { id: 4, title: "Confirmar", description: "Paga y finaliza" }
-                        ]}
-                    >
-                        <AnimatedStep>
-                            <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
-                                <CardHeader className="pb-2">
-                                    <div className="text-center mb-6 px-2">
-                                        <CardTitle className="text-3xl lg:text-5xl font-black uppercase italic tracking-tighter dark:text-white leading-tight">
-                                            NUESTROS <span className="text-primary italic">SERVICIOS</span>
-                                        </CardTitle>
-                                        <CardDescription className="text-base mt-2 px-4 font-medium italic opacity-70">Encuentra la experiencia perfecta para tu transformación</CardDescription>
-                                    </div>
-
-                                    {/* Search & Filter Bar */}
-                                    <div className="flex flex-col gap-4 mb-4 px-2 max-w-3xl mx-auto w-full">
-                                        <div className="bg-slate-50 dark:bg-slate-900 px-4 py-1 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                                            <div className="relative group">
-                                                <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                                                <input
-                                                    type="text"
-                                                    placeholder="¿Qué servicio buscas hoy?"
-                                                    className="w-full pl-8 pr-2 h-14 bg-transparent outline-none text-base font-bold italic"
-                                                    value={searchTerm}
-                                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                                />
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)}>
+                        {!bookingSuccess ? (
+                            <AnimatedStepper
+                                currentStep={step}
+                                onStepChange={(s) => setStep(s)}
+                                disableStepIndicators={true}
+                                steps={bookingSteps.map((type, idx) => ({
+                                    id: idx + 1,
+                                    ...stepInfo[type]
+                                }))}
+                            >
+                                {bookingSteps.map((type, idx) => (
+                                    <AnimatedStep key={`${type}-${idx}`}>
+                                        {renderStepContent(type)}
+                                    </AnimatedStep>
+                                ))}
+                            </AnimatedStepper>
+                        ) : (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                            >
+                                <Card className="border-green-200 bg-green-50 rounded-[2.5rem] shadow-xl overflow-hidden">
+                                    <CardContent className="pt-10 pb-10 text-center">
+                                        <div className="flex flex-col items-center gap-6">
+                                            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                                                <CheckCircle2 className="h-12 w-12 text-green-600" />
                                             </div>
-                                        </div>
-                                        <div className="flex items-center justify-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-900 rounded-[1.2rem] border border-slate-200 dark:border-slate-800">
-                                            {[
-                                                { id: 'all', label: 'Todos' },
-                                                { id: 'presencial', label: 'Presencial' },
-                                                { id: 'online', label: 'Online' },
-                                                { id: 'packages', label: 'Ver Paquetes' }
-                                            ].map((filter) => (
-                                                (filter.id !== 'packages' || products.length > 0) && (
-                                                    <Button
-                                                        key={filter.id}
-                                                        variant={activeFilter === filter.id ? 'default' : 'ghost'}
-                                                        size="sm"
-                                                        className={cn(
-                                                            "rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-[0.15em] h-9 px-4 flex-1 md:flex-none transition-all duration-300",
-                                                            activeFilter === filter.id && "shadow-lg shadow-primary/20"
-                                                        )}
-                                                        onClick={() => setActiveFilter(filter.id as any)}
-                                                    >
-                                                        {filter.label}
-                                                    </Button>
-                                                )
-                                            ))}
-                                        </div>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="pt-6 px-3 md:px-8 pb-10">
-                                    {/* Selected Package/Service Banner */}
-                                    {selectedProduct && (
-                                        <div className="mb-8 animate-in fade-in slide-in-from-top-6 duration-700">
-                                            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-transparent border-2 border-amber-500/20 p-6 group">
-                                                {/* Background decoration */}
-                                                <div className="absolute -right-8 -top-8 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
-                                                <div className="absolute -left-8 -bottom-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
-
-                                                <div className="relative flex items-start gap-4">
-                                                    {/* Icon */}
-                                                    <div className="shrink-0 h-16 w-16 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                                                        <Sparkles className="h-8 w-8 text-white" />
-                                                    </div>
-
-                                                    {/* Content */}
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <Badge className="bg-amber-500 text-white border-0 text-[9px] font-black uppercase tracking-widest px-2 py-0.5">
-                                                                ✓ Ya seleccionado
-                                                            </Badge>
-                                                            <div className="h-1 w-1 rounded-full bg-amber-500/50 animate-pulse"></div>
-                                                            <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">Vía QR</span>
-                                                        </div>
-
-                                                        <h3 className="text-xl md:text-2xl font-black uppercase italic tracking-tighter text-amber-700 dark:text-amber-400 mb-1 leading-tight">
-                                                            {selectedProduct.name}
-                                                        </h3>
-
-                                                        <p className="text-xs text-muted-foreground font-medium mb-3 line-clamp-2">
-                                                            {selectedProduct.description || "Paquete premium seleccionado"}
-                                                        </p>
-
-                                                        <div className="flex items-center gap-4 flex-wrap">
-                                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 rounded-full border border-amber-500/20">
-                                                                <Star className="w-3.5 h-3.5 text-amber-600 fill-amber-600" />
-                                                                <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-500">
-                                                                    {selectedProduct.isUnlimited ? 'Ilimitado' : `${selectedProduct.totalUses} Sesiones`}
-                                                                </span>
-                                                            </div>
-
-                                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full border border-primary/20">
-                                                                <DollarSign className="w-3.5 h-3.5 text-primary" />
-                                                                <span className="text-[10px] font-black uppercase tracking-wider text-primary">
-                                                                    ${selectedProduct.price} {business.settings?.currency || 'MXN'}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Action hint */}
-                                                <div className="mt-4 pt-4 border-t border-amber-500/10 flex items-center justify-between">
-                                                    <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
-                                                        <ArrowDown className="w-4 h-4 animate-bounce" />
-                                                        <span className="text-[10px] font-black uppercase tracking-widest italic">
-                                                            Elige un servicio para usar este paquete
-                                                        </span>
-                                                    </div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setSelectedProduct(null);
-                                                            form.setValue('productId', undefined);
-                                                            setActiveFilter('all');
-                                                        }}
-                                                        className="text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors px-3 py-1 rounded-lg hover:bg-destructive/10"
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                </div>
+                                            <div className="space-y-2">
+                                                <h3 className="text-3xl font-black uppercase italic tracking-tighter text-green-900 dark:text-green-400">{t('booking.form.confirmation_title')}</h3>
+                                                <p className="text-base text-green-700 dark:text-green-300 font-medium italic">
+                                                    {t('booking.form.need_code')}
+                                                </p>
                                             </div>
-                                        </div>
-                                    )}
-
-                                    {services.length === 0 ? (
-                                        <div className="text-center py-20 border-2 border-dashed rounded-[2rem] border-slate-100 dark:border-slate-800 opacity-50">
-                                            <Zap className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                                            <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">No hay servicios disponibles</p>
-                                        </div>
-                                    ) : (
-                                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                                            {(() => {
-                                                if (activeFilter === 'packages') {
-                                                    return products
-                                                        .filter(p => p.active && (p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.description?.toLowerCase().includes(searchTerm.toLowerCase())))
-                                                        .map((product) => (
-                                                            <motion.div key={product._id} whileHover={{ y: -5 }}>
-                                                                <Card
-                                                                    onClick={() => handleBuyPackage(product)}
-                                                                    className="cursor-pointer border-2 border-slate-100 dark:border-slate-800/50 hover:border-amber-500/50 transition-all p-6 rounded-[2rem] h-full flex flex-col group"
-                                                                >
-                                                                    <div className="flex justify-between items-start mb-4">
-                                                                        <Badge className="bg-amber-500 text-white border-0 text-[8px] font-black uppercase italic italic px-2">Paquete</Badge>
-                                                                        <span className="text-2xl font-black italic text-amber-500 group-hover:scale-110 transition-transform">${product.price}</span>
-                                                                    </div>
-                                                                    <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none mb-2 group-hover:text-amber-500 transition-colors">{product.name}</h4>
-                                                                    <p className="text-[10px] text-muted-foreground font-medium mb-6 line-clamp-2">{product.description}</p>
-                                                                    <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800/50">
-                                                                        <div className="flex justify-between items-center text-[10px] font-black uppercase italic tracking-widest text-slate-400">
-                                                                            <span>Contenido</span>
-                                                                            <span className="text-foreground">{product.isUnlimited ? 'Ilimitado' : `${product.totalUses} Usos`}</span>
-                                                                        </div>
-                                                                        <Button className="w-full mt-4 rounded-xl font-black uppercase italic text-[10px] bg-amber-500 hover:bg-amber-600">Elegir Plan</Button>
-                                                                    </div>
-                                                                </Card>
-                                                            </motion.div>
-                                                        ));
-                                                }
-                                                return services
-                                                    .filter(s => {
-                                                        const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
-                                                        const matchesFilter = activeFilter === 'all' || (activeFilter === 'online' ? s.isOnline : !s.isOnline);
-                                                        return matchesSearch && matchesFilter;
-                                                    })
-                                                    .map(service => (
-                                                        <ServiceCard
-                                                            key={service._id}
-                                                            service={{
-                                                                id: service._id,
-                                                                ...service,
-                                                                duration: `${service.durationMinutes} min`,
-                                                                price: `$${service.price}`
-                                                            }}
-                                                            onBook={() => handleServiceSelect(service._id)}
-                                                            isSelected={selectedServiceId === service._id}
-                                                            primaryColor={business.settings?.primaryColor}
-                                                        />
-                                                    ));
-                                            })()}
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </AnimatedStep>
-
-                        <AnimatedStep>
-                            <div className="space-y-6">
-                                {/* Selected Info Summary */}
-                                <div className="bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 rounded-[2.5rem] p-6 flex items-center justify-between shadow-sm transition-all duration-500">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center text-primary-foreground shadow-xl shadow-primary/20 transform -rotate-3 transition-transform hover:rotate-0">
-                                            <Check className="w-8 h-8" strokeWidth={4} />
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] font-black uppercase italic text-primary/70 tracking-widest leading-none mb-1">Has elegido</p>
-                                            <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none">{selectedService?.name}</h4>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        variant="ghost"
-                                        className="rounded-xl font-black uppercase italic text-[10px] text-primary hover:bg-primary/10 transition-colors"
-                                        onClick={() => setStep(1)}
-                                    >
-                                        <ArrowLeft className="w-3.5 h-3.5 mr-2" /> Cambiar Servicio
-                                    </Button>
-                                </div>
-
-                                <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
-                                    <CardHeader className="bg-slate-50 dark:bg-slate-900 border-b py-8">
-                                        <div className="text-center">
-                                            <CardTitle className="text-4xl font-black uppercase italic tracking-tighter leading-none mb-2">ELIGE TU <span className="text-primary">HORARIO</span></CardTitle>
-                                            <CardDescription className="font-medium italic">Selecciona el día y la hora que mejor se adapte a ti</CardDescription>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="p-4 md:p-8">
-                                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                                            <div className="lg:col-span-7 flex flex-col items-center">
-                                                <div className="w-full max-w-[400px] border-2 border-slate-50 dark:border-slate-800 rounded-[2.5rem] p-4 bg-white dark:bg-black/20 shadow-inner">
-                                                    <Calendar
-                                                        mode="single"
-                                                        selected={selectedDate}
-                                                        onSelect={(date) => {
-                                                            form.setValue("date", date);
-                                                            form.setValue("time", "");
-                                                        }}
-                                                        disabled={isDateDisabled}
-                                                        initialFocus
-                                                        className="w-full"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="lg:col-span-5 space-y-4">
-                                                <div className="flex items-center gap-3 mb-4">
-                                                    <Clock className="w-5 h-5 text-primary" />
-                                                    <h5 className="font-black uppercase italic tracking-widest text-xs">Horas disponibles</h5>
-                                                </div>
-                                                <div className="grid grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
-                                                    {!selectedDate ? (
-                                                        <div className="col-span-full py-16 text-center border-2 border-dashed rounded-[2rem] border-slate-100 dark:border-slate-800 opacity-40">
-                                                            <CalendarIcon className="w-10 h-10 mx-auto mb-3" />
-                                                            <p className="text-[10px] font-black uppercase italic tracking-widest">Siguiente: Elige un día</p>
-                                                        </div>
-                                                    ) : isLoadingSlots ? (
-                                                        <div className="col-span-full py-20 flex flex-col items-center justify-center gap-4">
-                                                            <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-                                                            <p className="text-[10px] font-black uppercase italic text-primary animate-pulse">Buscando espacios...</p>
-                                                        </div>
-                                                    ) : slots?.length === 0 ? (
-                                                        <div className="col-span-full py-16 text-center bg-orange-50 dark:bg-orange-950/20 rounded-[2rem] border-2 border-orange-100 text-orange-600">
-                                                            <X className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                                                            <p className="text-[10px] font-black uppercase italic tracking-widest px-6">Día completo. ¡Elige otra fecha!</p>
-                                                        </div>
-                                                    ) : (
-                                                        slots?.map((slot) => (
-                                                            <motion.div key={slot} whileTap={{ scale: 0.95 }}>
-                                                                <Button
-                                                                    type="button"
-                                                                    variant={selectedTime === slot ? "default" : "outline"}
-                                                                    className={cn(
-                                                                        "w-full h-14 font-black italic transition-all duration-300 rounded-2xl text-base shadow-sm",
-                                                                        selectedTime === slot
-                                                                            ? "bg-primary text-white scale-105 shadow-xl shadow-primary/30"
-                                                                            : "hover:border-primary/50 hover:bg-primary/5"
-                                                                    )}
-                                                                    onClick={() => {
-                                                                        form.setValue("time", slot);
-                                                                        // Short delay for the ripple effect then auto-advance to step 3
-                                                                        setTimeout(() => setStep(3), 300);
-                                                                    }}
-                                                                >
-                                                                    {slot}
-                                                                </Button>
-                                                            </motion.div>
-                                                        ))
-                                                    )}
-                                                </div>
-                                            </div>
+                                            <Button
+                                                onClick={() => {
+                                                    const params = new URLSearchParams({
+                                                        email: form.getValues('clientEmail'),
+                                                        code: bookingSuccessCode || '',
+                                                        businessId: businessId || ''
+                                                    });
+                                                    navigate(`/my-bookings?${params.toString()}`);
+                                                }}
+                                                className="rounded-full font-black uppercase italic tracking-widest"
+                                            >
+                                                Ver mis reservas
+                                            </Button>
                                         </div>
                                     </CardContent>
                                 </Card>
-                            </div>
-                        </AnimatedStep>
-
-                        <AnimatedStep>
-                            <Form {...form}>
-                                <form className="space-y-6">
-                                    <Card className="shadow-2xl border-2 border-primary/10 overflow-hidden bg-white dark:bg-slate-950 rounded-[2.5rem]">
-                                        <CardHeader className="text-center pb-6 pt-10">
-                                            <CardTitle className="text-3xl font-black uppercase italic tracking-tighter">TUS <span className="text-primary">DATOS</span></CardTitle>
-                                            <CardDescription className="italic font-medium">¿A nombre de quién hacemos la reserva?</CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="space-y-6 max-w-2xl mx-auto pb-10">
-                                            {/* Selection Summary */}
-                                            {(selectedService || selectedProduct) && (
-                                                <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-                                                    <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 flex items-center gap-4 relative overflow-hidden group">
-                                                        <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:rotate-12 transition-transform duration-500">
-                                                            {selectedProduct ? <Sparkles className="w-16 h-16" /> : <CalendarIcon className="w-16 h-16" />}
-                                                        </div>
-
-                                                        <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                                                            {selectedProduct ? <Sparkles className="h-7 w-7 text-primary" /> : <CalendarIcon className="h-7 w-7 text-primary" />}
-                                                        </div>
-
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 italic mb-0.5">
-                                                                {selectedProduct ? "Paquete Seleccionado" : "Servicio Seleccionado"}
-                                                            </p>
-                                                            <h4 className="text-lg font-black uppercase italic tracking-tighter truncate leading-tight">
-                                                                {selectedProduct?.name || selectedService?.name}
-                                                            </h4>
-                                                            {selectedService && selectedDate && selectedTime && (
-                                                                <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-2 mt-1">
-                                                                    <Clock className="w-3 h-3" />
-                                                                    {format(selectedDate, "PPP", { locale: i18n.language === 'es' ? es : enUS })} @ {selectedTime}
-                                                                </p>
-                                                            )}
-                                                        </div>
-
-                                                        <div className="text-right pl-4 border-l border-slate-200 dark:border-slate-800">
-                                                            <p className="text-xl font-black italic tracking-tighter text-primary leading-none mb-1">
-                                                                ${selectedProduct?.price || selectedService?.price}
-                                                            </p>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setSelectedProduct(null);
-                                                                    setSelectedService(null);
-                                                                    form.setValue('productId', undefined);
-                                                                    form.setValue('serviceId', undefined);
-                                                                    setStep(1);
-                                                                }}
-                                                                className="text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors focus:outline-none"
-                                                            >
-                                                                Cambiar
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            <div className="grid gap-6">
-                                                <FormField
-                                                    control={form.control}
-                                                    name="clientName"
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel className="text-xs font-bold uppercase tracking-wider">Nombre Completo</FormLabel>
-                                                            <FormControl>
-                                                                <Input placeholder="Tu nombre" className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-0 shadow-inner" {...field} />
-                                                            </FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )}
-                                                />
-
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <FormField
-                                                        control={form.control}
-                                                        name="clientEmail"
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel className="text-xs font-bold uppercase tracking-wider">Email</FormLabel>
-                                                                <FormControl>
-                                                                    <Input type="email" placeholder="tu@email.com" className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-0 shadow-inner" {...field} />
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-                                                    <FormField
-                                                        control={form.control}
-                                                        name="clientPhone"
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel className="text-xs font-bold uppercase tracking-wider">Teléfono</FormLabel>
-                                                                <FormControl>
-                                                                    <PhoneInput
-                                                                        country={business?.settings?.language?.startsWith('en') ? 'us' : 'mx'}
-                                                                        enableSearch
-                                                                        countryCodeEditable={false}
-                                                                        value={field.value}
-                                                                        onChange={(value) => field.onChange(value)}
-                                                                        placeholder={business?.settings?.language?.startsWith('en') ? '+1 (555) 000-0000' : '+52 55 1234 5678'}
-                                                                        containerClass="w-full"
-                                                                        inputClass="!w-full !h-12 !text-base !bg-slate-50 dark:!bg-slate-900 !border-0 !rounded-xl !pl-14 !text-foreground focus:!ring-2 focus:!ring-primary/50 shadow-inner"
-                                                                        buttonClass="!h-12 !bg-transparent !border-0 !rounded-l-xl !px-3"
-                                                                        dropdownClass="!bg-popover !text-foreground !shadow-lg !border !rounded-xl"
-                                                                        inputStyle={{ paddingLeft: '3.5rem' }}
-                                                                        inputProps={{ required: true }}
-                                                                    />
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-                                                </div>
-
-                                                <FormField
-                                                    control={form.control}
-                                                    name="notes"
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel className="text-xs font-bold uppercase tracking-wider">¿Algo que debamos saber? (Opcional)</FormLabel>
-                                                            <FormControl>
-                                                                <Input placeholder="Notas para tu servicio..." className="h-12 rounded-xl bg-slate-50 dark:bg-slate-900 border-0 shadow-inner" {...field} />
-                                                            </FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                            </div>
-
-                                            {/* Invoicing Section inside Data Step */}
-                                            {business?.taxConfig?.invoicingEnabled && (
-                                                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                                                    <div className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50">
-                                                        <div className="flex items-center gap-3">
-                                                            <Receipt className="h-5 w-5 text-muted-foreground" />
-                                                            <h4 className="text-xs font-black uppercase italic">¿Necesitas Factura?</h4>
-                                                        </div>
-                                                        <FormField
-                                                            control={form.control}
-                                                            name="needsInvoice"
-                                                            render={({ field }) => (
-                                                                <FormItem className="flex items-center">
-                                                                    <FormControl>
-                                                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                                                    </FormControl>
-                                                                </FormItem>
-                                                            )}
-                                                        />
-                                                    </div>
-
-                                                    <AnimatePresence>
-                                                        {form.watch("needsInvoice") && (
-                                                            <motion.div
-                                                                initial={{ opacity: 0, height: 0 }}
-                                                                animate={{ opacity: 1, height: 'auto' }}
-                                                                exit={{ opacity: 0, height: 0 }}
-                                                                className="mt-4 space-y-4 overflow-hidden"
-                                                            >
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                    <FormField
-                                                                        control={form.control}
-                                                                        name="rfc"
-                                                                        render={({ field }) => (
-                                                                            <FormItem>
-                                                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest">{business.taxConfig?.taxIdLabel || 'ID Fiscal'}</FormLabel>
-                                                                                <FormControl>
-                                                                                    <Input {...field} placeholder="XAXX010101000" className="h-10 rounded-xl bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
-                                                                                </FormControl>
-                                                                                <FormMessage />
-                                                                            </FormItem>
-                                                                        )}
-                                                                    />
-                                                                    <FormField
-                                                                        control={form.control}
-                                                                        name="razonSocial"
-                                                                        render={({ field }) => (
-                                                                            <FormItem>
-                                                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest">Razón Social</FormLabel>
-                                                                                <FormControl>
-                                                                                    <Input {...field} placeholder="Nombre o Empresa" className="h-10 rounded-xl bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700" />
-                                                                                </FormControl>
-                                                                                <FormMessage />
-                                                                            </FormItem>
-                                                                        )}
-                                                                    />
-                                                                </div>
-                                                            </motion.div>
-                                                        )}
-                                                    </AnimatePresence>
-                                                </div>
-                                            )}
-
-                                            <div className="flex flex-col sm:flex-row gap-4">
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    className="flex-1 font-black uppercase italic tracking-widest h-14 rounded-2xl text-primary hover:bg-primary/5"
-                                                    onClick={() => setStep(2)}
-                                                >
-                                                    <ArrowLeft className="h-4 w-4 mr-2" /> Regresar
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    className="flex-[2] font-black uppercase italic tracking-widest h-14 shadow-lg hover:shadow-primary/20 transition-all rounded-2xl gap-3"
-                                                    onClick={async () => {
-                                                        const isValid = await form.trigger(['clientName', 'clientEmail', 'clientPhone']);
-                                                        if (isValid) {
-                                                            // For guest users, trigger a final asset check before moving to confirm
-                                                            if (!user) {
-                                                                await fetchAssetsForContact();
-                                                            }
-                                                            setStep(4);
-                                                        }
-                                                    }}
-                                                >
-                                                    Siguiente Paso <ArrowRight className="h-5 w-5" />
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </form>
-                            </Form>
-                        </AnimatedStep>
-
-                        <AnimatedStep>
-                            <Form {...form}>
-                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                                    <div id="step4-anchor" className="scroll-mt-6" />
-                                    <Card className="shadow-2xl border-2 border-primary/20 overflow-hidden bg-gradient-to-br from-background to-primary/5 rounded-[2.5rem]">
-                                        <CardHeader className="text-center pb-8 pt-10">
-                                            <CardTitle className="text-4xl font-black uppercase italic tracking-tighter">CONFIRMA <span className="text-primary">Y PAGA</span></CardTitle>
-                                            <CardDescription className="italic font-medium opacity-70">Revisa que todo esté correcto antes de finalizar</CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="space-y-8 max-w-3xl mx-auto pb-12">
-                                            {/* Selection Recap - Only show when there's a selected service */}
-                                            {selectedService && (
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                                                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transform hover:scale-[1.02] transition-transform">
-                                                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0"><Zap className="w-5 h-5" /></div>
-                                                        <div className="min-w-0">
-                                                            <p className="text-[9px] font-black uppercase text-muted-foreground opacity-60">Servicio</p>
-                                                            <p className="text-xs font-black italic uppercase leading-none truncate">{selectedService.name}</p>
-                                                        </div>
-                                                    </div>
-                                                    {selectedDate && (
-                                                        <>
-                                                            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transform hover:scale-[1.02] transition-transform">
-                                                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0"><CalendarIcon className="w-5 h-5" /></div>
-                                                                <div>
-                                                                    <p className="text-[9px] font-black uppercase text-muted-foreground opacity-60">Fecha</p>
-                                                                    <p className="text-xs font-black italic uppercase leading-none">{format(selectedDate, "PP", { locale: i18n.language === 'es' ? es : enUS })}</p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transform hover:scale-[1.02] transition-transform">
-                                                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0"><Clock className="w-5 h-5" /></div>
-                                                                <div>
-                                                                    <p className="text-[9px] font-black uppercase text-muted-foreground opacity-60">Hora</p>
-                                                                    <p className="text-xs font-black italic uppercase leading-none">{selectedTime}</p>
-                                                                </div>
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {/* Selection Recap for client */}
-                                            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-between text-xs font-medium">
-                                                <div className="flex items-center gap-3 text-muted-foreground">
-                                                    <Building2 className="w-4 h-4" />
-                                                    <span>{form.watch('clientName')} ({form.watch('clientEmail')})</span>
-                                                </div>
-                                                <Button variant="ghost" size="sm" className="h-7 text-[10px] font-black uppercase text-primary" onClick={() => setStep(3)}>Editar Datos</Button>
-                                            </div>
-
-                                            {/* Price & Payment Logic */}
-                                            <div className="space-y-4">
-                                                {form.watch('productId') ? (
-                                                    <div className="space-y-4">
-                                                        <div className="p-6 rounded-[2rem] bg-amber-50 dark:bg-amber-900/10 border-2 border-amber-200 dark:border-amber-800/50 relative overflow-hidden group transition-all">
-                                                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                                                                <Sparkles className="w-16 h-16 text-amber-500" />
-                                                            </div>
-                                                            <div className="flex justify-between items-start mb-4">
-                                                                <div>
-                                                                    <Badge className="bg-amber-500 text-white border-none mb-2 text-[10px] font-black uppercase italic">Paquete Premium</Badge>
-                                                                    <h3 className="text-2xl font-black italic uppercase tracking-tighter text-amber-700 dark:text-amber-400">
-                                                                        {products.find(p => p._id === form.getValues('productId'))?.name}
-                                                                    </h3>
-                                                                </div>
-                                                                <div className="text-right">
-                                                                    <p className="text-2xl font-black italic text-amber-600 dark:text-amber-500">
-                                                                        ${products.find(p => p._id === form.getValues('productId'))?.price}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                            <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="rounded-full border-amber-200 text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-800/50 h-8 text-[10px] font-bold uppercase"
-                                                                onClick={() => {
-                                                                    form.setValue('productId', undefined);
-                                                                    setSelectedProduct(null);
-                                                                    setActiveTab('single');
-                                                                }}
-                                                            >
-                                                                Cambiar a Clase Suelta
-                                                            </Button>
-                                                        </div>
-                                                        <div className="bg-primary/5 dark:bg-primary/900/20 p-4 rounded-2xl text-[10px] text-primary font-bold uppercase tracking-wider flex gap-3 items-center">
-                                                            <Info className="w-4 h-4 shrink-0" />
-                                                            <p>Incluye la reserva inmediata de este servicio.</p>
-                                                        </div>
-                                                    </div>
-                                                ) : (business.paymentConfig?.paymentPolicy === 'PACKAGES' || products.length > 0 || availableAssets.length > 0 || isCheckingAssets) ? (
-                                                    <div className="relative">
-                                                        {isCheckingAssets && (
-                                                            <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-10 flex items-center justify-center rounded-[2.5rem]">
-                                                                <div className="flex flex-col items-center gap-3 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-xl border border-primary/10">
-                                                                    <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-                                                                    <p className="text-[10px] font-black uppercase italic tracking-widest text-primary animate-pulse">Buscando tus créditos...</p>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        <Tabs defaultValue={availableAssets.length > 0 ? "credits" : "single"} value={activeTab} onValueChange={(val) => {
-                                                            setActiveTab(val);
-                                                            if (val === 'credits' && availableAssets.length > 0) {
-                                                                form.setValue('assetId', availableAssets[0]._id);
-                                                            } else if (val !== 'credits') {
-                                                                form.setValue('assetId', undefined);
-                                                            }
-                                                        }} className="w-full">
-                                                            <TabsList className="grid grid-cols-3 mb-6 h-auto p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                                                                <TabsTrigger value="single" className="rounded-xl py-3 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-sm">
-                                                                    <CreditCard className="w-3.5 h-3.5 mr-2" /> Un Solo Pago
-                                                                </TabsTrigger>
-                                                                <TabsTrigger value="packages" className="rounded-xl py-3 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-sm">
-                                                                    <Sparkles className="w-3.5 h-3.5 mr-2 text-amber-500" /> Paquetes
-                                                                </TabsTrigger>
-                                                                <TabsTrigger value="credits" disabled={availableAssets.length === 0 && !isCheckingAssets} className="rounded-xl py-3 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-sm">
-                                                                    <Ticket className="w-3.5 h-3.5 mr-2 text-primary" /> Créditos
-                                                                </TabsTrigger>
-                                                            </TabsList>
-
-                                                            <TabsContent value="single" className="space-y-4 mt-0">
-                                                                <div className="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 space-y-4">
-                                                                    <div className="flex justify-between items-center text-xs">
-                                                                        <span className="text-muted-foreground font-medium italic">Inversión del servicio</span>
-                                                                        <span className="font-bold tabular-nums">
-                                                                            ${((selectedService?.price || 0) / (business?.taxConfig?.enabled ? (1 + (business?.taxConfig?.taxRate || 0.16)) : 1)).toFixed(2)}
-                                                                        </span>
-                                                                    </div>
-
-                                                                    {business?.taxConfig?.enabled && (
-                                                                        <div className="flex justify-between items-center text-xs">
-                                                                            <div className="flex items-center gap-2 italic">
-                                                                                <span className="text-muted-foreground font-medium">{business.taxConfig.taxName || 'IVA'} ({((business.taxConfig.taxRate || 0.16) * 100)}%)</span>
-                                                                                <Badge variant="outline" className="text-[8px] h-4 uppercase tracking-tighter text-primary border-primary/20">Fiscal</Badge>
-                                                                            </div>
-                                                                            <span className="font-bold tabular-nums text-primary">
-                                                                                +${((selectedService?.price || 0) - ((selectedService?.price || 0) / (1 + (business.taxConfig.taxRate || 0.16)))).toFixed(2)}
-                                                                            </span>
-                                                                        </div>
-                                                                    )}
-
-                                                                    <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between items-end">
-                                                                        <div className="space-y-1">
-                                                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total a Confirmar</p>
-                                                                            <h3 className="text-4xl font-black italic uppercase tracking-tighter text-primary leading-none">
-                                                                                ${selectedService?.price}
-                                                                                <span className="text-xs ml-1 not-italic font-bold text-muted-foreground">{business.settings?.currency || 'MXN'}</span>
-                                                                            </h3>
-                                                                        </div>
-                                                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 shadow-sm">
-                                                                            <ShieldCheck className="h-3.5 w-3.5" />
-                                                                            <span className="text-[9px] font-black uppercase tracking-tight italic">Checkout seguro</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </TabsContent>
-
-                                                            <TabsContent value="packages" className="space-y-4 mt-0">
-                                                                <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                                                    {products.filter(p => (p.type === ProductType.Package || p.type === ProductType.Pass) && p.active && (!p.allowedServiceIds || p.allowedServiceIds.length === 0 || p.allowedServiceIds.includes(selectedService?._id || ""))).map(product => (
-                                                                        <div key={product._id} className="flex items-center justify-between p-4 border-2 border-primary/5 hover:border-primary/20 rounded-2xl bg-white dark:bg-slate-900 transition-all cursor-pointer group shadow-sm" onClick={() => handleBuyPackage(product)}>
-                                                                            <div className="space-y-1">
-                                                                                <h4 className="font-black text-xs uppercase italic tracking-wide">{product.name}</h4>
-                                                                                <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-black uppercase italic">{product.isUnlimited ? 'Ilimitado' : `${product.totalUses} Usos`}</span>
-                                                                            </div>
-                                                                            <div className="text-right">
-                                                                                <p className="text-lg font-black italic tracking-tighter text-primary">${product.price}</p>
-                                                                                <span className="text-[8px] font-bold text-muted-foreground uppercase">Elegir</span>
-                                                                            </div>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </TabsContent>
-
-                                                            <TabsContent value="credits" className="space-y-4 mt-0">
-                                                                <div className="space-y-3">
-                                                                    {availableAssets.filter(asset => {
-                                                                        if (!selectedServiceId) return true;
-                                                                        const allowed = asset.productId?.allowedServiceIds;
-                                                                        return !allowed || allowed.length === 0 || allowed.includes(selectedServiceId);
-                                                                    }).map(asset => {
-                                                                        const isSelected = form.watch('assetId') === asset._id;
-                                                                        return (
-                                                                            <div key={asset._id}
-                                                                                onClick={() => form.setValue('assetId', asset._id)}
-                                                                                className={`p-4 border-2 rounded-2xl cursor-pointer transition-all ${isSelected ? 'border-primary bg-primary/5 shadow-inner shadow-primary/5' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-primary/20 shadow-sm'}`}>
-                                                                                <div className="flex justify-between items-center">
-                                                                                    <div className="space-y-1">
-                                                                                        <h4 className="font-black text-xs uppercase italic tracking-wide">{asset.productId?.name || "Paquete"}</h4>
-                                                                                        <span className="text-[10px] font-bold text-primary">
-                                                                                            {asset.isUnlimited ? 'Ilimitado' : `${asset.remainingUses} usos restantes`}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                    {isSelected && <CheckCircle2 className="w-6 h-6 text-primary" />}
-                                                                                </div>
-                                                                            </div>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            </TabsContent>
-                                                        </Tabs>
-                                                    </div>
-                                                ) : selectedService ? (
-                                                    <div className="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 space-y-4">
-                                                        <div className="flex justify-between items-center text-xs">
-                                                            <span className="text-muted-foreground font-medium italic">Inversión del servicio</span>
-                                                            <span className="font-bold tabular-nums">
-                                                                ${((selectedService?.price || 0) / (business?.taxConfig?.enabled ? (1 + (business?.taxConfig?.taxRate || 0.16)) : 1)).toFixed(2)}
-                                                            </span>
-                                                        </div>
-
-                                                        {business?.taxConfig?.enabled && (
-                                                            <div className="flex justify-between items-center text-xs">
-                                                                <div className="flex items-center gap-2 italic">
-                                                                    <span className="text-muted-foreground font-medium">{business.taxConfig.taxName || 'IVA'} ({((business.taxConfig.taxRate || 0.16) * 100)}%)</span>
-                                                                    <Badge variant="outline" className="text-[8px] h-4 uppercase tracking-tighter text-primary border-primary/20">Fiscal</Badge>
-                                                                </div>
-                                                                <span className="font-bold tabular-nums text-primary">
-                                                                    +${((selectedService?.price || 0) - ((selectedService?.price || 0) / (1 + (business.taxConfig.taxRate || 0.16)))).toFixed(2)}
-                                                                </span>
-                                                            </div>
-                                                        )}
-
-                                                        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between items-end">
-                                                            <div className="space-y-1">
-                                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total a Confirmar</p>
-                                                                <h3 className="text-4xl font-black italic uppercase tracking-tighter text-primary leading-none">
-                                                                    ${selectedService?.price}
-                                                                    <span className="text-xs ml-1 not-italic font-bold text-muted-foreground">{business.settings?.currency || 'MXN'}</span>
-                                                                </h3>
-                                                            </div>
-                                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 shadow-sm">
-                                                                <ShieldCheck className="h-3.5 w-3.5" />
-                                                                <span className="text-[9px] font-black uppercase tracking-tight italic">Pago Seguro</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 space-y-4">
-                                                        <h3 className="text-3xl font-black italic uppercase tracking-tighter text-primary">${selectedService?.price}</h3>
-                                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 italic text-[10px] font-black uppercase">
-                                                            <ShieldCheck className="h-3.5 w-3.5" /> Pago Seguro
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {selectedService?.requireResource && selectedDate && selectedTime && (
-                                                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                                    <h4 className="text-xs font-black uppercase italic tracking-widest flex items-center gap-2">
-                                                        <Building2 className="h-4 w-4 text-primary" /> Selección de Lugar
-                                                    </h4>
-                                                    <ResourceSelector
-                                                        businessId={businessId || ""}
-                                                        scheduledAt={(() => {
-                                                            const [hours, minutes] = selectedTime.split(":").map(Number);
-                                                            const d = new Date(selectedDate);
-                                                            d.setHours(hours, minutes, 0, 0);
-                                                            return d.toISOString();
-                                                        })()}
-                                                        onResourceSelected={setSelectedResourceId}
-                                                        primaryColor={business.settings?.primaryColor}
-                                                    />
-                                                </div>
-                                            )}
-
-                                            <div className="flex flex-col sm:flex-row gap-4">
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    className="flex-1 font-black uppercase italic tracking-widest h-16 rounded-2xl text-primary hover:bg-primary/5"
-                                                    onClick={() => setStep(3)}
-                                                >
-                                                    <ArrowLeft className="h-4 w-4 mr-2" /> Regresar
-                                                </Button>
-                                                <Button
-                                                    type="submit"
-                                                    className="flex-[2] font-black uppercase italic tracking-widest text-lg h-16 shadow-2xl hover:shadow-primary/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] rounded-2xl"
-                                                    size="lg"
-                                                    disabled={isSubmitting || form.formState.isSubmitting}
-                                                >
-                                                    {isSubmitting || form.formState.isSubmitting ? (
-                                                        <span className="flex items-center gap-3">
-                                                            <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                            Procesando...
-                                                        </span>
-                                                    ) : (
-                                                        <span className="flex items-center gap-3">
-                                                            <CheckCircle2 className="h-6 w-6" />
-                                                            {form.watch('assetId') ? "Confirmar Reserva" : "Pagar y Confirmar"}
-                                                        </span>
-                                                    )}
-                                                </Button>
-                                            </div>
-
-                                            <p className="text-[10px] text-center text-muted-foreground uppercase font-bold tracking-tighter opacity-50 px-8">
-                                                Al confirmar aceptas nuestras condiciones de servicio y políticas de cancelación inmediata.
-                                            </p>
-                                        </CardContent>
-                                    </Card>
-                                </form>
-                            </Form>
-                        </AnimatedStep>
-                    </AnimatedStepper>
-                ) : (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                    >
-                        <Card className="border-green-200 bg-green-50 rounded-[2.5rem] shadow-xl overflow-hidden">
-                            <CardContent className="pt-10 pb-10 text-center">
-                                <div className="flex flex-col items-center gap-6">
-                                    <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                                        <CheckCircle2 className="h-12 w-12 text-green-600" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <h3 className="text-3xl font-black uppercase italic tracking-tighter text-green-900 dark:text-green-400">{t('booking.form.confirmation_title')}</h3>
-                                        <p className="text-base text-green-700 dark:text-green-300 font-medium italic">
-                                            {t('booking.form.need_code')}
-                                        </p>
-                                    </div>
-                                    <Button
-                                        onClick={() => {
-                                            const params = new URLSearchParams({
-                                                email: form.getValues('clientEmail'),
-                                                code: bookingSuccessCode || '',
-                                                businessId: businessId || ''
-                                            });
-                                            navigate(`/my-bookings?${params.toString()}`);
-                                        }}
-                                        className="rounded-full font-black uppercase italic tracking-widest"
-                                    >
-                                        Ver mis reservas
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </motion.div>
-                )}
+                            </motion.div>
+                        )}
+                    </form>
+                </Form>
 
                 {
                     myBookings.length > 0 && (
@@ -1688,28 +1909,30 @@ const BusinessBookingPage = () => {
                 </AlertDialogContent>
             </AlertDialog>
 
-            {preSelectedPackage && (
-                <PackageQRModal
-                    product={preSelectedPackage}
-                    open={showPackageModal}
-                    existingAssets={availableAssets}
-                    onClose={() => {
-                        setShowPackageModal(false);
-                        setPreSelectedPackage(null);
-                        const newParams = new URLSearchParams(searchParams);
-                        newParams.delete('packageId');
-                        navigate({ search: newParams.toString() }, { replace: true });
-                    }}
-                    onBuyOnly={() => {
-                        setShowPackageModal(false);
-                        handleBuyPackage(preSelectedPackage, false);
-                    }}
-                    onBuyAndBook={() => {
-                        setShowPackageModal(false);
-                        handleBuyPackage(preSelectedPackage, true);
-                    }}
-                />
-            )}
+            {
+                preSelectedPackage && (
+                    <PackageQRModal
+                        product={preSelectedPackage}
+                        open={showPackageModal}
+                        existingAssets={availableAssets}
+                        onClose={() => {
+                            setShowPackageModal(false);
+                            setPreSelectedPackage(null);
+                            const newParams = new URLSearchParams(searchParams);
+                            newParams.delete('packageId');
+                            navigate({ search: newParams.toString() }, { replace: true });
+                        }}
+                        onBuyOnly={() => {
+                            setShowPackageModal(false);
+                            handleBuyPackage(preSelectedPackage, false);
+                        }}
+                        onBuyAndBook={() => {
+                            setShowPackageModal(false);
+                            handleBuyPackage(preSelectedPackage, true);
+                        }}
+                    />
+                )
+            }
         </div >
     );
 };

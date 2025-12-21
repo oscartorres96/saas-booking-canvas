@@ -35,7 +35,7 @@ export interface BusinessData {
         holderName?: string;
         instructions?: string;
     };
-    paymentModel?: 'INTERMEDIATED' | 'STRIPE_CONNECT';
+    paymentMode?: 'BOOKPRO_COLLECTS' | 'DIRECT_TO_BUSINESS';
 }
 
 // Mock data inicial (fallback)
@@ -104,7 +104,7 @@ const fetchBusinessData = async (businessSlug?: string): Promise<BusinessData> =
             },
             language: business.language || "es", // Provide a default if undefined
             paymentConfig: business.paymentConfig,
-            paymentModel: business.paymentModel
+            paymentMode: business.paymentMode
         };
     } catch (error) {
         console.error("Error fetching business data:", error);
