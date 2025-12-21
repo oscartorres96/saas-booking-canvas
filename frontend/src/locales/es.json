@@ -291,7 +291,7 @@
         "confirmed_desc": "Tu reserva ha sido creada exitosamente. Redirigiendo a tus reservas...",
         "error_title": "Error al crear reserva",
         "error_desc": "Hubo un problema al procesar tu reserva. Por favor intenta de nuevo.",
-        "booking_conflict_error": "Ya tienes una cita programada para este día con este negocio."
+        "booking_conflict_error": "Ya tienes una reserva para este día. El negocio no permite múltiples reservas diarias para el mismo cliente."
       }
     },
     "calendar": {
@@ -607,6 +607,13 @@
     "language_desc": "Idioma para tu página de reservas pública y correos a clientes. (El idioma del dashboard se puede cambiar usando el selector en la parte superior derecha)",
     "select_language_placeholder": "Selecciona idioma",
     "title": "Configuración del Negocio",
+    "booking": {
+      "title": "Políticas de Reserva",
+      "allow_multiple": "Permitir múltiples clases hoy",
+      "allow_multiple_desc": "Si se apaga, el cliente solo puede reservar UNA VEZ por día. Actívalo para permitir que un cliente tome varias clases el mismo día.",
+      "cancellation_window": "Ventana de cancelación (horas)",
+      "cancellation_window_desc": "Horas mínimas antes de la cita para cancelar con reembolso automático (si aplica)."
+    },
     "save": "Guardar Cambios",
     "saved": "Configuración guardada",
     "error": "Error al guardar",
@@ -910,7 +917,8 @@
         "items": [
           "Información General: Define el nombre comercial de tu negocio, sube tu logo (aparecerá en correos y en la página de reservas), y escribe una descripción atractiva que explique qué ofreces. Esta información es lo primero que ven tus clientes cuando visitan tu página de reservas, así que hazla clara y profesional.",
           "Horarios de Atención: Configura los días y horarios en que aceptas citas. Puedes definir diferentes horarios para cada día de la semana, agregar múltiples intervalos (por ejemplo: mañana y tarde), incluir bloques de descanso, y marcar días festivos o cerrados. BookPro mostrará únicamente los espacios disponibles según tus horarios reales.",
-          "Moneda y Región: Selecciona tu moneda local (MXN, USD, EUR, etc.) y el idioma de comunicación con tus clientes. Esto afecta cómo se presentan los precios, las notificaciones por correo, y el formato de fechas en tu página pública de reservas. Puedes cambiar el idioma del panel administrativo desde el selector en la esquina superior derecha."
+          "Moneda y Región: Selecciona tu moneda local (MXN, USD, EUR, etc.) y el idioma de comunicación con tus clientes. Esto afecta cómo se presentan los precios, las notificaciones por correo, y el formato de fechas en tu página pública de reservas. Puedes cambiar el idioma del panel administrativo desde el selector en la esquina superior derecha.",
+          "Políticas de Reserva: En la pestaña de 'Políticas', puedes decidir si permites que un mismo cliente reserve varias veces el mismo día. También puedes configurar la 'Ventana de Cancelación', que define cuántas horas antes de la cita un cliente puede cancelar su reserva de forma autónoma."
         ]
       },
       "services": {
@@ -932,7 +940,8 @@
           "Reservas internas creadas por ti: Desde tu panel puedes agendar citas para clientes que llaman por teléfono o llegan sin reserva previa. Puedes marcarlas como pagadas, pendientes, o gratuitas.",
           "Confirmación automática o manual: Según tu configuración, las reservas se confirman solas (ideal para negocios 100% automatizados) o requieren tu aprobación (útil si necesitas revisar cada caso).",
           "Gestión de cancelaciones: Define ventanas de cancelación (Ej. 'permitir cancelar hasta 24 horas antes'). BookPro notifica al cliente y libera el espacio automáticamente. Si se cobró por adelantado, puedes definir si el reembolso es automático o manual.",
-          "Verificación de pagos manuales: Si aceptas transferencia bancaria o efectivo, BookPro permite que el cliente suba comprobante. Tú revisas y validas manualmente desde el panel antes de confirmar la cita."
+          "Verificación de pagos manuales: Si aceptas transferencia bancaria o efectivo, BookPro permite que el cliente suba comprobante. Tú revisas y validas manualmente desde el panel antes de confirmar la cita.",
+          "Control de duplicados: El sistema evita por defecto que un cliente reserve dos veces el mismo día para evitar errores. Puedes desactivar esta restricción en Configuración > Políticas si tu negocio permite múltiples sesiones diarias."
         ]
       },
       "public_page": {
@@ -1008,7 +1017,9 @@
         "q1": "¿Qué pasa si un cliente pierde su correo de confirmación?",
         "a1": "No hay problema. Desde tu panel, ve a los detalles de la reserva y haz clic en 'Reenviar confirmación'. El cliente recibirá un nuevo correo con su código de acceso y todos los detalles de su cita.",
         "q2": "¿Puedo ofrecer servicios gratuitos o sin costo?",
-        "a2": "Sí, completamente. Al crear o editar un servicio, simplemente pon el precio en $0. BookPro omitirá automáticamente la pantalla de pago y confirmará la reserva de inmediato. Útil para consultas de valoración gratuitas, eventos especiales, o servicios de cortesía."
+        "a2": "Sí, completamente. Al crear o editar un servicio, simplemente pon el precio en $0. BookPro omitirá automáticamente la pantalla de pago y confirmará la reserva de inmediato. Útil para consultas de valoración gratuitas, eventos especiales, o servicios de cortesía.",
+        "q3": "¿Por qué mi cliente recibe un error al intentar reservar?",
+        "a3": "Si el mensaje dice que 'ya tiene una cita para ese día', es porque tienes activa la protección de doble reserva. Si quieres que tus clientes puedan tomar varias clases el mismo día, ve a Configuración > Políticas y activa 'Permitir múltiples clases hoy'."
       }
     },
     "support": {

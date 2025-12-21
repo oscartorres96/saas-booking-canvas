@@ -85,6 +85,7 @@ import { ServiceCard } from "@/components/booking/ServiceCard";
 import { ProductsStore } from "@/components/booking/ProductsStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PackageQRModal } from "@/components/booking/PackageQRModal";
 
 const bookingFormSchema = z.object({
     serviceId: z.string().min(1, { message: "Selecciona un servicio" }).optional(),
@@ -128,6 +129,10 @@ const BusinessBookingPage = () => {
     const [activeFilter, setActiveFilter] = useState<"all" | "presencial" | "online" | "packages">("all");
     const [step, setStep] = useState(1);
     const [bookingSuccessCode, setBookingSuccessCode] = useState<string | null>(null);
+    const [isCheckingAssets, setIsCheckingAssets] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [preSelectedPackage, setPreSelectedPackage] = useState<Product | null>(null);
+    const [showPackageModal, setShowPackageModal] = useState(false);
     const { theme, setTheme } = useTheme();
     const { t, i18n } = useTranslation();
 
@@ -187,43 +192,70 @@ const BusinessBookingPage = () => {
         }
     }, [step]);
 
-    useEffect(() => {
-        const fetchAssetsForContact = async () => {
-            const hasValidEmail = clientEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail);
-            // Minimum phone check (adjust as needed, e.g., > 8 digits)
-            const hasValidPhone = clientPhone && clientPhone.length >= 8;
+    const fetchAssetsForContact = async (email?: string, phone?: string) => {
+        if (isCheckingAssets) return;
 
-            if ((hasValidEmail || hasValidPhone) && businessId && !user) {
-                try {
-                    const assets = await getActiveAssets({
-                        businessId,
-                        email: clientEmail,
-                        phone: clientPhone,
+        const targetEmail = email || clientEmail;
+        const targetPhone = phone || clientPhone;
+
+        const hasValidEmail = targetEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail);
+        const hasValidPhone = targetPhone && targetPhone.length >= 8;
+
+        if ((hasValidEmail || hasValidPhone) && businessId && !user) {
+            try {
+                setIsCheckingAssets(true);
+                const assets = await getActiveAssets({
+                    businessId,
+                    email: targetEmail,
+                    phone: targetPhone,
+                });
+                setAvailableAssets(assets);
+
+                if (assets.length > 0) {
+                    const compatibleAssets = assets.filter(asset => {
+                        if (!selectedServiceId) return true;
+                        const allowed = asset.productId?.allowedServiceIds;
+                        return !allowed || allowed.length === 0 || allowed.includes(selectedServiceId);
                     });
-                    setAvailableAssets(assets);
 
-                    if (assets.length > 0) {
-                        const compatibleAssets = assets.filter(asset => {
-                            if (!selectedServiceId) return true;
-                            const allowed = asset.productId?.allowedServiceIds;
-                            return !allowed || allowed.length === 0 || allowed.includes(selectedServiceId);
-                        });
+                    if (compatibleAssets.length > 0) {
+                        const sortedAssets = prioritizeAssets(compatibleAssets);
+                        const bestAsset = sortedAssets[0];
 
-                        if (compatibleAssets.length > 0 && !form.getValues('assetId')) {
-                            form.setValue('assetId', compatibleAssets[0]._id);
+                        const currentAssetId = form.getValues('assetId');
+                        const isCurrentStillValid = sortedAssets.some(a => a._id === currentAssetId);
+
+                        if (!currentAssetId || !isCurrentStillValid) {
+                            form.setValue('assetId', bestAsset._id);
                             setActiveTab('credits');
-                            toast.success(`¡Encontramos tus créditos! Se han aplicado automáticamente.`);
-                        } else if (compatibleAssets.length > 0) {
+
+                            const expiresAt = bestAsset.expiresAt ? new Date(bestAsset.expiresAt) : null;
+                            const diffDays = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+
+                            if (diffDays !== null && diffDays <= 7) {
+                                toast.success(`¡Encontramos tus créditos! Tienes un paquete que vence pronto (en ${diffDays} días).`);
+                            } else {
+                                toast.success(`¡Encontramos tus créditos! Se han aplicado automáticamente.`);
+                            }
+                        } else {
                             setActiveTab('credits');
                         }
                     }
-                } catch (e) {
-                    console.error("Guest asset lookup failed", e);
                 }
+            } catch (e) {
+                console.error("Guest asset lookup failed", e);
+            } finally {
+                setIsCheckingAssets(false);
             }
-        };
+        }
+    };
 
-        const timer = setTimeout(fetchAssetsForContact, 1000);
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (activeTab !== 'credits' || !form.getValues('assetId')) {
+                fetchAssetsForContact();
+            }
+        }, 1000);
         return () => clearTimeout(timer);
     }, [clientEmail, clientPhone, businessId, user, selectedServiceId]);
 
@@ -343,7 +375,8 @@ const BusinessBookingPage = () => {
                         });
 
                         if (compatibleAssets.length > 0) {
-                            form.setValue('assetId', compatibleAssets[0]._id);
+                            const sortedAssets = prioritizeAssets(compatibleAssets);
+                            form.setValue('assetId', sortedAssets[0]._id);
                             setActiveTab('credits');
                             toast.success(`¡Tienes créditos disponibles! Se han aplicado automáticamente.`);
                         }
@@ -368,16 +401,31 @@ const BusinessBookingPage = () => {
         }
     };
 
-    const handleBuyPackage = (product: Product) => {
+    const handleBuyPackage = (product: Product, isBuyAndBook = false) => {
         setSelectedProduct(product);
         form.setValue('productId', product._id);
         form.setValue('assetId', undefined);
-        toast.info(`Has seleccionado: ${product.name}. Procede a confirmar para realizar el pago.`);
-        setStep(3); // Direct to checkout if buying package only
+
+        if (isBuyAndBook) {
+            sessionStorage.setItem('buyAndBookPackage', JSON.stringify({
+                packageId: product._id,
+                packageName: product.name
+            }));
+            toast.info(`¡Genial! Seleccionaste: ${product.name}. Ahora elige tu horario para reservar.`);
+            setStep(1); // Go to step 1 to choose service/time
+            setActiveFilter('all'); // Show services
+        } else {
+            sessionStorage.removeItem('buyAndBookPackage');
+            toast.info(`Has seleccionado: ${product.name}. Procede a confirmar para realizar el pago.`);
+            setStep(3); // Direct to checkout if buying package only
+        }
     };
 
     const onSubmit = async (values: z.infer<typeof bookingFormSchema>) => {
         if (!businessId) return;
+
+        if (isSubmitting) return;
+        setIsSubmitting(true);
 
         if (selectedService?.requireResource && !selectedResourceId) {
             toast.error("Por favor selecciona un lugar en el mapa");
@@ -418,21 +466,25 @@ const BusinessBookingPage = () => {
 
             // If buying a package, handle checkout
             if (values.productId && !values.assetId) {
+                const isAutoBooking = !!sessionStorage.getItem('buyAndBookPackage');
+
                 const checkout = await createProductCheckout({
                     productId: values.productId,
-                    businessId: businessId!,
+                    businessId,
                     clientEmail: values.clientEmail,
                     clientPhone: values.clientPhone,
                     clientName: values.clientName,
-                    // Pass booking info in success URL to complete reservation after payment
-                    successUrl: `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}&type=product&booking_data=${btoa(JSON.stringify(bookingData))}`,
+                    successUrl: `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}&type=${isAutoBooking ? 'product-with-booking' : 'product'}`,
                     cancelUrl: window.location.href,
+                    bookingData: isAutoBooking ? bookingData : undefined,
                 });
 
-                if (checkout.url) {
-                    window.location.href = checkout.url;
-                    return;
+                if (isAutoBooking) {
+                    sessionStorage.removeItem('buyAndBookPackage');
                 }
+
+                window.location.href = checkout.url;
+                return;
             }
 
             const booking = await createBooking(bookingData);
@@ -466,127 +518,28 @@ const BusinessBookingPage = () => {
                 });
                 return;
             }
+
+            if (errData?.code === "SLOT_UNAVAILABLE") {
+                toast.error("Este horario acaba de ser reservado. Por favor elige otro.");
+                setStep(2);
+                form.setValue("time", "");
+                return;
+            }
+
             toast.error(errData?.message || t('booking.form.toasts.error_desc'));
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
 
 
 
-    // Handle return from Stripe (Buy Package & Book)
-    useEffect(() => {
-        const success = searchParams.get("success");
-        const action = searchParams.get("action");
-
-        if (success === "true" && action === "book_after_purchase" && businessId) {
-            // Wait for asset to be generated (webhook latency)
-            // Ideally we retry or show a "Processing..." state.
-            // For now, let's try to book immediately, but we might not have the assetId yet IF the webhook hasn't fired.
-            // However, createBooking with 'PAY_AT_BOOKING' or 'PACKAGES' will look for credits.
-            // If the webhook is slow, this might fail with "No credit".
-            // A meaningful UX would be: "Payment successful! Completing your booking..."
-
-            const performPostPaymentBooking = async () => {
-                const sId = searchParams.get("serviceId");
-                const dateStr = searchParams.get("date"); // ISO string
-                const timeStr = searchParams.get("time");
-                const cName = searchParams.get("clientName");
-                const cEmail = searchParams.get("clientEmail");
-                const cPhone = searchParams.get("clientPhone");
-
-                if (sId && dateStr && timeStr && cEmail) {
-                    try {
-                        toast.info("Procesando tu reserva...");
-
-                        // We need to wait a moment or poll for assets? 
-                        // Or just submit and let backend handle "Implicit" usage if configured?
-                        // If policy is PACKAGES, we need a credit.
-
-                        // Let's assume webhook is fast or we simply submit the booking.
-                        // Actually, to improve reliability, we can delay 2-3 seconds.
-                        await new Promise(r => setTimeout(r, 2000));
-
-                        const scheduledDate = new Date(dateStr);
-                        // Time string might be HH:MM
-                        const [hours, minutes] = timeStr.split(":").map(Number);
-                        scheduledDate.setHours(hours, minutes, 0, 0);
-
-                        const bookingData = {
-                            businessId,
-                            serviceId: sId,
-                            clientName: cName || "",
-                            clientEmail: cEmail,
-                            clientPhone: cPhone || "",
-                            scheduledAt: scheduledDate.toISOString(),
-                            status: "pending" as const,
-                            notes: "Booking after package purchase",
-                            // We don't specify assetId, backend will find available one for this user?
-                            // BookingsService.create doesn't auto-find asset unless we pass logic.
-                            // But `customerAssetsService.findActiveAssets` logic exists.
-                            // Frontend usually sends assetId? 
-                            // If we don't send assetId, createBooking checks:
-                            // if (service.requireProduct) fail.
-
-                            // We need to fetch user assets first!
-                        };
-
-                        // Retry finding asset logic
-                        let retries = 3;
-                        let foundAssetId: string | undefined;
-
-                        // We need user context. If user was guest, Stripe email matches.
-                        // But we don't have auth token for guest?
-                        // Public API for creating booking allows it.
-
-                        // Challenge: Linking the just-bought package to this booking without login.
-                        // If Intermediated, the backend Webhook links asset to User (by email).
-                        // How do we grab that asset ID here?
-                        // We can fetch "my-assets" by email? No, security risk.
-
-                        // Workaround: We proceed to submit. Backend 'create' might not auto-use asset unless we modify it or 
-                        // we rely on the user manually booking?
-                        // The user request says: "The customer should think 'I want to reserve a class'".
-
-                        // If we can't fully automate safely without login, we redirect to a specific "Complete Booking" state.
-
-                        // Simplified:
-                        // 1. Show "Purchase Successful".
-                        // 2. Pre-fill form.
-                        // 3. User clicks "Confirm".
-                        // 4. Backend assigns asset if available.
-
-                        // BUT, if we want auto-magic:
-                        // We submit. If backend fails with "No asset", we say "Wait, processing payment...".
-
-                        // Let's just restore state and show Success Message for PACKAGE, then ask to Confirm.
-                        handleServiceSelect(sId);
-                        form.setValue("date", new Date(dateStr));
-                        form.setValue("time", timeStr);
-                        if (cName) form.setValue("clientName", cName);
-                        if (cEmail) form.setValue("clientEmail", cEmail);
-                        if (cPhone) form.setValue("clientPhone", cPhone);
-
-                        toast.success("¡Paquete comprado exitosamente! Ahora confirma tu reserva.");
-
-                        // Scroll to step 3
-                        setTimeout(() => {
-                            document.getElementById('step3-anchor')?.scrollIntoView({ behavior: 'smooth' });
-                        }, 500);
-
-                    } catch (e) {
-                        console.error(e);
-                        toast.error("Error recuperando datos de la reserva.");
-                    }
-                }
-            };
-
-            performPostPaymentBooking();
-        }
-    }, [searchParams, businessId]);
 
     // Prefill from query params (coming from "Volver a reservar" or shared link)
     useEffect(() => {
         const serviceIdParam = searchParams.get("serviceId");
+        const packageIdParam = searchParams.get("packageId");
         const nameParam = searchParams.get("name");
         const emailParam = searchParams.get("email");
         const phoneParam = searchParams.get("phone");
@@ -601,6 +554,18 @@ const BusinessBookingPage = () => {
             }
         }
 
+        // Handle package selection from query params
+        if (packageIdParam && products.length > 0 && !preSelectedPackage) {
+            const product = products.find(p => p._id === packageIdParam);
+            if (product && product.active) {
+                setActiveFilter('packages');
+                setPreSelectedPackage(product);
+                setShowPackageModal(true);
+            } else if (product && !product.active) {
+                toast.error("Este paquete ya no está disponible.");
+            }
+        }
+
         // These can be set immediately as they don't depend on async data
         if (nameParam && form.getValues("clientName") !== nameParam) {
             form.setValue("clientName", nameParam);
@@ -611,7 +576,19 @@ const BusinessBookingPage = () => {
         if (phoneParam && form.getValues("clientPhone") !== phoneParam) {
             form.setValue("clientPhone", phoneParam);
         }
-    }, [searchParams, services]);
+        // Handle slot unavailable error
+        const errorParam = searchParams.get("error");
+        if (errorParam === 'slot_unavailable') {
+            toast.error("El horario que habías elegido ya no está disponible. Por favor elige otro para completar tu reserva.");
+            setStep(2); // Go to schedule selection
+            form.setValue("time", "");
+
+            // Clean up the URL
+            const newParams = new URLSearchParams(searchParams);
+            newParams.delete('error');
+            navigate({ search: newParams.toString() }, { replace: true });
+        }
+    }, [searchParams, services, products, navigate]);
 
     const isDateDisabled = (date: Date) => {
         // Disable past dates
@@ -720,6 +697,7 @@ const BusinessBookingPage = () => {
                     <AnimatedStepper
                         currentStep={step}
                         onStepChange={(s) => setStep(s)}
+                        disableStepIndicators={true}
                         steps={[
                             { id: 1, title: "Servicio", description: "Elige tu opción" },
                             { id: 2, title: "Horario", description: "Cuándo vienes" },
@@ -777,6 +755,80 @@ const BusinessBookingPage = () => {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="pt-6 px-3 md:px-8 pb-10">
+                                    {/* Selected Package/Service Banner */}
+                                    {selectedProduct && (
+                                        <div className="mb-8 animate-in fade-in slide-in-from-top-6 duration-700">
+                                            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-transparent border-2 border-amber-500/20 p-6 group">
+                                                {/* Background decoration */}
+                                                <div className="absolute -right-8 -top-8 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
+                                                <div className="absolute -left-8 -bottom-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
+
+                                                <div className="relative flex items-start gap-4">
+                                                    {/* Icon */}
+                                                    <div className="shrink-0 h-16 w-16 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                                                        <Sparkles className="h-8 w-8 text-white" />
+                                                    </div>
+
+                                                    {/* Content */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <Badge className="bg-amber-500 text-white border-0 text-[9px] font-black uppercase tracking-widest px-2 py-0.5">
+                                                                ✓ Ya seleccionado
+                                                            </Badge>
+                                                            <div className="h-1 w-1 rounded-full bg-amber-500/50 animate-pulse"></div>
+                                                            <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">Vía QR</span>
+                                                        </div>
+
+                                                        <h3 className="text-xl md:text-2xl font-black uppercase italic tracking-tighter text-amber-700 dark:text-amber-400 mb-1 leading-tight">
+                                                            {selectedProduct.name}
+                                                        </h3>
+
+                                                        <p className="text-xs text-muted-foreground font-medium mb-3 line-clamp-2">
+                                                            {selectedProduct.description || "Paquete premium seleccionado"}
+                                                        </p>
+
+                                                        <div className="flex items-center gap-4 flex-wrap">
+                                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 rounded-full border border-amber-500/20">
+                                                                <Star className="w-3.5 h-3.5 text-amber-600 fill-amber-600" />
+                                                                <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-500">
+                                                                    {selectedProduct.isUnlimited ? 'Ilimitado' : `${selectedProduct.totalUses} Sesiones`}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full border border-primary/20">
+                                                                <DollarSign className="w-3.5 h-3.5 text-primary" />
+                                                                <span className="text-[10px] font-black uppercase tracking-wider text-primary">
+                                                                    ${selectedProduct.price} {business.settings?.currency || 'MXN'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Action hint */}
+                                                <div className="mt-4 pt-4 border-t border-amber-500/10 flex items-center justify-between">
+                                                    <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
+                                                        <ArrowDown className="w-4 h-4 animate-bounce" />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest italic">
+                                                            Elige un servicio para usar este paquete
+                                                        </span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedProduct(null);
+                                                            form.setValue('productId', undefined);
+                                                            setActiveFilter('all');
+                                                        }}
+                                                        className="text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors px-3 py-1 rounded-lg hover:bg-destructive/10"
+                                                    >
+                                                        Cancelar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {services.length === 0 ? (
                                         <div className="text-center py-20 border-2 border-dashed rounded-[2rem] border-slate-100 dark:border-slate-800 opacity-50">
                                             <Zap className="h-12 w-12 mx-auto mb-4 text-slate-300" />
@@ -851,7 +903,13 @@ const BusinessBookingPage = () => {
                                             <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none">{selectedService?.name}</h4>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" className="rounded-xl font-bold uppercase italic text-[10px] text-muted-foreground" onClick={() => setStep(1)}>Cambiar Servicio</Button>
+                                    <Button
+                                        variant="ghost"
+                                        className="rounded-xl font-black uppercase italic text-[10px] text-primary hover:bg-primary/10 transition-colors"
+                                        onClick={() => setStep(1)}
+                                    >
+                                        <ArrowLeft className="w-3.5 h-3.5 mr-2" /> Cambiar Servicio
+                                    </Button>
                                 </div>
 
                                 <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
@@ -940,6 +998,55 @@ const BusinessBookingPage = () => {
                                             <CardDescription className="italic font-medium">¿A nombre de quién hacemos la reserva?</CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-6 max-w-2xl mx-auto pb-10">
+                                            {/* Selection Summary */}
+                                            {(selectedService || selectedProduct) && (
+                                                <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+                                                    <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 flex items-center gap-4 relative overflow-hidden group">
+                                                        <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:rotate-12 transition-transform duration-500">
+                                                            {selectedProduct ? <Sparkles className="w-16 h-16" /> : <CalendarIcon className="w-16 h-16" />}
+                                                        </div>
+
+                                                        <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                                                            {selectedProduct ? <Sparkles className="h-7 w-7 text-primary" /> : <CalendarIcon className="h-7 w-7 text-primary" />}
+                                                        </div>
+
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60 italic mb-0.5">
+                                                                {selectedProduct ? "Paquete Seleccionado" : "Servicio Seleccionado"}
+                                                            </p>
+                                                            <h4 className="text-lg font-black uppercase italic tracking-tighter truncate leading-tight">
+                                                                {selectedProduct?.name || selectedService?.name}
+                                                            </h4>
+                                                            {selectedService && selectedDate && selectedTime && (
+                                                                <p className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-2 mt-1">
+                                                                    <Clock className="w-3 h-3" />
+                                                                    {format(selectedDate, "PPP", { locale: i18n.language === 'es' ? es : enUS })} @ {selectedTime}
+                                                                </p>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="text-right pl-4 border-l border-slate-200 dark:border-slate-800">
+                                                            <p className="text-xl font-black italic tracking-tighter text-primary leading-none mb-1">
+                                                                ${selectedProduct?.price || selectedService?.price}
+                                                            </p>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedProduct(null);
+                                                                    setSelectedService(null);
+                                                                    form.setValue('productId', undefined);
+                                                                    form.setValue('serviceId', undefined);
+                                                                    setStep(1);
+                                                                }}
+                                                                className="text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                                                            >
+                                                                Cambiar
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             <div className="grid gap-6">
                                                 <FormField
                                                     control={form.control}
@@ -1075,16 +1182,32 @@ const BusinessBookingPage = () => {
                                                 </div>
                                             )}
 
-                                            <Button
-                                                type="button"
-                                                className="w-full font-black uppercase italic tracking-widest h-14 shadow-lg hover:shadow-primary/20 transition-all rounded-2xl gap-3"
-                                                onClick={async () => {
-                                                    const isValid = await form.trigger(['clientName', 'clientEmail', 'clientPhone']);
-                                                    if (isValid) setStep(4);
-                                                }}
-                                            >
-                                                Siguiente Paso <ArrowRight className="h-5 w-5" />
-                                            </Button>
+                                            <div className="flex flex-col sm:flex-row gap-4">
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    className="flex-1 font-black uppercase italic tracking-widest h-14 rounded-2xl text-primary hover:bg-primary/5"
+                                                    onClick={() => setStep(2)}
+                                                >
+                                                    <ArrowLeft className="h-4 w-4 mr-2" /> Regresar
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    className="flex-[2] font-black uppercase italic tracking-widest h-14 shadow-lg hover:shadow-primary/20 transition-all rounded-2xl gap-3"
+                                                    onClick={async () => {
+                                                        const isValid = await form.trigger(['clientName', 'clientEmail', 'clientPhone']);
+                                                        if (isValid) {
+                                                            // For guest users, trigger a final asset check before moving to confirm
+                                                            if (!user) {
+                                                                await fetchAssetsForContact();
+                                                            }
+                                                            setStep(4);
+                                                        }
+                                                    }}
+                                                >
+                                                    Siguiente Paso <ArrowRight className="h-5 w-5" />
+                                                </Button>
+                                            </div>
                                         </CardContent>
                                     </Card>
                                 </form>
@@ -1101,34 +1224,36 @@ const BusinessBookingPage = () => {
                                             <CardDescription className="italic font-medium opacity-70">Revisa que todo esté correcto antes de finalizar</CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-8 max-w-3xl mx-auto pb-12">
-                                            {/* Selection Recap */}
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                                                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transform hover:scale-[1.02] transition-transform">
-                                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0"><Zap className="w-5 h-5" /></div>
-                                                    <div className="min-w-0">
-                                                        <p className="text-[9px] font-black uppercase text-muted-foreground opacity-60">Servicio</p>
-                                                        <p className="text-xs font-black italic uppercase leading-none truncate">{selectedService?.name || selectedProduct?.name}</p>
+                                            {/* Selection Recap - Only show when there's a selected service */}
+                                            {selectedService && (
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                                                    <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transform hover:scale-[1.02] transition-transform">
+                                                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0"><Zap className="w-5 h-5" /></div>
+                                                        <div className="min-w-0">
+                                                            <p className="text-[9px] font-black uppercase text-muted-foreground opacity-60">Servicio</p>
+                                                            <p className="text-xs font-black italic uppercase leading-none truncate">{selectedService.name}</p>
+                                                        </div>
                                                     </div>
+                                                    {selectedDate && (
+                                                        <>
+                                                            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transform hover:scale-[1.02] transition-transform">
+                                                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0"><CalendarIcon className="w-5 h-5" /></div>
+                                                                <div>
+                                                                    <p className="text-[9px] font-black uppercase text-muted-foreground opacity-60">Fecha</p>
+                                                                    <p className="text-xs font-black italic uppercase leading-none">{format(selectedDate, "PP", { locale: i18n.language === 'es' ? es : enUS })}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transform hover:scale-[1.02] transition-transform">
+                                                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0"><Clock className="w-5 h-5" /></div>
+                                                                <div>
+                                                                    <p className="text-[9px] font-black uppercase text-muted-foreground opacity-60">Hora</p>
+                                                                    <p className="text-xs font-black italic uppercase leading-none">{selectedTime}</p>
+                                                                </div>
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
-                                                {selectedDate && (
-                                                    <>
-                                                        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transform hover:scale-[1.02] transition-transform">
-                                                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0"><CalendarIcon className="w-5 h-5" /></div>
-                                                            <div>
-                                                                <p className="text-[9px] font-black uppercase text-muted-foreground opacity-60">Fecha</p>
-                                                                <p className="text-xs font-black italic uppercase leading-none">{format(selectedDate, "PP", { locale: i18n.language === 'es' ? es : enUS })}</p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 transform hover:scale-[1.02] transition-transform">
-                                                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0"><Clock className="w-5 h-5" /></div>
-                                                            <div>
-                                                                <p className="text-[9px] font-black uppercase text-muted-foreground opacity-60">Hora</p>
-                                                                <p className="text-xs font-black italic uppercase leading-none">{selectedTime}</p>
-                                                            </div>
-                                                        </div>
-                                                    </>
-                                                )}
-                                            </div>
+                                            )}
 
                                             {/* Selection Recap for client */}
                                             <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-between text-xs font-medium">
@@ -1167,6 +1292,7 @@ const BusinessBookingPage = () => {
                                                                 className="rounded-full border-amber-200 text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-800/50 h-8 text-[10px] font-bold uppercase"
                                                                 onClick={() => {
                                                                     form.setValue('productId', undefined);
+                                                                    setSelectedProduct(null);
                                                                     setActiveTab('single');
                                                                 }}
                                                             >
@@ -1178,108 +1304,153 @@ const BusinessBookingPage = () => {
                                                             <p>Incluye la reserva inmediata de este servicio.</p>
                                                         </div>
                                                     </div>
-                                                ) : (business.paymentConfig?.paymentPolicy === 'PACKAGES' || products.length > 0 || availableAssets.length > 0) ? (
-                                                    <Tabs defaultValue={availableAssets.length > 0 ? "credits" : "single"} value={activeTab} onValueChange={(val) => {
-                                                        setActiveTab(val);
-                                                        if (val === 'credits' && availableAssets.length > 0) {
-                                                            form.setValue('assetId', availableAssets[0]._id);
-                                                        } else if (val !== 'credits') {
-                                                            form.setValue('assetId', undefined);
-                                                        }
-                                                    }} className="w-full">
-                                                        <TabsList className="grid grid-cols-3 mb-6 h-auto p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                                                            <TabsTrigger value="single" className="rounded-xl py-3 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-sm">
-                                                                <CreditCard className="w-3.5 h-3.5 mr-2" /> Un Solo Pago
-                                                            </TabsTrigger>
-                                                            <TabsTrigger value="packages" className="rounded-xl py-3 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-sm">
-                                                                <Sparkles className="w-3.5 h-3.5 mr-2 text-amber-500" /> Paquetes
-                                                            </TabsTrigger>
-                                                            <TabsTrigger value="credits" disabled={availableAssets.length === 0} className="rounded-xl py-3 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-sm">
-                                                                <Ticket className="w-3.5 h-3.5 mr-2 text-primary" /> Créditos
-                                                            </TabsTrigger>
-                                                        </TabsList>
-
-                                                        <TabsContent value="single" className="space-y-4 mt-0">
-                                                            <div className="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 space-y-4">
-                                                                <div className="flex justify-between items-center text-xs">
-                                                                    <span className="text-muted-foreground font-medium italic">Inversión del servicio</span>
-                                                                    <span className="font-bold tabular-nums">
-                                                                        ${((selectedService?.price || 0) / (business?.taxConfig?.enabled ? (1 + (business?.taxConfig?.taxRate || 0.16)) : 1)).toFixed(2)}
-                                                                    </span>
+                                                ) : (business.paymentConfig?.paymentPolicy === 'PACKAGES' || products.length > 0 || availableAssets.length > 0 || isCheckingAssets) ? (
+                                                    <div className="relative">
+                                                        {isCheckingAssets && (
+                                                            <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] z-10 flex items-center justify-center rounded-[2.5rem]">
+                                                                <div className="flex flex-col items-center gap-3 bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-xl border border-primary/10">
+                                                                    <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                                                                    <p className="text-[10px] font-black uppercase italic tracking-widest text-primary animate-pulse">Buscando tus créditos...</p>
                                                                 </div>
+                                                            </div>
+                                                        )}
+                                                        <Tabs defaultValue={availableAssets.length > 0 ? "credits" : "single"} value={activeTab} onValueChange={(val) => {
+                                                            setActiveTab(val);
+                                                            if (val === 'credits' && availableAssets.length > 0) {
+                                                                form.setValue('assetId', availableAssets[0]._id);
+                                                            } else if (val !== 'credits') {
+                                                                form.setValue('assetId', undefined);
+                                                            }
+                                                        }} className="w-full">
+                                                            <TabsList className="grid grid-cols-3 mb-6 h-auto p-1.5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                                                                <TabsTrigger value="single" className="rounded-xl py-3 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-sm">
+                                                                    <CreditCard className="w-3.5 h-3.5 mr-2" /> Un Solo Pago
+                                                                </TabsTrigger>
+                                                                <TabsTrigger value="packages" className="rounded-xl py-3 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-sm">
+                                                                    <Sparkles className="w-3.5 h-3.5 mr-2 text-amber-500" /> Paquetes
+                                                                </TabsTrigger>
+                                                                <TabsTrigger value="credits" disabled={availableAssets.length === 0 && !isCheckingAssets} className="rounded-xl py-3 text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-white dark:data-[state=active]:bg-slate-800 shadow-sm">
+                                                                    <Ticket className="w-3.5 h-3.5 mr-2 text-primary" /> Créditos
+                                                                </TabsTrigger>
+                                                            </TabsList>
 
-                                                                {business?.taxConfig?.enabled && (
+                                                            <TabsContent value="single" className="space-y-4 mt-0">
+                                                                <div className="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 space-y-4">
                                                                     <div className="flex justify-between items-center text-xs">
-                                                                        <div className="flex items-center gap-2 italic">
-                                                                            <span className="text-muted-foreground font-medium">{business.taxConfig.taxName || 'IVA'} ({((business.taxConfig.taxRate || 0.16) * 100)}%)</span>
-                                                                            <Badge variant="outline" className="text-[8px] h-4 uppercase tracking-tighter text-primary border-primary/20">Fiscal</Badge>
-                                                                        </div>
-                                                                        <span className="font-bold tabular-nums text-primary">
-                                                                            +${((selectedService?.price || 0) - ((selectedService?.price || 0) / (1 + (business.taxConfig.taxRate || 0.16)))).toFixed(2)}
+                                                                        <span className="text-muted-foreground font-medium italic">Inversión del servicio</span>
+                                                                        <span className="font-bold tabular-nums">
+                                                                            ${((selectedService?.price || 0) / (business?.taxConfig?.enabled ? (1 + (business?.taxConfig?.taxRate || 0.16)) : 1)).toFixed(2)}
                                                                         </span>
                                                                     </div>
-                                                                )}
 
-                                                                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between items-end">
-                                                                    <div className="space-y-1">
-                                                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total a Confirmar</p>
-                                                                        <h3 className="text-4xl font-black italic uppercase tracking-tighter text-primary leading-none">
-                                                                            ${selectedService?.price}
-                                                                            <span className="text-xs ml-1 not-italic font-bold text-muted-foreground">{business.settings?.currency || 'MXN'}</span>
-                                                                        </h3>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 shadow-sm">
-                                                                        <ShieldCheck className="h-3.5 w-3.5" />
-                                                                        <span className="text-[9px] font-black uppercase tracking-tight italic">Checkout seguro</span>
+                                                                    {business?.taxConfig?.enabled && (
+                                                                        <div className="flex justify-between items-center text-xs">
+                                                                            <div className="flex items-center gap-2 italic">
+                                                                                <span className="text-muted-foreground font-medium">{business.taxConfig.taxName || 'IVA'} ({((business.taxConfig.taxRate || 0.16) * 100)}%)</span>
+                                                                                <Badge variant="outline" className="text-[8px] h-4 uppercase tracking-tighter text-primary border-primary/20">Fiscal</Badge>
+                                                                            </div>
+                                                                            <span className="font-bold tabular-nums text-primary">
+                                                                                +${((selectedService?.price || 0) - ((selectedService?.price || 0) / (1 + (business.taxConfig.taxRate || 0.16)))).toFixed(2)}
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+
+                                                                    <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between items-end">
+                                                                        <div className="space-y-1">
+                                                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total a Confirmar</p>
+                                                                            <h3 className="text-4xl font-black italic uppercase tracking-tighter text-primary leading-none">
+                                                                                ${selectedService?.price}
+                                                                                <span className="text-xs ml-1 not-italic font-bold text-muted-foreground">{business.settings?.currency || 'MXN'}</span>
+                                                                            </h3>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 shadow-sm">
+                                                                            <ShieldCheck className="h-3.5 w-3.5" />
+                                                                            <span className="text-[9px] font-black uppercase tracking-tight italic">Checkout seguro</span>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        </TabsContent>
+                                                            </TabsContent>
 
-                                                        <TabsContent value="packages" className="space-y-4 mt-0">
-                                                            <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                                                {products.filter(p => (p.type === ProductType.Package || p.type === ProductType.Pass) && p.active && (!p.allowedServiceIds || p.allowedServiceIds.length === 0 || p.allowedServiceIds.includes(selectedService?._id || ""))).map(product => (
-                                                                    <div key={product._id} className="flex items-center justify-between p-4 border-2 border-primary/5 hover:border-primary/20 rounded-2xl bg-white dark:bg-slate-900 transition-all cursor-pointer group shadow-sm" onClick={() => handleBuyPackage(product)}>
-                                                                        <div className="space-y-1">
-                                                                            <h4 className="font-black text-xs uppercase italic tracking-wide">{product.name}</h4>
-                                                                            <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-black uppercase italic">{product.isUnlimited ? 'Ilimitado' : `${product.totalUses} Usos`}</span>
-                                                                        </div>
-                                                                        <div className="text-right">
-                                                                            <p className="text-lg font-black italic tracking-tighter text-primary">${product.price}</p>
-                                                                            <span className="text-[8px] font-bold text-muted-foreground uppercase">Elegir</span>
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </TabsContent>
-
-                                                        <TabsContent value="credits" className="space-y-4 mt-0">
-                                                            <div className="space-y-3">
-                                                                {availableAssets.filter(asset => {
-                                                                    if (!selectedServiceId) return true;
-                                                                    const allowed = asset.productId?.allowedServiceIds;
-                                                                    return !allowed || allowed.length === 0 || allowed.includes(selectedServiceId);
-                                                                }).map(asset => {
-                                                                    const isSelected = form.watch('assetId') === asset._id;
-                                                                    return (
-                                                                        <div key={asset._id}
-                                                                            onClick={() => form.setValue('assetId', asset._id)}
-                                                                            className={`p-4 border-2 rounded-2xl cursor-pointer transition-all ${isSelected ? 'border-primary bg-primary/5 shadow-inner shadow-primary/5' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-primary/20 shadow-sm'}`}>
-                                                                            <div className="flex justify-between items-center">
-                                                                                <div className="space-y-1">
-                                                                                    <h4 className="font-black text-xs uppercase italic tracking-wide">{asset.productId?.name || "Paquete"}</h4>
-                                                                                    <span className="text-[10px] font-bold text-primary">
-                                                                                        {asset.isUnlimited ? 'Ilimitado' : `${asset.remainingUses} usos restantes`}
-                                                                                    </span>
-                                                                                </div>
-                                                                                {isSelected && <CheckCircle2 className="w-6 h-6 text-primary" />}
+                                                            <TabsContent value="packages" className="space-y-4 mt-0">
+                                                                <div className="grid grid-cols-1 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                                                    {products.filter(p => (p.type === ProductType.Package || p.type === ProductType.Pass) && p.active && (!p.allowedServiceIds || p.allowedServiceIds.length === 0 || p.allowedServiceIds.includes(selectedService?._id || ""))).map(product => (
+                                                                        <div key={product._id} className="flex items-center justify-between p-4 border-2 border-primary/5 hover:border-primary/20 rounded-2xl bg-white dark:bg-slate-900 transition-all cursor-pointer group shadow-sm" onClick={() => handleBuyPackage(product)}>
+                                                                            <div className="space-y-1">
+                                                                                <h4 className="font-black text-xs uppercase italic tracking-wide">{product.name}</h4>
+                                                                                <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-black uppercase italic">{product.isUnlimited ? 'Ilimitado' : `${product.totalUses} Usos`}</span>
+                                                                            </div>
+                                                                            <div className="text-right">
+                                                                                <p className="text-lg font-black italic tracking-tighter text-primary">${product.price}</p>
+                                                                                <span className="text-[8px] font-bold text-muted-foreground uppercase">Elegir</span>
                                                                             </div>
                                                                         </div>
-                                                                    );
-                                                                })}
+                                                                    ))}
+                                                                </div>
+                                                            </TabsContent>
+
+                                                            <TabsContent value="credits" className="space-y-4 mt-0">
+                                                                <div className="space-y-3">
+                                                                    {availableAssets.filter(asset => {
+                                                                        if (!selectedServiceId) return true;
+                                                                        const allowed = asset.productId?.allowedServiceIds;
+                                                                        return !allowed || allowed.length === 0 || allowed.includes(selectedServiceId);
+                                                                    }).map(asset => {
+                                                                        const isSelected = form.watch('assetId') === asset._id;
+                                                                        return (
+                                                                            <div key={asset._id}
+                                                                                onClick={() => form.setValue('assetId', asset._id)}
+                                                                                className={`p-4 border-2 rounded-2xl cursor-pointer transition-all ${isSelected ? 'border-primary bg-primary/5 shadow-inner shadow-primary/5' : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-primary/20 shadow-sm'}`}>
+                                                                                <div className="flex justify-between items-center">
+                                                                                    <div className="space-y-1">
+                                                                                        <h4 className="font-black text-xs uppercase italic tracking-wide">{asset.productId?.name || "Paquete"}</h4>
+                                                                                        <span className="text-[10px] font-bold text-primary">
+                                                                                            {asset.isUnlimited ? 'Ilimitado' : `${asset.remainingUses} usos restantes`}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    {isSelected && <CheckCircle2 className="w-6 h-6 text-primary" />}
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </TabsContent>
+                                                        </Tabs>
+                                                    </div>
+                                                ) : selectedService ? (
+                                                    <div className="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 space-y-4">
+                                                        <div className="flex justify-between items-center text-xs">
+                                                            <span className="text-muted-foreground font-medium italic">Inversión del servicio</span>
+                                                            <span className="font-bold tabular-nums">
+                                                                ${((selectedService?.price || 0) / (business?.taxConfig?.enabled ? (1 + (business?.taxConfig?.taxRate || 0.16)) : 1)).toFixed(2)}
+                                                            </span>
+                                                        </div>
+
+                                                        {business?.taxConfig?.enabled && (
+                                                            <div className="flex justify-between items-center text-xs">
+                                                                <div className="flex items-center gap-2 italic">
+                                                                    <span className="text-muted-foreground font-medium">{business.taxConfig.taxName || 'IVA'} ({((business.taxConfig.taxRate || 0.16) * 100)}%)</span>
+                                                                    <Badge variant="outline" className="text-[8px] h-4 uppercase tracking-tighter text-primary border-primary/20">Fiscal</Badge>
+                                                                </div>
+                                                                <span className="font-bold tabular-nums text-primary">
+                                                                    +${((selectedService?.price || 0) - ((selectedService?.price || 0) / (1 + (business.taxConfig.taxRate || 0.16)))).toFixed(2)}
+                                                                </span>
                                                             </div>
-                                                        </TabsContent>
-                                                    </Tabs>
+                                                        )}
+
+                                                        <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-between items-end">
+                                                            <div className="space-y-1">
+                                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total a Confirmar</p>
+                                                                <h3 className="text-4xl font-black italic uppercase tracking-tighter text-primary leading-none">
+                                                                    ${selectedService?.price}
+                                                                    <span className="text-xs ml-1 not-italic font-bold text-muted-foreground">{business.settings?.currency || 'MXN'}</span>
+                                                                </h3>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20 shadow-sm">
+                                                                <ShieldCheck className="h-3.5 w-3.5" />
+                                                                <span className="text-[9px] font-black uppercase tracking-tight italic">Pago Seguro</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 ) : (
                                                     <div className="p-6 rounded-[2rem] bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 space-y-4">
                                                         <h3 className="text-3xl font-black italic uppercase tracking-tighter text-primary">${selectedService?.price}</h3>
@@ -1309,24 +1480,34 @@ const BusinessBookingPage = () => {
                                                 </div>
                                             )}
 
-                                            <Button
-                                                type="submit"
-                                                className="w-full font-black uppercase italic tracking-widest text-lg h-16 shadow-2xl hover:shadow-primary/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] rounded-2xl"
-                                                size="lg"
-                                                disabled={form.formState.isSubmitting}
-                                            >
-                                                {form.formState.isSubmitting ? (
-                                                    <span className="flex items-center gap-3">
-                                                        <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                        Procesando...
-                                                    </span>
-                                                ) : (
-                                                    <span className="flex items-center gap-3">
-                                                        <CheckCircle2 className="h-6 w-6" />
-                                                        {form.watch('assetId') ? "Confirmar Reserva" : "Pagar y Confirmar"}
-                                                    </span>
-                                                )}
-                                            </Button>
+                                            <div className="flex flex-col sm:flex-row gap-4">
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    className="flex-1 font-black uppercase italic tracking-widest h-16 rounded-2xl text-primary hover:bg-primary/5"
+                                                    onClick={() => setStep(3)}
+                                                >
+                                                    <ArrowLeft className="h-4 w-4 mr-2" /> Regresar
+                                                </Button>
+                                                <Button
+                                                    type="submit"
+                                                    className="flex-[2] font-black uppercase italic tracking-widest text-lg h-16 shadow-2xl hover:shadow-primary/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] rounded-2xl"
+                                                    size="lg"
+                                                    disabled={isSubmitting || form.formState.isSubmitting}
+                                                >
+                                                    {isSubmitting || form.formState.isSubmitting ? (
+                                                        <span className="flex items-center gap-3">
+                                                            <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                            Procesando...
+                                                        </span>
+                                                    ) : (
+                                                        <span className="flex items-center gap-3">
+                                                            <CheckCircle2 className="h-6 w-6" />
+                                                            {form.watch('assetId') ? "Confirmar Reserva" : "Pagar y Confirmar"}
+                                                        </span>
+                                                    )}
+                                                </Button>
+                                            </div>
 
                                             <p className="text-[10px] text-center text-muted-foreground uppercase font-bold tracking-tighter opacity-50 px-8">
                                                 Al confirmar aceptas nuestras condiciones de servicio y políticas de cancelación inmediata.
@@ -1484,7 +1665,7 @@ const BusinessBookingPage = () => {
                 )
             }
             <AlertDialog open={!!conflictError} onOpenChange={(open) => !open && setConflictError(null)}>
-                <AlertDialogContent>
+                <AlertDialogContent className="max-h-[90vh] overflow-y-auto">
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('booking.form.toasts.error_title')}</AlertDialogTitle>
                         <AlertDialogDescription>
@@ -1506,7 +1687,30 @@ const BusinessBookingPage = () => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div>
+
+            {preSelectedPackage && (
+                <PackageQRModal
+                    product={preSelectedPackage}
+                    open={showPackageModal}
+                    existingAssets={availableAssets}
+                    onClose={() => {
+                        setShowPackageModal(false);
+                        setPreSelectedPackage(null);
+                        const newParams = new URLSearchParams(searchParams);
+                        newParams.delete('packageId');
+                        navigate({ search: newParams.toString() }, { replace: true });
+                    }}
+                    onBuyOnly={() => {
+                        setShowPackageModal(false);
+                        handleBuyPackage(preSelectedPackage, false);
+                    }}
+                    onBuyAndBook={() => {
+                        setShowPackageModal(false);
+                        handleBuyPackage(preSelectedPackage, true);
+                    }}
+                />
+            )}
+        </div >
     );
 };
 
@@ -1553,3 +1757,32 @@ function isColorDark(hex: string): boolean {
     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
     return brightness < 128; // If less than 128, it IS dark
 }
+
+const prioritizeAssets = (assets: CustomerAsset[]): CustomerAsset[] => {
+    const now = new Date();
+    const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+    return [...assets].sort((a, b) => {
+        // 1. Priority: Assets que expiran en menos de 7 días
+        const aExpiresSoon = a.expiresAt && (new Date(a.expiresAt).getTime() - now.getTime() < WEEK_MS);
+        const bExpiresSoon = b.expiresAt && (new Date(b.expiresAt).getTime() - now.getTime() < WEEK_MS);
+
+        if (aExpiresSoon && !bExpiresSoon) return -1;
+        if (!aExpiresSoon && bExpiresSoon) return 1;
+
+        // 2. Priority: Limitados sobre ilimitados (para consumir recursos limitados primero)
+        if (!a.isUnlimited && b.isUnlimited) return -1;
+        if (a.isUnlimited && !b.isUnlimited) return 1;
+
+        // 3. Por fecha de expiración (más próximo primero)
+        if (a.expiresAt && b.expiresAt) {
+            return new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime();
+        }
+
+        // Si uno tiene expiración y otro no, priorizar el que expira
+        if (a.expiresAt && !b.expiresAt) return -1;
+        if (!a.expiresAt && b.expiresAt) return 1;
+
+        return 0;
+    });
+};

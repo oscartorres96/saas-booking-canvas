@@ -44,6 +44,9 @@ export class CustomerAsset {
 
     @Prop({ type: Object })
     metadata?: any;
+
+    @Prop({ type: String, unique: true, sparse: true })
+    stripeSessionId?: string;
 }
 
 export type CustomerAssetDocument = CustomerAsset & Document;

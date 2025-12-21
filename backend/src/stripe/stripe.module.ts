@@ -12,6 +12,8 @@ import { NotificationService } from '../services/notification.service';
 import { PayoutService } from './payout.service';
 import { CustomerAssetsModule } from '../customer-assets/customer-assets.module';
 import { ProductsModule } from '../products/products.module';
+import { BookingsModule } from '../bookings/bookings.module';
+import { forwardRef } from '@nestjs/common';
 
 @Module({
     imports: [
@@ -25,6 +27,7 @@ import { ProductsModule } from '../products/products.module';
         ]),
         CustomerAssetsModule,
         ProductsModule,
+        forwardRef(() => BookingsModule),
     ],
     controllers: [StripeController],
     providers: [StripeService, NotificationService, PayoutService],

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
-import { createBooking } from '@/api/bookingsApi';
+import { createBooking, getBookingsByClient } from '@/api/bookingsApi';
 import { getActiveAssets } from '@/api/customerAssetsApi';
 import { toast } from 'sonner';
 
@@ -62,59 +62,65 @@ export default function PaymentSuccess() {
         }
     }, [isDirectPurchase, sessionId]);
 
-    // Handle Product Purchase Booking Completion
+    // Handle Product Purchase Booking Completion (Fix #5)
     useEffect(() => {
-        if (purchaseType === 'product' && sessionId && bookingDataRaw) {
+        const isAutoBooking = purchaseType === 'product-with-booking';
+
+        if ((purchaseType === 'product' || isAutoBooking) && sessionId && bookingDataRaw) {
             const completeProductBooking = async () => {
                 setStatus('processing');
+                let bookingData: any = null;
                 try {
-                    // 1. Manually complete product payment (for local testing without webhooks)
-                    // In production, the webhook will do this, but this ensures speed
-                    try {
-                        await fetch('http://localhost:3000/api/stripe/product-purchase/complete', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ sessionId }),
-                        });
-                    } catch (e) {
-                        // Ignore errors as webhooks might have already processed the payment
-                    }
+                    // 1. Parse booking data
+                    bookingData = JSON.parse(atob(bookingDataRaw));
 
-                    // 2. Parse booking data
-                    const bookingData = JSON.parse(atob(bookingDataRaw));
-
-                    // 3. Wait/Retry for the asset to be ready
+                    // 2. Wait/Retry for the asset to be ready (Backend should have created it)
                     let userAsset = null;
-                    for (let i = 0; i < 5; i++) {
+                    for (let i = 0; i < 6; i++) {
                         const assets = await getActiveAssets({
                             businessId: bookingData.businessId,
                             email: bookingData.clientEmail,
                             phone: bookingData.clientPhone,
                         });
 
-                        // Check if we have a compatible asset
                         userAsset = assets.find(a => {
                             const allowed = a.productId?.allowedServiceIds;
                             return !allowed || allowed.length === 0 || allowed.includes(bookingData.serviceId);
                         });
 
                         if (userAsset) break;
-                        await new Promise(r => setTimeout(r, 2000)); // Wait 2s
+                        await new Promise(r => setTimeout(r, 2000));
                     }
 
                     if (!userAsset) {
                         throw new Error("No available assets found after purchase");
                     }
 
-                    // 4. Create the actual booking using the new asset
-                    await createBooking({
-                        ...bookingData,
-                        assetId: userAsset._id,
-                    });
+                    // 3. Wait for the booking to be created by the backend (Fix #5)
+                    let confirmedBooking = null;
+                    for (let i = 0; i < 5; i++) {
+                        const bookings = await getBookingsByClient(bookingData.clientEmail);
+                        confirmedBooking = bookings.find(b =>
+                            b.businessId === bookingData.businessId &&
+                            b.serviceId === bookingData.serviceId &&
+                            Math.abs(new Date(b.scheduledAt).getTime() - new Date(bookingData.scheduledAt).getTime()) < 60000 // Within 1 minute
+                        );
+                        if (confirmedBooking) break;
+                        await new Promise(r => setTimeout(r, 2000));
+                    }
+
+                    // 4. Fallback: If backend hasn't created it yet, try to create it from frontend
+                    if (!confirmedBooking) {
+                        console.log("Auto-booking not found yet, attempting manual creation as fallback...");
+                        await createBooking({
+                            ...bookingData,
+                            assetId: userAsset._id,
+                        });
+                    }
 
                     setStatus('success');
                     toast.success("¡Reserva confirmada exitosamente!");
-                } catch (error) {
+                } catch (error: any) {
                     console.error("Failed to complete product booking:", error);
                     setStatus('error');
                     toast.error("Tu paquete está listo, pero no pudimos confirmar la reserva automáticamente.");
@@ -123,7 +129,7 @@ export default function PaymentSuccess() {
 
             completeProductBooking();
         }
-    }, [purchaseType, sessionId, bookingDataRaw]);
+    }, [purchaseType, sessionId, bookingDataRaw, navigate]);
 
     const handleGoToDashboard = () => {
         if (isDirectPurchase) {

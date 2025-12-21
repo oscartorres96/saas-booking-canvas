@@ -11,7 +11,16 @@ export class CustomerAssetsService {
         @InjectModel(Product.name) private productModel: Model<ProductDocument>,
     ) { }
 
-    async createFromPurchase(businessId: string, clientEmail: string, productId: string, clientPhone?: string) {
+    async createFromPurchase(businessId: string, clientEmail: string, productId: string, clientPhone?: string, stripeSessionId?: string) {
+        // Idempotency check: if stripeSessionId is provided, check if we already processed this session
+        if (stripeSessionId) {
+            const existing = await this.assetModel.findOne({ stripeSessionId });
+            if (existing) {
+                console.log(`[IDEMPOTENCY] CustomerAsset already exists for Stripe session: ${stripeSessionId}`);
+                return existing;
+            }
+        }
+
         const product = await this.productModel.findById(productId);
         if (!product) throw new BadRequestException('Product not found');
 
@@ -29,6 +38,7 @@ export class CustomerAssetsService {
             isUnlimited: product.isUnlimited || false,
             expiresAt,
             status: AssetStatus.Active,
+            stripeSessionId,
         });
 
         return asset.save();

@@ -47,6 +47,7 @@ export const createProductCheckout = async (payload: {
     clientName?: string;
     successUrl?: string;
     cancelUrl?: string;
+    bookingData?: any;
 }): Promise<{ sessionId: string; url: string }> => {
     const { data } = await apiClient.post<{ success: boolean; data: { sessionId: string; url: string } }>('/stripe/checkout/product', payload);
     return data.data;

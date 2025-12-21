@@ -586,6 +586,13 @@
         "language_desc": "Language for your public booking page and client emails. (Dashboard language can be changed using the switcher at the top right)",
         "select_language_placeholder": "Select language",
         "title": "Business Settings",
+        "booking": {
+            "title": "Booking Policies",
+            "allow_multiple": "Allow multiple bookings per day",
+            "allow_multiple_desc": "If disabled, a customer can only book ONCE per day. Enable to allow customers to take multiple classes on the same day.",
+            "cancellation_window": "Cancellation window (hours)",
+            "cancellation_window_desc": "Minimum hours before the appointment to cancel with automatic refund (if applicable)."
+        },
         "save": "Save Changes",
         "saved": "Settings saved",
         "error": "Error saving settings",
@@ -859,7 +866,8 @@
                 "items": [
                     "General Information: Define your business trade name, upload your logo (it will appear in emails and on the booking page), and write an attractive description that explains what you offer. This information is the first thing your clients see when they visit your booking page, so make it clear and professional.",
                     "Business Hours: Configure the days and hours you accept appointments. You can define different hours for each day of the week, add multiple intervals (e.g., morning and afternoon), include break blocks, and mark holidays or closed days. BookPro will show only available slots according to your real hours.",
-                    "Currency and Region: Select your local currency (MXN, USD, EUR, etc.) and the communication language with your clients. This affects how prices are presented, email notifications, and date format on your public booking page. You can change the admin panel language from the selector in the top right corner."
+                    "Currency and Region: Select your local currency (MXN, USD, EUR, etc.) and the communication language with your clients. This affects how prices are presented, email notifications, and date format on your public booking page. You can change the admin panel language from the selector in the top right corner.",
+                    "Booking Policies: In the 'Policies' tab, you can decide if you allow the same client to book multiple times on the same day. You can also configure the 'Cancellation Window', which defines how many hours before the appointment a client can autonomously cancel their booking."
                 ]
             },
             "services": {
@@ -881,7 +889,8 @@
                     "Internal bookings created by you: From your panel, you can schedule appointments for clients who call by phone or walk in without a previous reservation. You can mark them as paid, pending, or free.",
                     "Automatic or manual confirmation: Depending on your configuration, bookings are confirmed automatically (ideal for 100% automated businesses) or require your approval (useful if you need to review each case).",
                     "Cancellation management: Define cancellation windows (e.g., 'allow cancellation up to 24 hours before'). BookPro notifies the client and releases the slot automatically. If pre-paid, you can define if the refund is automatic or manual.",
-                    "Manual payment verification: If you accept bank transfer or cash, BookPro allows the client to upload a receipt. You review and manually validate from the panel before confirming the appointment."
+                    "Manual payment verification: If you accept bank transfer or cash, BookPro allows the client to upload a receipt. You review and manually validate from the panel before confirming the appointment.",
+                    "Duplicate control: The system defaults to preventing a client from booking twice on the same day to avoid errors. You can disable this restriction in Settings > Policies if your business allows multiple daily sessions."
                 ]
             },
             "public_page": {
@@ -957,7 +966,9 @@
                 "q1": "What happens if a client loses their confirmation email?",
                 "a1": "No problem. From your panel, go to the booking details and click 'Resend confirmation'. The client will receive a new email with their access code and all their appointment details.",
                 "q2": "Can I offer free services or zero cost?",
-                "a2": "Yes, completely. When creating or editing a service, simply set the price to $0. BookPro will automatically skip the payment screen and confirm the booking immediately. Useful for free discovery calls, special events, or courtesy services."
+                "a2": "Yes, completely. When creating or editing a service, simply set the price to $0. BookPro will automatically skip the payment screen and confirm the booking immediately. Useful for free discovery calls, special events, or courtesy services.",
+                "q3": "Why does my client receive an error when trying to book?",
+                "a3": "If the message says 'you already have an appointment for that day', it's because you have double-booking protection active. If you want your clients to be able to take several classes on the same day, go to Settings > Policies and activate 'Allow multiple bookings per day'."
             }
         },
         "support": {

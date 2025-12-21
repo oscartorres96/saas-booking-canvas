@@ -163,8 +163,22 @@ const UserManual = () => {
                         </div>
                     </aside>
 
+                    {/* Mobile Sticky Section Header */}
+                    <div className="lg:hidden sticky top-16 z-40 w-full bg-white/80 dark:bg-black/80 backdrop-blur-lg border-b px-4 py-2 transition-all duration-300">
+                        <div className="container flex items-center justify-between">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary/60 shrink-0">Manual</span>
+                                <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <span className="text-xs font-bold truncate text-foreground">
+                                    {menuItems.find(item => item.id === activeSection)?.label || t('manual.intro.title')}
+                                </span>
+                            </div>
+                            <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                        </div>
+                    </div>
+
                     {/* Main Content */}
-                    <main className="space-y-24 pb-24">
+                    <main className="space-y-12 md:space-y-24 pb-24">
                         {/* Section: Introduction */}
                         <section id="introduccion" className="scroll-mt-32">
                             <motion.div
@@ -177,22 +191,22 @@ const UserManual = () => {
                                     <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 px-4 py-1 rounded-full uppercase text-[10px] font-black tracking-widest">
                                         Manual Oficial
                                     </Badge>
-                                    <h1 className="text-6xl font-black italic tracking-tighter uppercase leading-[0.9]">
+                                    <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter uppercase leading-[0.9]">
                                         {t('manual.intro.title')}
                                     </h1>
-                                    <p className="text-xl text-muted-foreground max-w-2xl font-medium leading-relaxed">
+                                    <p className="text-lg md:text-xl text-muted-foreground max-w-2xl font-medium leading-relaxed">
                                         {t('manual.intro.subtitle')}
                                     </p>
                                 </div>
 
-                                <Card className="overflow-hidden border-none shadow-2xl bg-white dark:bg-slate-900 rounded-[3rem]">
-                                    <CardContent className="p-12 space-y-8">
-                                        <p className="text-lg leading-relaxed text-muted-foreground">
+                                <Card className="overflow-hidden border-none shadow-2xl bg-white dark:bg-slate-900 rounded-[2rem] md:rounded-[3rem]">
+                                    <CardContent className="p-6 md:p-12 space-y-8">
+                                        <p className="text-base md:text-lg leading-relaxed text-muted-foreground">
                                             {t('manual.intro.description')}
                                         </p>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                            <div className="p-8 rounded-[2rem] bg-slate-50 dark:bg-slate-800/50 space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                                            <div className="p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] bg-slate-50 dark:bg-slate-800/50 space-y-4">
                                                 <h3 className="text-lg font-black uppercase italic tracking-tighter">
                                                     {t('manual.intro.ideal_for')}
                                                 </h3>
@@ -205,7 +219,7 @@ const UserManual = () => {
                                                     ))}
                                                 </ul>
                                             </div>
-                                            <div className="p-8 rounded-[2rem] bg-primary/5 space-y-4 border border-primary/10">
+                                            <div className="p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] bg-primary/5 space-y-4 border border-primary/10">
                                                 <h3 className="text-lg font-black uppercase italic tracking-tighter">
                                                     {t('manual.intro.problems_solved')}
                                                 </h3>
@@ -245,12 +259,65 @@ const UserManual = () => {
                                 desc={t('manual.sections.config.desc')}
                                 icon={Settings}
                             />
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-                                {(t('manual.sections.config.items', { returnObjects: true }) as string[]).map((item, idx) => (
-                                    <FeatureCard key={idx} content={item} />
-                                ))}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
+                                {(t('manual.sections.config.items', { returnObjects: true }) as string[]).map((item, idx) => {
+                                    const [title, ...descParts] = item.split(':');
+                                    const description = descParts.join(':').trim();
+                                    const icons = [Store, Calendar, Globe, ShieldCheck];
+                                    const Icon = icons[idx] || Settings;
+
+                                    return (
+                                        <motion.div
+                                            key={idx}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            whileInView={{ opacity: 1, y: 0 }}
+                                            viewport={{ once: true }}
+                                            transition={{ delay: idx * 0.1 }}
+                                            whileHover={{ y: -8, scale: 1.02 }}
+                                            className="group relative p-6 md:p-10 rounded-[2rem] md:rounded-[3.5rem] bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/50 shadow-sm hover:shadow-3xl hover:border-primary/20 transition-all duration-500 overflow-hidden"
+                                        >
+                                            {/* Decorative background element */}
+                                            <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
+
+                                            <div className="relative z-10 space-y-8">
+                                                <div className="h-16 w-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white group-hover:rotate-6 transition-all duration-500 shadow-inner">
+                                                    <Icon className="h-8 w-8" />
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <h3 className="text-2xl font-black italic uppercase tracking-tighter leading-none flex items-center gap-2">
+                                                        <span className="text-primary/20 group-hover:text-primary/40 transition-colors">0{idx + 1}</span>
+                                                        {title}
+                                                    </h3>
+                                                    <p className="text-base text-muted-foreground leading-relaxed font-medium">
+                                                        {description}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    );
+                                })}
                             </div>
+
+                            {/* Pro Tip Card */}
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                whileInView={{ opacity: 1, scale: 1 }}
+                                viewport={{ once: true }}
+                                className="mt-12 p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 text-white flex flex-col md:flex-row items-center gap-6 md:gap-8 border border-white/5 shadow-2xl"
+                            >
+                                <div className="h-20 w-20 rounded-[2rem] bg-amber-500 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20 rotate-3">
+                                    <Zap className="h-10 w-10 text-white fill-white" />
+                                </div>
+                                <div className="space-y-2">
+                                    <h4 className="text-xl font-black italic uppercase tracking-tighter">Consejo de Configuración</h4>
+                                    <p className="text-slate-300 font-medium leading-relaxed">
+                                        Empieza por lo básico hoy y ve refinando con el tiempo. BookPro es lo suficientemente flexible para evolucionar junto con tu negocio conforme vas conociendo mejor las preferencias de tus clientes.
+                                    </p>
+                                </div>
+                            </motion.div>
                         </section>
+
 
                         {/* Section: Services */}
                         <section id="servicios" className="scroll-mt-32">
@@ -260,7 +327,7 @@ const UserManual = () => {
                                 icon={Package}
                                 color="bg-blue-500"
                             />
-                            <div className="mt-8 p-12 rounded-[3rem] bg-blue-500/5 border border-blue-500/10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            <div className="mt-8 p-6 md:p-12 rounded-[2rem] md:rounded-[3rem] bg-blue-500/5 border border-blue-500/10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                                 {(t('manual.sections.services.features', { returnObjects: true }) as string[]).map((feat, idx) => (
                                     <div key={idx} className="space-y-4">
                                         <div className="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600">
@@ -282,11 +349,11 @@ const UserManual = () => {
                             />
                             <div className="mt-8 space-y-6">
                                 {(t('manual.sections.bookings.types', { returnObjects: true }) as string[]).map((type, idx) => (
-                                    <div key={idx} className="flex items-center gap-6 p-6 rounded-[2rem] bg-white dark:bg-slate-900 border hover:border-amber-500/30 transition-all group">
-                                        <div className="h-14 w-14 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-600 font-black text-xl group-hover:scale-110 transition-transform">
+                                    <div key={idx} className="flex items-center gap-4 md:gap-6 p-5 md:p-6 rounded-[1.5rem] md:rounded-[2rem] bg-white dark:bg-slate-900 border hover:border-amber-500/30 transition-all group">
+                                        <div className="h-12 w-12 md:h-14 md:w-14 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-600 font-black text-lg md:text-xl group-hover:scale-110 transition-transform">
                                             {idx + 1}
                                         </div>
-                                        <p className="font-bold">{type}</p>
+                                        <p className="font-bold text-sm md:text-base leading-snug">{type}</p>
                                     </div>
                                 ))}
                             </div>
@@ -300,8 +367,8 @@ const UserManual = () => {
                                 icon={Store}
                                 color="bg-emerald-500"
                             />
-                            <div className="mt-8 p-1 rounded-[3.5rem] bg-gradient-to-br from-emerald-500/20 to-transparent">
-                                <div className="p-12 rounded-[3rem] bg-white dark:bg-slate-950 space-y-12">
+                            <div className="mt-8 p-1 rounded-[2rem] md:rounded-[3.5rem] bg-gradient-to-br from-emerald-500/20 to-transparent">
+                                <div className="p-6 md:p-12 rounded-[1.8rem] md:rounded-[3rem] bg-white dark:bg-slate-950 space-y-12">
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
                                         {/* Connector lines for desktop */}
                                         <div className="hidden md:block absolute top-6 left-[20%] right-[20%] h-px bg-slate-100 dark:bg-slate-800" />
@@ -385,15 +452,15 @@ const UserManual = () => {
 
                         {/* Section: Compliance */}
                         <section id="cumplimiento" className="scroll-mt-32">
-                            <div className="p-12 rounded-[3.5rem] bg-slate-900 text-white shadow-2xl relative overflow-hidden">
+                            <div className="p-6 md:p-12 rounded-[2rem] md:rounded-[3.5rem] bg-slate-900 text-white shadow-2xl relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[100px]" />
                                 <div className="relative z-10 space-y-12">
                                     <div className="space-y-4">
                                         <div className="h-16 w-16 rounded-[2rem] bg-white/10 flex items-center justify-center">
                                             <ShieldCheck className="h-8 w-8 text-primary" />
                                         </div>
-                                        <h2 className="text-4xl font-black italic tracking-tighter uppercase">{t('manual.sections.compliance.title')}</h2>
-                                        <p className="text-slate-400 font-medium max-w-xl">{t('manual.sections.compliance.desc')}</p>
+                                        <h2 className="text-3xl md:text-4xl font-black italic tracking-tighter uppercase">{t('manual.sections.compliance.title')}</h2>
+                                        <p className="text-slate-400 font-medium max-w-xl text-sm md:text-base">{t('manual.sections.compliance.desc')}</p>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                         {(t('manual.sections.compliance.features', { returnObjects: true }) as string[]).map((feat, idx) => (
@@ -431,15 +498,15 @@ const UserManual = () => {
 
                         {/* Section: Best Practices */}
                         <section id="practicas" className="scroll-mt-32">
-                            <div className="relative p-12 rounded-[3.5rem] bg-gradient-to-br from-primary to-orange-500 text-white shadow-2xl overflow-hidden">
+                            <div className="relative p-6 md:p-12 rounded-[2rem] md:rounded-[3.5rem] bg-gradient-to-br from-primary to-orange-500 text-white shadow-2xl overflow-hidden">
                                 <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" />
                                 <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                                     <div className="space-y-6">
                                         <div className="h-16 w-16 rounded-[2rem] bg-white/20 flex items-center justify-center border border-white/30 backdrop-blur-md">
                                             <Zap className="h-8 w-8 fill-white" />
                                         </div>
-                                        <h2 className="text-4xl font-black italic tracking-tighter uppercase">{t('manual.sections.best_practices.title')}</h2>
-                                        <p className="text-white/80 font-medium">{t('manual.sections.best_practices.desc')}</p>
+                                        <h2 className="text-3xl md:text-4xl font-black italic tracking-tighter uppercase">{t('manual.sections.best_practices.title')}</h2>
+                                        <p className="text-white/80 font-medium text-sm md:text-base">{t('manual.sections.best_practices.desc')}</p>
                                     </div>
                                     <div className="space-y-4">
                                         {(t('manual.sections.best_practices.tips', { returnObjects: true }) as string[]).map((tip, idx) => (
@@ -471,22 +538,36 @@ const UserManual = () => {
 
                         {/* Support */}
                         <section id="soporte">
-                            <Card className="rounded-[3rem] border-none shadow-xl bg-slate-50 dark:bg-slate-900 p-12 text-center space-y-8">
+                            <Card className="rounded-[2rem] md:rounded-[3rem] border-none shadow-xl bg-slate-50 dark:bg-slate-900 p-6 md:p-12 text-center space-y-8">
                                 <div className="space-y-4">
                                     <h2 className="text-3xl font-black italic uppercase tracking-tighter">{t('manual.support.title')}</h2>
                                     <p className="text-muted-foreground font-medium max-w-lg mx-auto">
-                                        ¿Dudas adicionales? Nuestro equipo de expertos está a un clic de distancia.
+                                        ¿Dudas adicionales? Contacta directamente con nuestro equipo de soporte técnico.
                                     </p>
                                 </div>
                                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                    <div className="flex items-center gap-3 px-8 py-4 rounded-[2rem] bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
-                                        <MessageSquare className="h-5 w-5 text-primary" />
-                                        <span className="font-bold text-sm">{t('manual.support.chat')}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 px-8 py-4 rounded-[2rem] bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
-                                        <Mail className="h-5 w-5 text-primary" />
-                                        <span className="font-bold text-sm tracking-tight">{t('manual.support.email')}</span>
-                                    </div>
+                                    <a
+                                        href="https://wa.me/523541201083"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full sm:w-auto flex items-center gap-3 px-8 py-4 rounded-[2rem] bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 hover:border-primary/50 hover:shadow-md transition-all group"
+                                    >
+                                        <MessageSquare className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                                        <div className="text-left">
+                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40 leading-none mb-1">WhatsApp</p>
+                                            <span className="font-bold text-sm">+52 354 120 1083</span>
+                                        </div>
+                                    </a>
+                                    <a
+                                        href="mailto:oscartorres0396@gmail.com"
+                                        className="w-full sm:w-auto flex items-center gap-3 px-8 py-4 rounded-[2rem] bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 hover:border-primary/50 hover:shadow-md transition-all group"
+                                    >
+                                        <Mail className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                                        <div className="text-left">
+                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40 leading-none mb-1">Email</p>
+                                            <span className="font-bold text-sm tracking-tight">oscartorres0396@gmail.com</span>
+                                        </div>
+                                    </a>
                                 </div>
                             </Card>
                         </section>
@@ -498,6 +579,27 @@ const UserManual = () => {
                 </div>
             </div>
 
+            {/* Floating Navigation Button (Mobile) */}
+            <div className="lg:hidden fixed bottom-6 left-6 z-[60]">
+                <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    whileTap={{ scale: 0.9 }}
+                >
+                    <Button
+                        onClick={() => setIsMobileOpen(true)}
+                        className="h-14 px-6 rounded-2xl bg-slate-900 border-slate-800 dark:bg-white dark:text-black text-white shadow-2xl flex items-center gap-3 group"
+                    >
+                        <Menu className="h-5 w-5" />
+                        <span className="font-bold text-sm tracking-tight uppercase tracking-widest text-[10px]">Secciones</span>
+                        <div className="h-4 w-px bg-white/20 dark:bg-black/20" />
+                        <Badge variant="outline" className="h-5 px-1.5 border-white/20 dark:border-black/20 text-[10px]">
+                            {menuItems.findIndex(i => i.id === activeSection) + 1}/{menuItems.length}
+                        </Badge>
+                    </Button>
+                </motion.div>
+            </div>
+
             {/* Back to top button */}
             <AnimatePresence>
                 {showBackToTop && (
@@ -506,7 +608,7 @@ const UserManual = () => {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.5 }}
                         onClick={scrollToTop}
-                        className="fixed bottom-12 right-12 h-14 w-14 rounded-[1.5rem] bg-primary text-primary-foreground shadow-2xl shadow-primary/40 flex items-center justify-center z-[100] active:scale-90 transition-transform"
+                        className="fixed bottom-6 right-6 h-14 w-14 rounded-2xl bg-primary text-primary-foreground shadow-2xl shadow-primary/40 flex items-center justify-center z-[50] active:scale-90 transition-transform"
                         aria-label="Back to top"
                     >
                         <ChevronUp className="h-6 w-6 stroke-[3px]" />
@@ -516,28 +618,45 @@ const UserManual = () => {
 
             {/* Mobile Sheet Nav */}
             <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
-                <SheetContent side="left" className="w-[300px] border-r-none rounded-r-[3rem] p-0">
-                    <SheetHeader className="p-8 border-b">
-                        <SheetTitle className="text-2xl font-black italic tracking-tighter uppercase">Menú</SheetTitle>
+                <SheetContent side="bottom" className="h-[80vh] rounded-t-[3rem] p-0 border-none bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl">
+                    <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mt-4 mb-2" />
+                    <SheetHeader className="p-8 pb-4">
+                        <SheetTitle className="text-3xl font-black italic tracking-tighter uppercase leading-none">
+                            Contenido <span className="text-primary truncate block text-sm not-italic font-medium tracking-normal mt-1 opacity-60">Selecciona una sección para navegar</span>
+                        </SheetTitle>
                     </SheetHeader>
-                    <ScrollArea className="h-[calc(100vh-8rem)] p-4">
-                        <div className="space-y-1">
-                            {menuItems.map((item) => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => {
-                                        scrollToSection(item.id);
-                                        setIsMobileOpen(false);
-                                    }}
-                                    className={`
-                                        w-full flex items-center gap-4 px-4 py-4 text-sm font-bold rounded-2xl transition-all
-                                        ${activeSection === item.id ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-muted'}
-                                    `}
-                                >
-                                    <item.icon className="h-5 w-5" />
-                                    {item.label}
-                                </button>
-                            ))}
+                    <ScrollArea className="h-[calc(80vh-10rem)] px-6 pb-12">
+                        <div className="grid grid-cols-1 gap-2">
+                            {menuItems.map((item, idx) => {
+                                const Icon = item.icon;
+                                const isActive = activeSection === item.id;
+                                return (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => {
+                                            scrollToSection(item.id);
+                                            setIsMobileOpen(false);
+                                        }}
+                                        className={`
+                                            w-full flex items-center justify-between p-5 rounded-[2rem] transition-all duration-300
+                                            ${isActive
+                                                ? 'bg-primary text-primary-foreground shadow-xl shadow-primary/20 scale-[1.02]'
+                                                : 'hover:bg-muted/50 border border-transparent hover:border-border'}
+                                        `}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className={`h-10 w-10 rounded-2xl flex items-center justify-center ${isActive ? 'bg-white/20' : 'bg-muted'}`}>
+                                                <Icon className="h-5 w-5" />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-0.5">Sección 0{idx + 1}</p>
+                                                <p className="font-bold text-sm tracking-tight">{item.label}</p>
+                                            </div>
+                                        </div>
+                                        {isActive && <div className="h-2 w-2 rounded-full bg-white animate-pulse" />}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </ScrollArea>
                 </SheetContent>
@@ -553,42 +672,80 @@ const SectionHeader = ({ title, desc, icon: Icon, color = "bg-primary" }: { titl
             <Icon className="h-7 w-7" />
         </div>
         <div className="space-y-1">
-            <h2 className="text-4xl font-black italic tracking-tighter uppercase">{title}</h2>
-            <p className="text-muted-foreground font-medium max-w-xl">{desc}</p>
+            <h2 className="text-3xl md:text-4xl font-black italic tracking-tighter uppercase">{title}</h2>
+            <p className="text-muted-foreground font-medium max-w-xl text-sm md:text-base">{desc}</p>
         </div>
     </div>
 );
 
-const StepCard = ({ number, content }: { number: number, content: string }) => (
-    <div className="p-8 rounded-[2.5rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300">
-        <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-sm mb-6">
-            0{number}
-        </div>
-        <p className="font-bold text-sm leading-relaxed">{content}</p>
-    </div>
-);
+const StepCard = ({ number, content }: { number: number, content: string }) => {
+    const [title, ...descParts] = content.includes(':') ? content.split(':') : [null, content];
+    const description = descParts.join(':').trim();
 
-const FeatureCard = ({ content }: { content: string }) => (
-    <div className="p-8 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 border border-transparent hover:border-primary/20 transition-all group">
-        <div className="flex items-start gap-4">
-            <div className="h-8 w-8 rounded-full border-2 border-primary/20 flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:border-primary transition-all">
-                <ChevronRight className="h-4 w-4 text-primary group-hover:text-white" />
+    return (
+        <div className="p-6 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300">
+            <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-sm mb-6 text-primary">
+                0{number}
             </div>
-            <p className="font-bold text-sm leading-relaxed text-muted-foreground group-hover:text-foreground transition-colors italic uppercase tracking-tighter">{content}</p>
+            {title ? (
+                <div className="space-y-2">
+                    <h4 className="font-black italic uppercase tracking-tighter text-sm text-foreground">{title}</h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed font-medium">{description}</p>
+                </div>
+            ) : (
+                <p className="font-bold text-sm leading-relaxed text-muted-foreground">{content}</p>
+            )}
         </div>
-    </div>
-);
+    );
+};
+
+const FeatureCard = ({ content }: { content: string }) => {
+    const [title, ...descParts] = content.includes(':') ? content.split(':') : [null, content];
+    const description = descParts.join(':').trim();
+
+    return (
+        <div className="p-6 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] bg-white dark:bg-slate-900 border border-transparent hover:border-primary/20 shadow-sm hover:shadow-xl transition-all group">
+            <div className="flex items-start gap-4">
+                <div className="h-10 w-10 rounded-2xl bg-primary/5 flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-all">
+                    <ChevronRight className="h-5 w-5 text-primary group-hover:text-white" />
+                </div>
+                {title ? (
+                    <div className="space-y-1">
+                        <h4 className="font-black italic uppercase tracking-tighter text-sm">{title}</h4>
+                        <p className="text-sm text-muted-foreground leading-relaxed font-medium">{description}</p>
+                    </div>
+                ) : (
+                    <p className="font-bold text-sm leading-relaxed text-muted-foreground group-hover:text-foreground transition-colors">{content}</p>
+                )}
+            </div>
+        </div>
+    );
+};
 
 const FAQCard = ({ q, a }: { q: string, a: string }) => (
-    <div className="p-8 rounded-[2.5rem] bg-white dark:bg-slate-900 border space-y-4 shadow-sm hover:shadow-lg transition-all">
-        <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                <HelpCircle className="h-4 w-4" />
+    <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        whileHover={{ y: -5 }}
+        className="p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/50 shadow-sm hover:shadow-2xl transition-all duration-300 group"
+    >
+        <div className="space-y-6">
+            <div className="flex items-start gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-all shrink-0">
+                    <HelpCircle className="h-6 w-6" />
+                </div>
+                <h4 className="font-black italic uppercase tracking-tighter text-base md:text-lg leading-tight mt-1">
+                    {q}
+                </h4>
             </div>
-            <h4 className="font-black italic uppercase tracking-tighter text-sm">{q}</h4>
+            <div className="pl-0 md:pl-16">
+                <p className="text-sm md:text-base text-muted-foreground leading-relaxed font-medium">
+                    {a}
+                </p>
+            </div>
         </div>
-        <p className="text-sm text-muted-foreground leading-relaxed font-medium pl-11">{a}</p>
-    </div>
+    </motion.div>
 );
 
 export default UserManual;

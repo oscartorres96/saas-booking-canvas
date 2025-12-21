@@ -37,7 +37,7 @@ export function TrialExpiredModal({ open, onOpenChange, endsAt, isTrial = true }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md overflow-hidden p-0 gap-0">
+            <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto p-0 gap-0">
                 {/* Header with Gradient Background */}
                 <div className="relative bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 dark:from-orange-950/30 dark:via-red-950/30 dark:to-pink-950/30 p-6 pb-8">
                     {/* Animated Background Blobs */}

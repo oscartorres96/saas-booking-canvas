@@ -1,4 +1,4 @@
-import React, { useState, Children, useRef, useLayoutEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, Children, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -20,28 +20,20 @@ function StepIndicator({ step, currentStep, onClickStep, disableStepIndicators }
     return (
         <motion.div
             onClick={handleClick}
-            className="relative cursor-pointer outline-none focus:outline-none"
+            className="relative cursor-pointer"
             animate={status}
             initial={false}
         >
             <motion.div
                 variants={{
-                    inactive: {
-                        scale: 1,
-                        backgroundColor: 'hsl(var(--muted))',
-                        color: 'hsl(var(--muted-foreground))'
-                    },
+                    inactive: { scale: 1, backgroundColor: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' },
                     active: {
                         scale: 1.15,
                         backgroundColor: 'hsl(var(--primary))',
                         color: 'hsl(var(--primary-foreground))',
                         boxShadow: '0 10px 15px -3px hsl(var(--primary) / 0.3)'
                     },
-                    complete: {
-                        scale: 1,
-                        backgroundColor: 'hsl(var(--primary))',
-                        color: 'hsl(var(--primary-foreground))'
-                    }
+                    complete: { scale: 1, backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }
                 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 className="flex h-10 w-10 items-center justify-center rounded-full font-black shadow-lg border-2 border-transparent z-20"
@@ -58,14 +50,11 @@ function StepIndicator({ step, currentStep, onClickStep, disableStepIndicators }
 
 function StepConnector({ isComplete }: { isComplete: boolean }) {
     return (
-        <div className="relative mx-0 h-1 flex-1 overflow-hidden bg-muted transition-colors duration-500">
+        <div className="relative mx-0 h-1 flex-1 overflow-hidden bg-muted">
             <motion.div
                 className="absolute left-0 top-0 h-full bg-primary"
                 initial={false}
-                animate={{
-                    width: isComplete ? '100%' : '0%',
-                    opacity: isComplete ? 1 : 0.3
-                }}
+                animate={{ width: isComplete ? '100%' : '0%', opacity: isComplete ? 1 : 0.3 }}
                 transition={{ duration: 0.6, ease: "easeInOut" }}
             />
         </div>
@@ -74,77 +63,24 @@ function StepConnector({ isComplete }: { isComplete: boolean }) {
 
 const stepVariants = {
     enter: (dir: number) => ({
-        x: dir >= 0 ? '100%' : '-100%',
+        x: dir > 0 ? '20px' : '-20px',
         opacity: 0,
-        filter: 'blur(10px)'
+        pointerEvents: 'none' as const,
+        zIndex: 0
     }),
     center: {
-        x: '0%',
+        x: 0,
         opacity: 1,
-        filter: 'blur(0px)'
+        pointerEvents: 'auto' as const,
+        zIndex: 10
     },
     exit: (dir: number) => ({
-        x: dir >= 0 ? '-50%' : '50%',
+        x: dir > 0 ? '-20px' : '20px',
         opacity: 0,
-        filter: 'blur(10px)'
+        pointerEvents: 'none' as const,
+        zIndex: 0
     })
 };
-
-interface StepContentWrapperProps {
-    isCompleted: boolean;
-    currentStep: number;
-    direction: number;
-    children: React.ReactNode;
-    className?: string;
-}
-
-function StepContentWrapper({ isCompleted, currentStep, direction, children, className }: StepContentWrapperProps) {
-    const [parentHeight, setParentHeight] = useState<number | 'auto'>('auto');
-
-    return (
-        <motion.div
-            style={{ position: 'relative', overflow: 'hidden' }}
-            animate={{ height: isCompleted ? 0 : parentHeight }}
-            transition={{ type: 'spring', duration: 0.4, bounce: 0 }}
-            className={className}
-        >
-            <AnimatePresence initial={false} mode="popLayout" custom={direction}>
-                {!isCompleted && (
-                    <SlideTransition key={currentStep} direction={direction} onHeightReady={h => setParentHeight(h)}>
-                        {children}
-                    </SlideTransition>
-                )}
-            </AnimatePresence>
-        </motion.div>
-    );
-}
-
-const SlideTransition = forwardRef<HTMLDivElement, { children: React.ReactNode, direction: number, onHeightReady: (h: number) => void }>(
-    ({ children, direction, onHeightReady }, ref) => {
-        const containerRef = useRef<HTMLDivElement>(null);
-
-        useImperativeHandle(ref, () => containerRef.current!);
-
-        useLayoutEffect(() => {
-            if (containerRef.current) onHeightReady(containerRef.current.offsetHeight);
-        }, [children, onHeightReady]);
-
-        return (
-            <motion.div
-                ref={containerRef}
-                custom={direction}
-                variants={stepVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.5, type: "spring", stiffness: 300, damping: 30 }}
-                style={{ width: '100%' }}
-            >
-                {children}
-            </motion.div>
-        );
-    }
-);
 
 interface Step {
     id: number;
@@ -172,16 +108,12 @@ export default function AnimatedStepper({
     stepContainerClassName = '',
     contentClassName = '',
     disableStepIndicators = false,
-    ...rest
 }: StepperProps) {
-    const [direction, setDirection] = useState(0);
     const stepsArray = Children.toArray(children);
-    const totalSteps = stepsArray.length;
-    const isCompleted = currentStep > totalSteps;
-
+    const [direction, setDirection] = useState(0);
     const prevStepRef = useRef(currentStep);
 
-    useLayoutEffect(() => {
+    useEffect(() => {
         if (currentStep !== prevStepRef.current) {
             setDirection(currentStep > prevStepRef.current ? 1 : -1);
             prevStepRef.current = currentStep;
@@ -189,8 +121,8 @@ export default function AnimatedStepper({
     }, [currentStep]);
 
     return (
-        <div className={cn("flex flex-col w-full", className)} {...rest}>
-            {/* Header Indicators */}
+        <div className={cn("flex flex-col w-full", className)}>
+            {/* Header */}
             <div className={cn("flex w-full items-center mb-16 px-0 md:px-4 relative", stepContainerClassName)}>
                 {steps.map((step, index) => {
                     const stepNumber = step.id;
@@ -200,27 +132,21 @@ export default function AnimatedStepper({
 
                     return (
                         <React.Fragment key={stepNumber}>
-                            <div className="flex flex-col items-center relative z-10 transition-all duration-500">
+                            <div className="flex flex-col items-center relative z-10">
                                 <StepIndicator
                                     step={stepNumber}
-                                    disableStepIndicators={disableStepIndicators}
+                                    disableStepIndicators={disableStepIndicators || stepNumber > currentStep}
                                     currentStep={currentStep}
                                     onClickStep={(clicked) => {
-                                        onStepChange(clicked);
+                                        if (clicked <= currentStep) onStepChange(clicked);
                                     }}
                                 />
                                 <div className="absolute top-12 text-center w-32 flex flex-col items-center">
                                     <p className={cn(
-                                        "text-[9px] md:text-[10px] font-black uppercase italic tracking-widest transition-all duration-500 whitespace-nowrap",
-                                        isCurrent ? "text-primary translate-y-0" : isCompletedStep ? "text-foreground opacity-80" : "text-muted-foreground/40"
+                                        "text-[9px] md:text-[10px] font-black uppercase italic tracking-widest",
+                                        isCurrent ? "text-primary" : isCompletedStep ? "text-foreground opacity-80" : "text-muted-foreground/40"
                                     )}>
                                         {step.title}
-                                    </p>
-                                    <p className={cn(
-                                        "text-[8px] font-medium hidden md:block transition-all duration-500",
-                                        isCurrent ? "text-primary/70 opacity-100 translate-y-0" : "opacity-0 -translate-y-1"
-                                    )}>
-                                        {step.description}
                                     </p>
                                 </div>
                             </div>
@@ -230,21 +156,31 @@ export default function AnimatedStepper({
                 })}
             </div>
 
-            {/* Content */}
-            <div className="relative">
-                <StepContentWrapper
-                    isCompleted={isCompleted}
-                    currentStep={currentStep}
-                    direction={direction}
-                    className={cn("w-full", contentClassName)}
-                >
-                    {stepsArray[currentStep - 1]}
-                </StepContentWrapper>
+            {/* Content Stack - Using Grid for seamless transitions without layout issues */}
+            <div className={cn("grid w-full", contentClassName)} style={{ gridTemplateColumns: '1fr' }}>
+                <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+                    <motion.div
+                        key={currentStep}
+                        custom={direction}
+                        variants={stepVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        transition={{
+                            x: { type: "spring", stiffness: 300, damping: 30 },
+                            opacity: { duration: 0.15 }
+                        }}
+                        style={{ gridArea: '1 / 1' }}
+                        className="w-full relative"
+                    >
+                        {stepsArray[currentStep - 1]}
+                    </motion.div>
+                </AnimatePresence>
             </div>
         </div>
     );
 }
 
 export function AnimatedStep({ children, className }: { children: React.ReactNode; className?: string }) {
-    return <div className={cn("w-full", className)}>{children}</div>;
+    return <div className={cn("w-full mb-4", className)}>{children}</div>;
 }

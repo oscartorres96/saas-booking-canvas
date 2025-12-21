@@ -597,7 +597,7 @@ export const CatalogManager = ({ businessId, services, products, onDataUpdate }:
 
             {/* Delete Product Confirmation */}
             <Dialog open={isDeletingProduct} onOpenChange={setIsDeletingProduct}>
-                <DialogContent className="sm:max-w-[400px]">
+                <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="text-destructive flex items-center gap-2">
                             <Trash2 className="h-5 w-5" />

@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -14,6 +14,7 @@ import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { CustomerAssetsService } from '../customer-assets/customer-assets.service';
 import { ProductsService } from '../products/products.service';
+import { BookingsService } from '../bookings/bookings.service';
 
 @Injectable()
 export class StripeService {
@@ -33,6 +34,8 @@ export class StripeService {
         private readonly notificationService: NotificationService,
         private readonly customerAssetsService: CustomerAssetsService,
         private readonly productsService: ProductsService,
+        @Inject(forwardRef(() => BookingsService))
+        private readonly bookingsService: BookingsService,
     ) {
         const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
         if (!secretKey) {
@@ -605,8 +608,9 @@ export class StripeService {
         clientName?: string;
         successUrl?: string;
         cancelUrl?: string;
+        bookingData?: any;
     }): Promise<{ sessionId: string; url: string }> {
-        const { productId, businessId, clientEmail, clientPhone, clientName, successUrl, cancelUrl } = params;
+        const { productId, businessId, clientEmail, clientPhone, clientName, successUrl, cancelUrl, bookingData } = params;
 
         const product = await this.productsService.findOne(productId);
         const business = await this.businessModel.findById(businessId);
@@ -638,6 +642,7 @@ export class StripeService {
                 clientEmail,
                 clientPhone: clientPhone || '',
                 clientName: clientName || '',
+                bookingData: bookingData ? JSON.stringify(bookingData) : '',
             },
         });
 
@@ -647,7 +652,7 @@ export class StripeService {
     }
 
     private async handleProductPaymentCompleted(session: Stripe.Checkout.Session): Promise<void> {
-        const { productId, businessId, clientEmail, clientPhone } = session.metadata || {};
+        const { productId, businessId, clientEmail, clientPhone, bookingData } = session.metadata || {};
 
         if (!productId || !businessId || !clientEmail) {
             this.logger.error('Missing metadata for product purchase completion');
@@ -655,7 +660,7 @@ export class StripeService {
         }
 
         // Create the CustomerAsset
-        await this.customerAssetsService.createFromPurchase(businessId, clientEmail, productId, clientPhone);
+        const asset = await this.customerAssetsService.createFromPurchase(businessId, clientEmail, productId, clientPhone, session.id);
 
         // Record the payment
         await this.paymentModel.create({
@@ -668,6 +673,27 @@ export class StripeService {
             status: 'PAID',
             description: `Product purchase: ${productId}`,
         });
+
+        // ✅ AUTO-BOOKING logic
+        if (bookingData && bookingData !== '') {
+            try {
+                const parsedBookingData = JSON.parse(bookingData);
+                this.logger.log(`[AUTO-BOOKING] Attempting to create booking for asset ${asset._id}`);
+
+                // Create booking using the new asset
+                await this.bookingsService.create({
+                    ...parsedBookingData,
+                    assetId: (asset as any)._id.toString(),
+                    scheduledAt: new Date(parsedBookingData.scheduledAt),
+                    status: BookingStatus.Confirmed,
+                }, { role: 'public' } as any);
+
+                this.logger.log(`[AUTO-BOOKING] Success: Booking created for ${clientEmail}`);
+            } catch (error: any) {
+                this.logger.error(`[AUTO-BOOKING] Failed to create booking: ${error.message}`);
+                // Asset is already created, so we don't throw error to avoid Stripe retries
+            }
+        }
 
         this.logger.log(`Product ${productId} purchased by ${clientEmail}`);
     }

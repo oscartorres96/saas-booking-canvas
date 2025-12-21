@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { BusinessHoursForm, daysOfWeek } from "./BusinessHoursForm";
@@ -45,6 +46,8 @@ const createFormSchema = (t: any) => z.object({
     instagram: z.string().url(t('settings.validation.url_invalid')).optional().or(z.literal("")),
     twitter: z.string().url(t('settings.validation.url_invalid')).optional().or(z.literal("")),
     website: z.string().url(t('settings.validation.url_invalid')).optional().or(z.literal("")),
+    allowMultipleBookingsPerDay: z.boolean().default(false),
+    cancellationWindowHours: z.coerce.number().min(0).default(0),
     paymentPolicy: z.enum(['RESERVE_ONLY', 'PAY_AT_BOOKING', 'PACKAGES']).default('RESERVE_ONLY'),
     allowTransfer: z.boolean().default(false),
     allowCash: z.boolean().default(false),
@@ -119,6 +122,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
             instagram: "",
             twitter: "",
             website: "",
+            allowMultipleBookingsPerDay: false,
+            cancellationWindowHours: 0,
             paymentPolicy: "RESERVE_ONLY",
             allowTransfer: false,
             allowCash: false,
@@ -154,6 +159,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     instagram: business.settings?.instagram || "",
                     twitter: business.settings?.twitter || "",
                     website: business.settings?.website || "",
+                    allowMultipleBookingsPerDay: business.bookingConfig?.allowMultipleBookingsPerDay ?? false,
+                    cancellationWindowHours: business.bookingConfig?.cancellationWindowHours ?? 0,
                     paymentPolicy: business.paymentConfig?.paymentPolicy || "RESERVE_ONLY",
                     allowTransfer: business.paymentConfig?.allowTransfer ?? (business.paymentConfig?.method === "bank_transfer"),
                     allowCash: business.paymentConfig?.allowCash ?? false,
@@ -204,6 +211,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
             isValid = await form.trigger(["logoUrl", "primaryColor", "secondaryColor"]);
         } else if (activeTab === "hours") {
             isValid = await form.trigger(["businessHours"]);
+        } else if (activeTab === "booking") {
+            isValid = await form.trigger(["allowMultipleBookingsPerDay", "cancellationWindowHours"]);
         } else if (activeTab === "payments") {
             isValid = await form.trigger(["paymentPolicy", "allowTransfer", "allowCash", "bank", "clabe", "holderName"]);
         }
@@ -242,6 +251,14 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                 // Hours tab: only business hours
                 dataToSubmit = {
                     businessHours: values.businessHours,
+                };
+            } else if (activeTab === "booking") {
+                // Booking tab: rules and logic
+                dataToSubmit = {
+                    bookingConfig: {
+                        allowMultipleBookingsPerDay: values.allowMultipleBookingsPerDay,
+                        cancellationWindowHours: values.cancellationWindowHours,
+                    }
                 };
             } else if (activeTab === "payments") {
                 await updatePaymentConfig(businessId, {
@@ -306,6 +323,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                 <TabsList className="premium-tabs-list">
                                     <TabsTrigger value="general" className="premium-tab-trigger">{t('settings.tabs.general')}</TabsTrigger>
                                     <TabsTrigger value="branding" className="premium-tab-trigger">{t('settings.tabs.branding')}</TabsTrigger>
+                                    <TabsTrigger value="booking" className="premium-tab-trigger">{t('settings.booking.title', 'Políticas')}</TabsTrigger>
                                     <TabsTrigger value="hours" className="premium-tab-trigger">{t('settings.tabs.hours')}</TabsTrigger>
                                     <TabsTrigger value="payments" className="premium-tab-trigger">{t('settings.tabs.payments', 'Pagos')}</TabsTrigger>
                                 </TabsList>
@@ -522,6 +540,56 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                     </div>
 
 
+                                </InnerCard>
+                            </TabsContent>
+
+                            <TabsContent value="booking" className="mt-6 space-y-6">
+                                <InnerCard>
+                                    <AdminLabel icon={ShieldCheck}>{t('settings.booking.title')}</AdminLabel>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="allowMultipleBookingsPerDay"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center justify-between rounded-xl border p-4 shadow-sm">
+                                                    <div className="space-y-0.5">
+                                                        <FormLabel className="text-base">{t('settings.booking.allow_multiple')}</FormLabel>
+                                                        <div className="text-[10px] text-muted-foreground pr-4">
+                                                            {t('settings.booking.allow_multiple_desc')}
+                                                        </div>
+                                                    </div>
+                                                    <FormControl>
+                                                        <Switch
+                                                            checked={field.value}
+                                                            onCheckedChange={field.onChange}
+                                                        />
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="cancellationWindowHours"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                                                        {t('settings.booking.cancellation_window')}
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <div className="flex items-center gap-2">
+                                                            <Input type="number" {...field} className="rounded-xl border-muted bg-white dark:bg-slate-950 w-24" />
+                                                            <span className="text-sm text-muted-foreground">{t('common.minutes')}? No, {t('common.hours', 'horas')}</span>
+                                                        </div>
+                                                    </FormControl>
+                                                    <div className="text-[10px] text-muted-foreground mt-1">
+                                                        {t('settings.booking.cancellation_window_desc')}
+                                                    </div>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
                                 </InnerCard>
                             </TabsContent>
 

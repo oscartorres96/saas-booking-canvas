@@ -116,7 +116,7 @@ export class BookingsService {
 
         if (existingBooking) {
           throw new ConflictException({
-            message: 'Ya tienes una cita para ese dia. Consulta o cancela tu reserva existente.',
+            message: 'Ya tienes una reserva para este día. El negocio no permite múltiples reservas por día para el mismo cliente.',
             code: 'BOOKING_ALREADY_EXISTS',
             bookingId: existingBooking._id?.toString?.(),
             accessCode: existingBooking.accessCode,
@@ -141,6 +141,21 @@ export class BookingsService {
     // Business Rule: Ensure product/package is provided if service requires it
     if (service.requireProduct && !payload.assetId) {
       throw new ForbiddenException('Este servicio requiere la compra previa de un pase o paquete.');
+    }
+
+    // ✅ Validación de slot disponible (prevenir doble reserva del mismo horario)
+    const slotOccupied = await this.bookingModel.findOne({
+      businessId: payload.businessId,
+      serviceId: payload.serviceId,
+      scheduledAt: payload.scheduledAt,
+      status: { $ne: BookingStatus.Cancelled },
+    }).lean();
+
+    if (slotOccupied) {
+      throw new ConflictException({
+        message: 'Este horario ya no está disponible. Por favor elige otro.',
+        code: 'SLOT_UNAVAILABLE',
+      });
     }
 
     // Handle Asset Consumption
@@ -331,6 +346,19 @@ export class BookingsService {
     booking.paymentStatus = PaymentStatus.Rejected;
     // We could keep it as PendingPayment or change it
     return booking.save();
+  }
+
+  async resendConfirmation(id: string, authUser: AuthUser) {
+    const booking = await this.bookingModel.findById(id);
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const filter = this.buildFilter(authUser);
+    if (filter.businessId && booking.businessId !== filter.businessId) {
+      throw new ForbiddenException('Not allowed');
+    }
+
+    await this.notificationService.sendBookingConfirmation(booking as Booking);
+    return { success: true };
   }
 }
 

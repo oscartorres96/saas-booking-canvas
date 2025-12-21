@@ -172,4 +172,10 @@ export class BookingsController {
   rejectPayment(@Param('id') id: string, @Req() req: any) {
     return this.bookingsService.rejectPaymentTransfer(id, req.user);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/resend-confirmation')
+  resendConfirmation(@Param('id') id: string, @Req() req: any) {
+    return this.bookingsService.resendConfirmation(id, req.user);
+  }
 }

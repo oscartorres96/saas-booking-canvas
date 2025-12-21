@@ -96,7 +96,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import useAuth from "@/auth/useAuth";
 import { getBusinessById, type Business } from "@/api/businessesApi";
 import { getServicesByBusiness, createService, updateService, deleteService, type Service } from "@/api/servicesApi";
-import { getBookingsByBusiness, updateBooking, verifyPayment, rejectPayment, type Booking } from "@/api/bookingsApi";
+import { getBookingsByBusiness, updateBooking, verifyPayment, rejectPayment, resendConfirmation, type Booking } from "@/api/bookingsApi";
 import { getProductsByBusiness, type Product } from "@/api/productsApi";
 import { getByBusiness as getCustomerAssetsByBusiness, type CustomerAsset } from "@/api/customerAssetsApi";
 import { ExpirationBanner } from "@/components/ExpirationBanner";
@@ -403,6 +403,15 @@ const BusinessDashboard = () => {
         } catch (error) {
             toast.error(t('dashboard.bookings.toasts.error_update'));
             console.error(error);
+        }
+    };
+
+    const handleResendConfirmation = async (bookingId: string) => {
+        try {
+            await resendConfirmation(bookingId);
+            toast.success(t('manual.faq.items.resend_success', 'Confirmación reenviada correctamente'));
+        } catch (error) {
+            toast.error(t('manual.faq.items.resend_error', 'Error al reenviar la confirmación'));
         }
     };
 
@@ -720,6 +729,11 @@ const BusinessDashboard = () => {
                                                                                             {t('dashboard.bookings.actions.cancel')}
                                                                                         </DropdownMenuItem>
                                                                                     )}
+                                                                                    <DropdownMenuSeparator />
+                                                                                    <DropdownMenuItem onClick={() => handleResendConfirmation(booking._id)}>
+                                                                                        <Mail className="mr-2 h-4 w-4" />
+                                                                                        Reenviar confirmación
+                                                                                    </DropdownMenuItem>
                                                                                 </DropdownMenuContent>
                                                                             </DropdownMenu>
                                                                         </TableCell>
@@ -790,6 +804,11 @@ const BusinessDashboard = () => {
                                                                                     <DropdownMenuItem className="text-blue-600" onClick={() => onUpdateBookingStatus(booking._id, 'completed')}>Completar</DropdownMenuItem>
                                                                                 )}
                                                                                 <DropdownMenuItem className="text-red-600" onClick={() => openCancelConfirmation(booking)}>Cancelar</DropdownMenuItem>
+                                                                                <DropdownMenuSeparator />
+                                                                                <DropdownMenuItem onClick={() => handleResendConfirmation(booking._id)}>
+                                                                                    <Mail className="mr-2 h-4 w-4" />
+                                                                                    Reenviar confirmación
+                                                                                </DropdownMenuItem>
                                                                             </DropdownMenuContent>
                                                                         </DropdownMenu>
                                                                     </div>
@@ -855,7 +874,11 @@ const BusinessDashboard = () => {
 
                     {/* QR Code Dialog */}
                     <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
-                        <DialogContent className="sm:max-w-lg">
+                        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+                            <DialogHeader className="sr-only">
+                                <DialogTitle>{t('dashboard.qr.title', 'Generador de código QR')}</DialogTitle>
+                                <DialogDescription>{t('dashboard.qr.subtitle', 'Crea códigos QR personalizados para tu negocio, servicios o paquetes.')}</DialogDescription>
+                            </DialogHeader>
                             <QRGenerator
                                 businessId={businessId || ""}
                                 businessName={business?.businessName || ""}
@@ -867,7 +890,7 @@ const BusinessDashboard = () => {
 
                     {/* Delete Service Modal */}
                     <Dialog open={isDeleteServiceDialogOpen} onOpenChange={setIsDeleteServiceDialogOpen}>
-                        <DialogContent className="sm:max-w-[400px]">
+                        <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
                                 <DialogTitle>{t('dashboard.services.delete_title')}</DialogTitle>
                                 <DialogDescription>
@@ -882,6 +905,194 @@ const BusinessDashboard = () => {
                                     {t('common.delete')}
                                 </Button>
                             </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                    {/* Create Service Dialog */}
+                    <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
+                        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                                <DialogTitle>{t('dashboard.services.create_title', 'Crear Nuevo Servicio')}</DialogTitle>
+                                <DialogDescription>
+                                    {t('dashboard.services.create_description', 'Agrega un nuevo servicio a tu catálogo.')}
+                                </DialogDescription>
+                            </DialogHeader>
+                            <Form {...serviceForm}>
+                                <form onSubmit={serviceForm.handleSubmit(onCreateService)} className="space-y-6">
+                                    <div className="space-y-4">
+                                        {/* Basic Information */}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-2 pb-2 border-b">
+                                                <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                                                <h3 className="text-sm font-semibold text-foreground">Información Básica</h3>
+                                            </div>
+
+                                            <FormField
+                                                control={serviceForm.control}
+                                                name="name"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>{t('dashboard.services.form.name')}</FormLabel>
+                                                        <FormControl>
+                                                            <Input placeholder="Ej: Consulta General" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+
+                                            <FormField
+                                                control={serviceForm.control}
+                                                name="description"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>{t('dashboard.services.form.description')}</FormLabel>
+                                                        <FormControl>
+                                                            <Input placeholder="Breve descripción del servicio" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <FormField
+                                                    control={serviceForm.control}
+                                                    name="durationMinutes"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>{t('dashboard.services.form.duration')}</FormLabel>
+                                                            <FormControl>
+                                                                <Input type="number" min="1" placeholder="30" {...field} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+
+                                                <FormField
+                                                    control={serviceForm.control}
+                                                    name="price"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>{t('dashboard.services.form.price')}</FormLabel>
+                                                            <FormControl>
+                                                                <Input type="number" min="0" step="0.01" placeholder="0.00" {...field} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Service Options */}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-2 pb-2 border-b">
+                                                <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                                                <h3 className="text-sm font-semibold text-foreground">Opciones del Servicio</h3>
+                                            </div>
+
+                                            <FormField
+                                                control={serviceForm.control}
+                                                name="active"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                                        <div className="space-y-0.5">
+                                                            <FormLabel className="text-base">Servicio Activo</FormLabel>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Los clientes pueden reservar este servicio
+                                                            </p>
+                                                        </div>
+                                                        <FormControl>
+                                                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                                        </FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+
+                                            <FormField
+                                                control={serviceForm.control}
+                                                name="isOnline"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                                        <div className="space-y-0.5">
+                                                            <FormLabel className="text-base">Servicio en Línea</FormLabel>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Este servicio se proporciona de forma remota
+                                                            </p>
+                                                        </div>
+                                                        <FormControl>
+                                                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                                        </FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+
+                                            <FormField
+                                                control={serviceForm.control}
+                                                name="requirePayment"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                                        <div className="space-y-0.5">
+                                                            <FormLabel className="text-base">Requiere Pago Previo</FormLabel>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                El cliente debe pagar antes de confirmar la reserva
+                                                            </p>
+                                                        </div>
+                                                        <FormControl>
+                                                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                                        </FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+
+                                            <FormField
+                                                control={serviceForm.control}
+                                                name="requireResource"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                                        <div className="space-y-0.5">
+                                                            <FormLabel className="text-base">Requiere Recurso</FormLabel>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                El cliente debe seleccionar un recurso específico (sala, equipo)
+                                                            </p>
+                                                        </div>
+                                                        <FormControl>
+                                                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                                        </FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+
+                                            <FormField
+                                                control={serviceForm.control}
+                                                name="requireProduct"
+                                                render={({ field }) => (
+                                                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                                        <div className="space-y-0.5">
+                                                            <FormLabel className="text-base">Solo con Paquete</FormLabel>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                El cliente debe comprar un paquete para usar este servicio
+                                                            </p>
+                                                        </div>
+                                                        <FormControl>
+                                                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                                        </FormControl>
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <DialogFooter>
+                                        <Button type="button" variant="ghost" onClick={() => setIsServiceDialogOpen(false)}>
+                                            {t('common.cancel')}
+                                        </Button>
+                                        <Button type="submit">{t('common.save')}</Button>
+                                    </DialogFooter>
+                                </form>
+                            </Form>
                         </DialogContent>
                     </Dialog>
 
@@ -1075,7 +1286,7 @@ const BusinessDashboard = () => {
 
                     {/* Booking Details Modal */}
                     <Dialog open={isBookingDetailsDialogOpen} onOpenChange={setIsBookingDetailsDialogOpen}>
-                        <DialogContent className="sm:max-w-[600px] gap-0 p-0 overflow-hidden border-none shadow-2xl">
+                        <DialogContent className="sm:max-w-[600px] max-h-[98vh] overflow-y-auto gap-0 p-0 border-none shadow-2xl custom-scrollbar">
                             <DialogHeader className="p-6 pb-0">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-primary/10 rounded-xl">
@@ -1090,7 +1301,7 @@ const BusinessDashboard = () => {
                                 </div>
                             </DialogHeader>
 
-                            <div className="p-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                            <div className="p-6">
                                 {bookingToView && (
                                     <div className="space-y-8">
                                         {/* Client Info Section */}
@@ -1284,7 +1495,7 @@ const BusinessDashboard = () => {
 
                     {/* Cancel Confirmation Dialog */}
                     <Dialog open={isCancelConfirmDialogOpen} onOpenChange={setIsCancelConfirmDialogOpen}>
-                        <DialogContent className="sm:max-w-[425px]">
+                        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
                                 <DialogTitle>{t('dashboard.bookings.cancel_confirm.title')}</DialogTitle>
                                 <DialogDescription>

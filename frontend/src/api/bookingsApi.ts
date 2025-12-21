@@ -81,3 +81,8 @@ export const rejectPayment = async (bookingId: string): Promise<Booking> => {
     const { data } = await apiClient.post<Booking>(`/bookings/${bookingId}/reject-payment`);
     return data;
 };
+
+export const resendConfirmation = async (bookingId: string): Promise<{ success: boolean }> => {
+    const { data } = await apiClient.post<{ success: boolean }>(`/bookings/${bookingId}/resend-confirmation`);
+    return data;
+};

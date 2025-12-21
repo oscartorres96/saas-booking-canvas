@@ -71,7 +71,16 @@ export class StripeController {
      * POST /api/stripe/checkout/product
      */
     @Post('checkout/product')
-    async createProductCheckout(@Body() body: { productId: string; businessId: string; clientEmail: string; clientPhone?: string; clientName?: string; successUrl?: string; cancelUrl?: string; }) {
+    async createProductCheckout(@Body() body: {
+        productId: string;
+        businessId: string;
+        clientEmail: string;
+        clientPhone?: string;
+        clientName?: string;
+        successUrl?: string;
+        cancelUrl?: string;
+        bookingData?: any;
+    }) {
         const result = await this.stripeService.createProductCheckout(body);
         return {
             success: true,
