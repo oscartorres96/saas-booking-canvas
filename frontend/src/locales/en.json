@@ -22,7 +22,12 @@
         "to": "to",
         "minutes": "minutes",
         "optional": "(Optional)",
-        "coming_soon": "Feature coming soon."
+        "coming_soon": "This feature will be available soon.",
+        "back_to_home": "Back to home"
+    },
+    "auth": {
+        "logout": "Log out",
+        "logout_success": "Successfully logged out"
     },
     "home": {
         "header": {
@@ -394,6 +399,16 @@
         "welcome": "Welcome",
         "subtitle": "Management panel for your business",
         "viewBookingPage": "View booking page",
+        "stripe": {
+            "status": {
+                "pending": "Preparing...",
+                "syncing": "Syncing...",
+                "synced": "Ready to sell",
+                "error": "Payment Error"
+            },
+            "retry": "Retry synchronization",
+            "error_tooltip": "There was a problem syncing with Stripe. Retry manually or wait for the system."
+        },
         "v2": {
             "kpis": {
                 "bookings_today": "Today's Bookings",
@@ -414,6 +429,26 @@
             },
             "customers": {
                 "title": "Relevant Customers"
+            },
+            "revenue": {
+                "title": "Revenue",
+                "label": "Income earned",
+                "services": "Services",
+                "packages": "Packages",
+                "manual": "Manual (Cash)",
+                "periods": {
+                    "today": "Today",
+                    "week": "Week",
+                    "month": "Month",
+                    "year": "Year"
+                }
+            },
+            "insights": {
+                "title": "Key Insights",
+                "most_sold_service": "Best selling service",
+                "most_sold_package": "Best selling package",
+                "best_customer": "Star customer",
+                "no_data": "Not enough data yet"
             }
         },
         "copyInvitation": "Copy Invitation",
@@ -656,6 +691,8 @@
         "payments": {
             "title": "Payment Collection",
             "description": "Configure how your clients will pay you directly.",
+            "policy_title": "Payment Policy",
+            "policy_desc": "When should the client pay for the service?",
             "method": "Method",
             "policies": {
                 "reserve_only": {
@@ -671,15 +708,40 @@
                     "desc": "Dynamic: Deducts from package if available, otherwise requires individual payment."
                 }
             },
+            "methods_title": "Accepted Payment Methods",
+            "methods_desc": "Manual methods require validation outside of BookPro.",
+            "methods": {
+                "stripe": "Credit/debit card, Apple Pay, Google Pay",
+                "stripe_badge": "Recommended",
+                "transfer": "Bank Transfer (Manual)",
+                "transfer_desc": "Manual payment outside the platform",
+                "cash": "Cash",
+                "cash_desc": "Payment at the establishment",
+                "none": "None (Reserve only)",
+                "bank_transfer": "Bank Transfer"
+            },
+            "bank": "Bank",
+            "clabe": "Account Number / CLABE",
+            "holder": "Account Holder",
+            "instructions": "Additional instructions",
+            "disclaimer": "BookPro does not process these payments. Responsibility for verification lies with the business.",
+            "online_title": "Payment Infrastructure (Stripe)",
             "online_desc": "Select how you wish to receive card payments.",
+            "online_status": "Connection status:",
+            "status": {
+                "active": "Active",
+                "pending": "Pending",
+                "action_required": "Action Required"
+            },
             "powered_by": "Powered by Stripe",
             "model_locked_title": "Payment model configured",
+            "model_locked": "The payment model is linked to your account. Contact support for changes.",
             "models": {
                 "intermediated": "Intermediated Model",
-                "intermediated_tagline": "Perfect to start without complications",
+                "intermediated_tagline": "BookPro manages collection",
                 "intermediated_desc": "Ideal if you don't have a formal business account. BookPro collects for you and you request payout.",
                 "connect": "Stripe Connect",
-                "connect_tagline": "Maximum control for established businesses",
+                "connect_tagline": "Direct payments to your account",
                 "connect_desc": "Money goes directly to your Stripe account. Requires a linked formal account."
             },
             "features": {
@@ -1007,19 +1069,6 @@
             "annual": "Annual",
             "save_badge": "Save 2 months"
         },
-        "trial": {
-            "badge": "Trial",
-            "name": "Trial Package",
-            "price": "$1",
-            "period": "once",
-            "subtitle": "Try all features for 7 days",
-            "includes": "Includes:",
-            "feature1": "Full access for 7 days",
-            "feature2": "All features",
-            "feature3": "No commitment",
-            "feature4": "Basic support",
-            "cta": "Try now"
-        },
         "plan": {
             "name": "BookPro – Monthly Plan",
             "name_annual": "BookPro – Annual Plan",
@@ -1074,6 +1123,7 @@
             "step3": "Customize your booking page",
             "step4": "Start receiving clients!",
             "cta": "Go to Dashboard",
+            "book_now": "Book Now",
             "session_id": "Session ID"
         },
         "cancel": {

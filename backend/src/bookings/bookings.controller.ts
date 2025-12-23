@@ -40,6 +40,22 @@ class CreateBookingDto {
   @IsOptional()
   @IsString()
   resourceId?: string;
+
+  @IsOptional()
+  @IsString()
+  assetId?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentMethod?: string;
+
+  @IsOptional()
+  @IsString()
+  otpToken?: string;
 }
 
 class UpdateBookingDto {
@@ -82,6 +98,18 @@ class UpdateBookingDto {
   @IsOptional()
   @IsString()
   resourceId?: string;
+
+  @IsOptional()
+  @IsString()
+  assetId?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentMethod?: string;
 }
 
 class LookupBookingDto {
@@ -125,6 +153,7 @@ export class BookingsController {
 
   @Post()
   create(@Body() body: CreateBookingDto, @Req() req: any) {
+    console.log('[DEBUG] Create Booking Body:', JSON.stringify(body));
     return this.bookingsService.create({
       ...body,
       scheduledAt: new Date(body.scheduledAt),

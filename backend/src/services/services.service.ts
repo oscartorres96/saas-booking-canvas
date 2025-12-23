@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { UserRole } from '../users/schemas/user.schema';
 import { Service, ServiceDocument } from './schemas/service.schema';
+import { StripeSyncService } from '../stripe/stripe-sync.service';
 
 export interface CreateServicePayload {
   name: string;
@@ -27,7 +28,10 @@ interface AuthUser {
 
 @Injectable()
 export class ServicesService {
-  constructor(@InjectModel(Service.name) private readonly serviceModel: Model<ServiceDocument>) { }
+  constructor(
+    @InjectModel(Service.name) private readonly serviceModel: Model<ServiceDocument>,
+    private readonly stripeSyncService: StripeSyncService,
+  ) { }
 
   private buildFilter(authUser: AuthUser, requestedBusinessId?: string) {
     // If a businessId was explicitly requested, prioritize it for public/owner queries
@@ -53,8 +57,18 @@ export class ServicesService {
     if (authUser.role === UserRole.Owner && !payload.businessId) {
       throw new ForbiddenException('BusinessId is required for owner when creating a service');
     }
-    const service = new this.serviceModel(payload);
-    return service.save();
+    const service = new this.serviceModel({
+      ...payload,
+      stripe: { syncStatus: 'PENDING', productId: null, priceId: null }
+    });
+    const saved = await service.save();
+
+    // Trigger async sync
+    this.stripeSyncService.syncService(saved._id.toString()).catch(err => {
+      console.error('Failed to trigger initial stripe sync:', err);
+    });
+
+    return saved;
   }
 
   async findAll(authUser: AuthUser, businessId?: string): Promise<ServiceDocument[]> {
@@ -75,12 +89,21 @@ export class ServicesService {
     }
     const updated = await this.serviceModel.findOneAndUpdate(
       { _id: new Types.ObjectId(id), ...this.buildFilter(authUser) },
-      payload,
+      {
+        ...payload,
+        'stripe.syncStatus': 'PENDING'
+      },
       { new: true },
     );
     if (!updated) {
       throw new NotFoundException('Service not found');
     }
+
+    // Trigger async sync
+    this.stripeSyncService.syncService(updated._id.toString()).catch(err => {
+      console.error('Failed to trigger stripe sync on update:', err);
+    });
+
     return updated;
   }
 

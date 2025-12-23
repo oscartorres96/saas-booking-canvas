@@ -8,6 +8,9 @@ import { Service, ServiceSchema } from '../services/schemas/service.schema';
 import { Business, BusinessSchema } from '../businesses/schemas/business.schema';
 import { ServicesModule } from '../services/services.module';
 import { CustomerAssetsModule } from '../customer-assets/customer-assets.module';
+import { OtpService } from './otp/otp.service';
+import { OtpController } from './otp/otp.controller';
+import { OtpVerification, OtpVerificationSchema } from './schemas/otp-verification.schema';
 
 @Module({
   imports: [
@@ -15,12 +18,13 @@ import { CustomerAssetsModule } from '../customer-assets/customer-assets.module'
       { name: Booking.name, schema: BookingSchema },
       { name: Service.name, schema: ServiceSchema },
       { name: Business.name, schema: BusinessSchema },
+      { name: OtpVerification.name, schema: OtpVerificationSchema },
     ]),
     forwardRef(() => ServicesModule),
     CustomerAssetsModule,
   ],
-  controllers: [BookingsController],
-  providers: [BookingsService, JwtAuthGuard],
-  exports: [BookingsService],
+  controllers: [BookingsController, OtpController],
+  providers: [BookingsService, JwtAuthGuard, OtpService],
+  exports: [BookingsService, OtpService],
 })
 export class BookingsModule { }

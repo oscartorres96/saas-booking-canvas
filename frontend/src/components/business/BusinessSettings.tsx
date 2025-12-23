@@ -48,6 +48,8 @@ const createFormSchema = (t: any) => z.object({
     website: z.string().url(t('settings.validation.url_invalid')).optional().or(z.literal("")),
     allowMultipleBookingsPerDay: z.boolean().default(false),
     cancellationWindowHours: z.coerce.number().min(0).default(0),
+    bookingCapacityMode: z.enum(['SINGLE', 'MULTIPLE']).default('SINGLE'),
+    maxBookingsPerSlot: z.coerce.number().min(2, t('settings.booking.capacity.validation_min')).optional().nullable(),
     paymentPolicy: z.enum(['RESERVE_ONLY', 'PAY_BEFORE_BOOKING', 'PACKAGE_OR_PAY']).default('RESERVE_ONLY'),
     allowTransfer: z.boolean().default(false),
     allowCash: z.boolean().default(false),
@@ -124,6 +126,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
             website: "",
             allowMultipleBookingsPerDay: false,
             cancellationWindowHours: 0,
+            bookingCapacityMode: "SINGLE",
+            maxBookingsPerSlot: null,
             paymentPolicy: "RESERVE_ONLY",
             allowTransfer: false,
             allowCash: false,
@@ -161,6 +165,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     website: business.settings?.website || "",
                     allowMultipleBookingsPerDay: business.bookingConfig?.allowMultipleBookingsPerDay ?? false,
                     cancellationWindowHours: business.bookingConfig?.cancellationWindowHours ?? 0,
+                    bookingCapacityMode: business.bookingCapacityConfig?.mode || "SINGLE",
+                    maxBookingsPerSlot: business.bookingCapacityConfig?.maxBookingsPerSlot || null,
                     paymentPolicy: business.paymentConfig?.paymentPolicy || "RESERVE_ONLY",
                     allowTransfer: business.paymentConfig?.allowTransfer ?? (business.paymentConfig?.method === "bank_transfer"),
                     allowCash: business.paymentConfig?.allowCash ?? false,
@@ -212,7 +218,12 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
         } else if (activeTab === "hours") {
             isValid = await form.trigger(["businessHours"]);
         } else if (activeTab === "booking") {
-            isValid = await form.trigger(["allowMultipleBookingsPerDay", "cancellationWindowHours"]);
+            isValid = await form.trigger([
+                "allowMultipleBookingsPerDay",
+                "cancellationWindowHours",
+                "bookingCapacityMode",
+                ...(values.bookingCapacityMode === 'MULTIPLE' ? ["maxBookingsPerSlot"] as const : [])
+            ]);
         } else if (activeTab === "payments") {
             isValid = await form.trigger(["paymentPolicy", "allowTransfer", "allowCash", "bank", "clabe", "holderName"]);
         }
@@ -253,13 +264,20 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     businessHours: values.businessHours,
                 };
             } else if (activeTab === "booking") {
-                // Booking tab: rules and logic
+                // Booking tab: rules and logic including capacity
                 dataToSubmit = {
                     bookingConfig: {
-                        allowMultipleBookingsPerDay: values.allowMultipleBookingsPerDay,
-                        cancellationWindowHours: values.cancellationWindowHours,
+                        allowMultipleBookingsPerDay: Boolean(values.allowMultipleBookingsPerDay),
+                        cancellationWindowHours: Number(values.cancellationWindowHours) || 0,
+                    },
+                    bookingCapacityConfig: {
+                        mode: values.bookingCapacityMode,
+                        maxBookingsPerSlot: values.bookingCapacityMode === 'MULTIPLE'
+                            ? Number(values.maxBookingsPerSlot) || null
+                            : null,
                     }
                 };
+                console.log('[DEBUG] Saving booking config:', dataToSubmit);
             } else if (activeTab === "payments") {
                 await updatePaymentConfig(businessId, {
                     paymentPolicy: values.paymentPolicy,
@@ -279,8 +297,10 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
 
             await updateBusinessSettings(businessId, dataToSubmit);
             toast.success(t('settings.saved'));
-        } catch (error) {
-            toast.error(t('settings.error'));
+        } catch (error: any) {
+            console.error('[ERROR] Failed to save settings:', error);
+            const errorMessage = error?.response?.data?.message || error?.message || t('settings.error');
+            toast.error(errorMessage);
         } finally {
             setIsSaving(false);
         }
@@ -568,6 +588,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                             )}
                                         />
 
+
                                         <FormField
                                             control={form.control}
                                             name="cancellationWindowHours"
@@ -578,8 +599,13 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                                     </FormLabel>
                                                     <FormControl>
                                                         <div className="flex items-center gap-2">
-                                                            <Input type="number" {...field} className="rounded-xl border-muted bg-white dark:bg-slate-950 w-24" />
-                                                            <span className="text-sm text-muted-foreground">{t('common.minutes')}? No, {t('common.hours', 'horas')}</span>
+                                                            <Input
+                                                                type="number"
+                                                                value={field.value}
+                                                                onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                                                                className="rounded-xl border-muted bg-white dark:bg-slate-950 w-24"
+                                                            />
+                                                            <span className="text-sm text-muted-foreground">{t('common.hours', 'horas')}</span>
                                                         </div>
                                                     </FormControl>
                                                     <div className="text-[10px] text-muted-foreground mt-1">
@@ -589,6 +615,131 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                                 </FormItem>
                                             )}
                                         />
+                                    </div>
+                                </InnerCard>
+
+                                {/* NUEVA SECCIÓN: Capacidad de Reservas por Horario */}
+                                <InnerCard>
+                                    <AdminLabel icon={Zap}>{t('settings.booking.capacity.title')}</AdminLabel>
+                                    <p className="text-sm text-muted-foreground mt-1 mb-4">
+                                        {t('settings.booking.capacity.description')}
+                                    </p>
+
+                                    <div className="space-y-6">
+                                        <FormField
+                                            control={form.control}
+                                            name="bookingCapacityMode"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-base font-semibold">
+                                                        {t('settings.booking.capacity.mode_label')}
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <RadioGroup
+                                                            onValueChange={field.onChange}
+                                                            value={field.value}
+                                                            className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2"
+                                                        >
+                                                            {/* SINGLE MODE */}
+                                                            <FormItem>
+                                                                <FormControl>
+                                                                    <RadioGroupItem value="SINGLE" className="peer sr-only" />
+                                                                </FormControl>
+                                                                <div
+                                                                    className={`
+                                                                        cursor-pointer rounded-xl border-2 p-4 transition-all hover:bg-muted/50
+                                                                        peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5
+                                                                        ${field.value === 'SINGLE' ? 'border-primary bg-primary/5' : 'border-muted'}
+                                                                    `}
+                                                                    onClick={() => {
+                                                                        field.onChange('SINGLE');
+                                                                        form.setValue('maxBookingsPerSlot', null);
+                                                                    }}
+                                                                >
+                                                                    <div className="flex items-start gap-2 mb-2">
+                                                                        <div className="flex-1">
+                                                                            <div className="font-semibold text-sm flex items-center gap-2">
+                                                                                {t('settings.booking.capacity.single_radio')}
+                                                                                {field.value === 'SINGLE' && <Check className="h-4 w-4 text-primary" />}
+                                                                            </div>
+                                                                            <div className="text-xs text-muted-foreground mt-1">
+                                                                                {t('settings.booking.capacity.single_desc')}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="text-[10px] text-muted-foreground bg-muted/50 rounded-lg p-2 mt-2">
+                                                                        💡 {t('settings.booking.capacity.tooltip_single')}
+                                                                    </div>
+                                                                </div>
+                                                            </FormItem>
+
+                                                            {/* MULTIPLE MODE */}
+                                                            <FormItem>
+                                                                <FormControl>
+                                                                    <RadioGroupItem value="MULTIPLE" className="peer sr-only" />
+                                                                </FormControl>
+                                                                <div
+                                                                    className={`
+                                                                        cursor-pointer rounded-xl border-2 p-4 transition-all hover:bg-muted/50
+                                                                        peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5
+                                                                        ${field.value === 'MULTIPLE' ? 'border-primary bg-primary/5' : 'border-muted'}
+                                                                    `}
+                                                                    onClick={() => field.onChange('MULTIPLE')}
+                                                                >
+                                                                    <div className="flex items-start gap-2 mb-2">
+                                                                        <div className="flex-1">
+                                                                            <div className="font-semibold text-sm flex items-center gap-2">
+                                                                                {t('settings.booking.capacity.multiple_radio')}
+                                                                                {field.value === 'MULTIPLE' && <Check className="h-4 w-4 text-primary" />}
+                                                                            </div>
+                                                                            <div className="text-xs text-muted-foreground mt-1">
+                                                                                {t('settings.booking.capacity.multiple_desc')}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="text-[10px] text-muted-foreground bg-muted/50 rounded-lg p-2 mt-2">
+                                                                        💡 {t('settings.booking.capacity.tooltip_multiple')}
+                                                                    </div>
+                                                                </div>
+                                                            </FormItem>
+                                                        </RadioGroup>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        {/* Campo condicional para MULTIPLE */}
+                                        {form.watch("bookingCapacityMode") === "MULTIPLE" && (
+                                            <FormField
+                                                control={form.control}
+                                                name="maxBookingsPerSlot"
+                                                render={({ field }) => (
+                                                    <FormItem className="animate-in fade-in slide-in-from-top-2">
+                                                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                                                            {t('settings.booking.capacity.max_label')}
+                                                        </FormLabel>
+                                                        <FormControl>
+                                                            <Input
+                                                                type="number"
+                                                                min="2"
+                                                                placeholder={t('settings.booking.capacity.max_placeholder')}
+                                                                value={field.value || ''}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value ? Number(e.target.value) : null;
+                                                                    field.onChange(val);
+                                                                }}
+                                                                className="rounded-xl border-muted bg-white dark:bg-slate-950 max-w-xs"
+                                                            />
+                                                        </FormControl>
+                                                        <div className="text-[10px] text-muted-foreground mt-1">
+                                                            {t('settings.booking.capacity.max_helper')}
+                                                        </div>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        )}
                                     </div>
                                 </InnerCard>
                             </TabsContent>
@@ -618,7 +769,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                                 <FormControl>
                                                     <RadioGroup
                                                         onValueChange={field.onChange}
-                                                        defaultValue={field.value}
+                                                        value={field.value}
                                                         className="grid grid-cols-1 md:grid-cols-3 gap-4"
                                                     >
                                                         {['RESERVE_ONLY', 'PAY_BEFORE_BOOKING', 'PACKAGE_OR_PAY'].map((policy) => (
@@ -668,13 +819,13 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                                 <Checkbox checked={true} disabled />
                                                 <div className="space-y-1">
                                                     <FormLabel className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                                        {t('settings.payments.methods.stripe', 'Tarjeta / Apple Pay / Google Pay')}
+                                                        {t('settings.payments.methods.stripe')}
                                                         <span className="ml-2 inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                                                            {t('settings.payments.methods.stripe_badge', 'Recomendado')}
+                                                            {t('settings.payments.methods.stripe_badge')}
                                                         </span>
                                                     </FormLabel>
                                                     <p className="text-xs text-muted-foreground">
-                                                        {t('settings.payments.online_desc', 'Procesado por Stripe')}
+                                                        {t('settings.payments.online_desc')}
                                                     </p>
                                                 </div>
                                             </div>
@@ -693,10 +844,10 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                                         </FormControl>
                                                         <div className="space-y-1 leading-none">
                                                             <FormLabel className="text-sm font-medium">
-                                                                {t('settings.payments.methods.transfer', 'Transferencia Bancaria')}
+                                                                {t('settings.payments.methods.transfer')}
                                                             </FormLabel>
                                                             <p className="text-xs text-muted-foreground">
-                                                                {t('settings.payments.methods.transfer_desc', 'Pago manual fuera de plataforma')}
+                                                                {t('settings.payments.methods.transfer_desc')}
                                                             </p>
                                                         </div>
                                                     </FormItem>
@@ -717,10 +868,10 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                                         </FormControl>
                                                         <div className="space-y-1 leading-none">
                                                             <FormLabel className="text-sm font-medium">
-                                                                {t('settings.payments.methods.cash', 'Efectivo')}
+                                                                {t('settings.payments.methods.cash')}
                                                             </FormLabel>
                                                             <p className="text-xs text-muted-foreground">
-                                                                {t('settings.payments.methods.cash_desc', 'Pago en el establecimiento')}
+                                                                {t('settings.payments.methods.cash_desc')}
                                                             </p>
                                                         </div>
                                                     </FormItem>
@@ -803,7 +954,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                             <h3 className="font-semibold text-lg flex items-center gap-2">
                                                 {t('settings.payments.online_title')}
                                                 <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full">
-                                                    {t('settings.payments.status.active', 'Activo')}
+                                                    {t('settings.payments.status.active')}
                                                 </span>
                                             </h3>
                                             <p className="text-sm text-foreground/80 max-w-2xl">
@@ -821,8 +972,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                                 <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
                                                 <span className="font-medium">
                                                     {form.getValues().paymentMode === 'DIRECT_TO_BUSINESS'
-                                                        ? 'Stripe Connect (Direct)'
-                                                        : 'Stripe Intermediated (Managed)'}
+                                                        ? t('settings.payments.models.connect')
+                                                        : t('settings.payments.models.intermediated')}
                                                 </span>
                                             </div>
                                         </div>

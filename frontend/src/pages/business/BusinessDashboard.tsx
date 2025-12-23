@@ -99,6 +99,7 @@ import { getServicesByBusiness, createService, updateService, deleteService, typ
 import { getBookingsByBusiness, updateBooking, verifyPayment, rejectPayment, resendConfirmation, type Booking } from "@/api/bookingsApi";
 import { getProductsByBusiness, type Product } from "@/api/productsApi";
 import { getByBusiness as getCustomerAssetsByBusiness, type CustomerAsset } from "@/api/customerAssetsApi";
+import { getPaymentsByBusiness } from "@/api/stripeApi";
 import { ExpirationBanner } from "@/components/ExpirationBanner";
 import { ResourceMapEditor } from "@/components/business/ResourceMapEditor";
 import { CatalogManager } from "@/components/business/CatalogManager";
@@ -141,6 +142,7 @@ const BusinessDashboard = () => {
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [customerAssets, setCustomerAssets] = useState<CustomerAsset[]>([]);
+    const [payments, setPayments] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
     const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
@@ -219,6 +221,18 @@ const BusinessDashboard = () => {
         }
     }, [user, businessId, paramBusinessId, navigate]);
 
+    // Auto-refresh data every 30 seconds to keep dashboard "live"
+    useEffect(() => {
+        if (!businessId || activeTab !== 'dashboard') return;
+
+        const interval = setInterval(() => {
+            console.log('Refreshing dashboard data...');
+            loadData(false);
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, [businessId, activeTab]);
+
     useEffect(() => {
         if (business?.settings?.defaultServiceDuration) {
             const currentValues = serviceForm.getValues();
@@ -270,13 +284,20 @@ const BusinessDashboard = () => {
                 setProducts([]);
             }
 
-            // Fetch Customer Assets for Overview
             try {
                 const assetsData = await getCustomerAssetsByBusiness(businessId);
                 setCustomerAssets(assetsData);
             } catch (error) {
                 console.log('Customer assets not available:', error);
                 setCustomerAssets([]);
+            }
+
+            try {
+                const paymentsData = await getPaymentsByBusiness(businessId);
+                setPayments(paymentsData);
+            } catch (error) {
+                console.log('Payments not available:', error);
+                setPayments([]);
             }
         } catch (error: unknown) {
             const errorMessage = error instanceof Error && 'response' in error
@@ -486,7 +507,7 @@ const BusinessDashboard = () => {
             <div className="min-h-screen flex items-center justify-center bg-gray-50/50">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold text-slate-900">Negocio no encontrado</h2>
-                    <Button className="mt-4" onClick={() => navigate("/")}>Volver al inicio</Button>
+                    <Button className="mt-4" onClick={() => navigate("/")}>{t('common.back_to_home', 'Volver al inicio')}</Button>
                 </div>
             </div>
         );
@@ -533,6 +554,20 @@ const BusinessDashboard = () => {
                                 <div className="flex lg:hidden items-center gap-1">
                                     <LanguageSwitcher />
                                     <BusinessThemeToggle />
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => {
+                                            logout();
+                                            toast.success(t('auth.logout_success') || 'Sesión cerrada exitosamente');
+                                            navigate('/');
+                                        }}
+                                        className="h-9 w-9 text-muted-foreground hover:text-destructive transition-colors"
+                                        title={t('auth.logout') || 'Cerrar sesión'}
+                                    >
+                                        <LogOut className="h-4 w-4" />
+                                        <span className="sr-only">{t('auth.logout') || 'Cerrar sesión'}</span>
+                                    </Button>
                                 </div>
                             </div>
 
@@ -574,8 +609,19 @@ const BusinessDashboard = () => {
                                     <div className="hidden lg:flex items-center gap-1 pl-2 border-l ml-2">
                                         <LanguageSwitcher />
                                         <BusinessThemeToggle />
-                                        <Button variant="ghost" size="icon" onClick={logout} className="h-9 w-9 text-muted-foreground hover:text-destructive transition-colors">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => {
+                                                logout();
+                                                toast.success(t('auth.logout_success') || 'Sesión cerrada exitosamente');
+                                                navigate('/');
+                                            }}
+                                            className="h-9 w-9 text-muted-foreground hover:text-destructive transition-colors"
+                                            title={t('auth.logout') || 'Cerrar sesión'}
+                                        >
                                             <LogOut className="h-4 w-4" />
+                                            <span className="sr-only">{t('auth.logout') || 'Cerrar sesión'}</span>
                                         </Button>
                                     </div>
                                 </div>
@@ -586,7 +632,7 @@ const BusinessDashboard = () => {
                                         <TabsTrigger value="catalog" className="premium-tab-trigger">{t('dashboard.tabs.catalog', 'Oferta')}</TabsTrigger>
                                         <TabsTrigger value="settings" className="premium-tab-trigger">{t('dashboard.tabs.settings')}</TabsTrigger>
                                         <TabsTrigger value="billing" className="premium-tab-trigger">{t('dashboard.tabs.billing')}</TabsTrigger>
-                                        <TabsTrigger value="resource-map" className="premium-tab-trigger">Mapa de Recursos</TabsTrigger>
+                                        <TabsTrigger value="resource-map" className="premium-tab-trigger">{t('dashboard.tabs.resource_map', 'Mapa de Recursos')}</TabsTrigger>
                                     </TabsList>
                                 </div>
                             </div>
@@ -597,7 +643,9 @@ const BusinessDashboard = () => {
                                 business={business}
                                 bookings={bookings}
                                 services={services}
+                                products={products}
                                 customerAssets={customerAssets}
+                                payments={payments}
                                 onViewBooking={openBookingDetails}
                                 onViewCustomer={(email) => {
                                     setSearchTerm(email);
@@ -665,7 +713,17 @@ const BusinessDashboard = () => {
                                                                                 </span>
                                                                             </div>
                                                                         </TableCell>
-                                                                        <TableCell>{service?.name || booking.serviceId}</TableCell>
+                                                                        <TableCell>
+                                                                            <div className="flex items-center gap-2">
+                                                                                {service?.name || booking.serviceId}
+                                                                                {booking.assetId && (
+                                                                                    <Badge variant="outline" className="h-5 px-1 bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800 text-[9px] font-bold">
+                                                                                        <Package className="h-2.5 w-2.5 mr-0.5" />
+                                                                                        PAQUETE
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </div>
+                                                                        </TableCell>
                                                                         <TableCell>
                                                                             <div className="flex flex-col">
                                                                                 <span>{format(new Date(booking.scheduledAt), "PPP", { locale: i18n.language === 'en' ? enUS : es })}</span>
@@ -757,7 +815,14 @@ const BusinessDashboard = () => {
                                                                 <div className="flex justify-between items-start mb-2">
                                                                     <div className="flex flex-col min-w-0">
                                                                         <span className="font-bold text-slate-900 dark:text-slate-100 truncate">{booking.clientName}</span>
-                                                                        <span className="text-xs text-muted-foreground truncate">{service?.name || 'Servicio'}</span>
+                                                                        <div className="flex items-center gap-2 truncate">
+                                                                            <span className="text-xs text-muted-foreground truncate">{service?.name || 'Servicio'}</span>
+                                                                            {booking.assetId && (
+                                                                                <Badge variant="outline" className="h-4 px-1 bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800 text-[8px] font-bold">
+                                                                                    PAQUETE
+                                                                                </Badge>
+                                                                            )}
+                                                                        </div>
                                                                     </div>
                                                                     <Badge className={cn(getStatusColor(booking.status), "text-[10px] h-5")} variant="secondary">
                                                                         {getStatusLabel(booking.status)}

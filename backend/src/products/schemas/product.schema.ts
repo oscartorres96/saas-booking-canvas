@@ -38,6 +38,33 @@ export class Product {
 
     @Prop({ default: true })
     active!: boolean;
+
+    @Prop({
+        type: {
+            productId: { type: String, default: null },
+            priceId: { type: String, default: null },
+            syncStatus: { type: String, enum: ['PENDING', 'SYNCING', 'SYNCED', 'ERROR'], default: 'PENDING' },
+            lastSyncError: { type: String },
+            lastSyncedAt: { type: Date },
+            syncLockedAt: { type: Date },
+            retryCount: { type: Number, default: 0 },
+            nextRetryAt: { type: Date }
+        },
+        default: { syncStatus: 'PENDING', retryCount: 0 }
+    })
+    stripe!: {
+        productId: string | null;
+        priceId: string | null;
+        syncStatus: 'PENDING' | 'SYNCING' | 'SYNCED' | 'ERROR';
+        lastSyncError?: string;
+        lastSyncedAt?: Date;
+        syncLockedAt?: Date;
+        retryCount: number;
+        nextRetryAt?: Date;
+    };
+
+    @Prop()
+    stripePriceId?: string;
 }
 
 export type ProductDocument = Product & Document;

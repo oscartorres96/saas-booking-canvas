@@ -105,139 +105,140 @@ export const ResourceSelector = ({ businessId, scheduledAt, onResourceSelected, 
                 </Button>
             </div>
 
-            {/* Premium Grid Container */}
-            <div className="relative">
-                {/* Decorative background elements */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] via-transparent to-primary/[0.02] rounded-[2rem] pointer-events-none" />
+            {/* Premium Grid Container with Horizontal Scroll Support */}
+            <div className="relative w-full overflow-x-auto pb-4 -mx-2 px-2 sm:mx-0 sm:px-0 scrollbar-hide">
+                <div className="min-w-max mx-auto">
+                    {/* Decorative background elements */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] via-transparent to-primary/[0.02] rounded-[2rem] pointer-events-none" />
 
-                <div
-                    className="relative grid gap-3 md:gap-4 mx-auto p-6 md:p-8 rounded-[2rem] bg-gradient-to-br from-slate-50/80 via-slate-50/50 to-slate-50/80 dark:from-slate-900/40 dark:via-slate-900/20 dark:to-slate-900/40 border-2 border-slate-200/50 dark:border-slate-700/30 shadow-2xl shadow-slate-900/5 dark:shadow-black/20 backdrop-blur-sm"
-                    style={{
-                        gridTemplateColumns: `repeat(${resourceConfig.cols}, minmax(${isSpecialType ? '56px' : '48px'}, 1fr))`,
-                        width: 'fit-content'
-                    }}
-                >
-                    <AnimatePresence mode="popLayout">
-                        {resourceConfig.resources.map((res: any, index: number) => {
-                            const isOccupied = occupiedResourceIds.includes(res.id);
-                            const isSelected = selectedId === res.id;
+                    <div
+                        className="relative grid gap-3 md:gap-4 mx-auto p-4 md:p-8 rounded-[2rem] bg-gradient-to-br from-slate-50/80 via-slate-50/50 to-slate-50/80 dark:from-slate-900/40 dark:via-slate-900/20 dark:to-slate-900/40 border-2 border-slate-200/50 dark:border-slate-700/30 shadow-2xl shadow-slate-900/5 dark:shadow-black/20 backdrop-blur-sm"
+                        style={{
+                            gridTemplateColumns: `repeat(${resourceConfig.cols}, minmax(${isSpecialType ? '56px' : '44px'}, 1fr))`,
+                        }}
+                    >
+                        <AnimatePresence mode="popLayout">
+                            {resourceConfig.resources.map((res: any, index: number) => {
+                                const isOccupied = occupiedResourceIds.includes(res.id);
+                                const isSelected = selectedId === res.id;
 
-                            if (!res.isActive) return <div key={res.id} className={cn(isSpecialType ? "h-20 w-14" : "h-14 w-12")} />;
+                                if (!res.isActive) return <div key={res.id} className={cn(isSpecialType ? "h-20 w-14" : "h-14 w-12")} />;
 
-                            return (
-                                <motion.button
-                                    key={res.id}
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: index * 0.02, duration: 0.3 }}
-                                    whileHover={!isOccupied && !isHolding ? {
-                                        scale: 1.1,
-                                        y: -4,
-                                        transition: { type: "spring", stiffness: 400, damping: 10 }
-                                    } : {}}
-                                    whileTap={!isOccupied && !isHolding ? { scale: 0.92 } : {}}
-                                    disabled={isOccupied || isHolding}
-                                    onClick={() => handleSelect(res.id)}
-                                    className={cn(
-                                        "group relative flex flex-col items-center justify-center transition-all duration-300 rounded-2xl overflow-hidden",
-                                        isSpecialType ? "h-20 w-14" : "h-14 w-12",
-                                        isSelected
-                                            ? "shadow-xl shadow-primary/30 dark:shadow-primary/20 z-20"
-                                            : "hover:shadow-lg hover:shadow-slate-400/20 dark:hover:shadow-black/40",
-                                        isOccupied
-                                            ? "cursor-not-allowed opacity-50"
-                                            : "cursor-pointer"
-                                    )}
-                                >
-                                    {/* Glow effect for selected */}
-                                    {isSelected && (
-                                        <motion.div
-                                            className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent"
-                                            animate={{
-                                                opacity: [0.5, 0.8, 0.5],
-                                            }}
-                                            transition={{
-                                                duration: 2,
-                                                repeat: Infinity,
-                                                ease: "easeInOut"
-                                            }}
-                                        />
-                                    )}
-
-                                    {/* Background Layer */}
-                                    <motion.div
-                                        className={cn(
-                                            "absolute inset-0 transition-all duration-300",
-                                            isSelected
-                                                ? "bg-gradient-to-br from-primary to-primary/90"
-                                                : isOccupied
-                                                    ? "bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900"
-                                                    : "bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-2 border-slate-200/80 dark:border-slate-700/50 group-hover:border-primary/40 group-hover:from-primary/5 group-hover:to-primary/10"
-                                        )}
-                                        style={isSelected && primaryColor ? {
-                                            background: `linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%)`
+                                return (
+                                    <motion.button
+                                        key={res.id}
+                                        initial={{ opacity: 0, scale: 0.8 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: index * 0.02, duration: 0.3 }}
+                                        whileHover={!isOccupied && !isHolding ? {
+                                            scale: 1.1,
+                                            y: -4,
+                                            transition: { type: "spring", stiffness: 400, damping: 10 }
                                         } : {}}
-                                    />
-
-                                    {/* Sparkle effect on hover (only for available) */}
-                                    {!isOccupied && !isSelected && (
-                                        <motion.div
-                                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                                        >
-                                            <Sparkles className="h-3 w-3 text-primary" />
-                                        </motion.div>
-                                    )}
-
-                                    {/* Content */}
-                                    <div className="relative z-10 flex flex-col items-center gap-1.5">
-                                        <ResourceIcon
-                                            type={resourceConfig.layoutType}
-                                            isSelected={isSelected}
-                                            isOccupied={isOccupied}
-                                        />
-                                        <span className={cn(
-                                            "text-[10px] font-black tracking-wider leading-none",
+                                        whileTap={!isOccupied && !isHolding ? { scale: 0.92 } : {}}
+                                        disabled={isOccupied || isHolding}
+                                        onClick={() => handleSelect(res.id)}
+                                        className={cn(
+                                            "group relative flex flex-col items-center justify-center transition-all duration-300 rounded-xl sm:rounded-2xl overflow-hidden",
+                                            isSpecialType ? "h-20 w-14" : "h-14 w-11 sm:w-12",
                                             isSelected
-                                                ? "text-white"
-                                                : isOccupied
-                                                    ? "text-slate-400 dark:text-slate-600"
-                                                    : "text-slate-700 dark:text-slate-300 group-hover:text-primary"
-                                        )}>
-                                            {res.label}
-                                        </span>
-                                    </div>
+                                                ? "shadow-xl shadow-primary/30 dark:shadow-primary/20 z-20"
+                                                : "hover:shadow-lg hover:shadow-slate-400/20 dark:hover:shadow-black/40",
+                                            isOccupied
+                                                ? "cursor-not-allowed opacity-50"
+                                                : "cursor-pointer"
+                                        )}
+                                    >
+                                        {/* Glow effect for selected */}
+                                        {isSelected && (
+                                            <motion.div
+                                                className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent"
+                                                animate={{
+                                                    opacity: [0.5, 0.8, 0.5],
+                                                }}
+                                                transition={{
+                                                    duration: 2,
+                                                    repeat: Infinity,
+                                                    ease: "easeInOut"
+                                                }}
+                                            />
+                                        )}
 
-                                    {/* Occupied Overlay with improved design */}
-                                    {isOccupied && (
-                                        <div className="absolute inset-0 bg-slate-900/10 dark:bg-black/30 flex items-center justify-center backdrop-blur-[2px]">
-                                            <div className="relative">
-                                                <Circle className="h-8 w-8 text-slate-400/40 dark:text-slate-600/40" />
-                                                <div className="absolute inset-0 flex items-center justify-center">
-                                                    <div className="h-0.5 w-5 bg-slate-400 dark:bg-slate-600 rotate-45 rounded-full" />
+                                        {/* Background Layer */}
+                                        <motion.div
+                                            className={cn(
+                                                "absolute inset-0 transition-all duration-300",
+                                                isSelected
+                                                    ? "bg-gradient-to-br from-primary to-primary/90"
+                                                    : isOccupied
+                                                        ? "bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900"
+                                                        : "bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-2 border-slate-200/80 dark:border-slate-700/50 group-hover:border-primary/40 group-hover:from-primary/5 group-hover:to-primary/10"
+                                            )}
+                                            style={isSelected && primaryColor ? {
+                                                background: `linear-gradient(135deg, ${primaryColor} 0%, ${primaryColor}dd 100%)`
+                                            } : {}}
+                                        />
+
+                                        {/* Sparkle effect on hover (only for available) */}
+                                        {!isOccupied && !isSelected && (
+                                            <motion.div
+                                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                            >
+                                                <Sparkles className="h-3 w-3 text-primary" />
+                                            </motion.div>
+                                        )}
+
+                                        {/* Content */}
+                                        <div className="relative z-10 flex flex-col items-center gap-1.5">
+                                            <ResourceIcon
+                                                type={resourceConfig.layoutType}
+                                                isSelected={isSelected}
+                                                isOccupied={isOccupied}
+                                            />
+                                            <span className={cn(
+                                                "text-[9px] sm:text-[10px] font-black tracking-wider leading-none",
+                                                isSelected
+                                                    ? "text-white"
+                                                    : isOccupied
+                                                        ? "text-slate-400 dark:text-slate-600"
+                                                        : "text-slate-700 dark:text-slate-300 group-hover:text-primary"
+                                            )}>
+                                                {res.label}
+                                            </span>
+                                        </div>
+
+                                        {/* Occupied Overlay with improved design */}
+                                        {isOccupied && (
+                                            <div className="absolute inset-0 bg-slate-900/10 dark:bg-black/30 flex items-center justify-center backdrop-blur-[2px]">
+                                                <div className="relative">
+                                                    <Circle className="h-8 w-8 text-slate-400/40 dark:text-slate-600/40" />
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <div className="h-0.5 w-5 bg-slate-400 dark:bg-slate-600 rotate-45 rounded-full" />
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
 
-                                    {/* Selection pulse effect */}
-                                    {isSelected && (
-                                        <motion.div
-                                            className="absolute inset-0 rounded-2xl border-2 border-white/30"
-                                            animate={{
-                                                scale: [1, 1.05, 1],
-                                                opacity: [0.5, 0.8, 0.5],
-                                            }}
-                                            transition={{
-                                                duration: 2,
-                                                repeat: Infinity,
-                                                ease: "easeInOut"
-                                            }}
-                                        />
-                                    )}
-                                </motion.button>
-                            );
-                        })}
-                    </AnimatePresence>
+                                        {/* Selection pulse effect */}
+                                        {isSelected && (
+                                            <motion.div
+                                                className="absolute inset-0 rounded-xl sm:rounded-2xl border-2 border-white/30"
+                                                animate={{
+                                                    scale: [1, 1.05, 1],
+                                                    opacity: [0.5, 0.8, 0.5],
+                                                }}
+                                                transition={{
+                                                    duration: 2,
+                                                    repeat: Infinity,
+                                                    ease: "easeInOut"
+                                                }}
+                                            />
+                                        )}
+                                    </motion.button>
+                                );
+                            })}
+                        </AnimatePresence>
+                    </div>
                 </div>
             </div>
 

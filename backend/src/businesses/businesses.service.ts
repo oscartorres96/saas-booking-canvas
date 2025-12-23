@@ -242,6 +242,16 @@ export class BusinessesService {
     }
     this.assertAccess(authUser, business);
 
+    // MIGRATION: Fix invalid paymentPolicy values BEFORE validation
+    if (business.paymentConfig?.paymentPolicy) {
+      const policy = business.paymentConfig.paymentPolicy as any;
+      if (policy === 'PACKAGES' || !['RESERVE_ONLY', 'PAY_BEFORE_BOOKING', 'PACKAGE_OR_PAY'].includes(policy)) {
+        console.log(`[MIGRATION] Fixing invalid paymentPolicy "${policy}" -> "PACKAGE_OR_PAY"`);
+        business.paymentConfig.paymentPolicy = 'PACKAGE_OR_PAY';
+        business.markModified('paymentConfig');
+      }
+    }
+
     // Update root level fields if present in settings payload
     if (settings.businessName) business.businessName = settings.businessName;
     if (settings.logoUrl) business.logoUrl = settings.logoUrl;

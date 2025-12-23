@@ -68,7 +68,9 @@ import {
     Star,
     Bell,
     User,
-    Mail
+    Mail,
+    Phone,
+    LogOut
 } from "lucide-react";
 import useAuth from "@/auth/useAuth";
 import { getBusinessById, type Business } from "@/api/businessesApi";
@@ -89,7 +91,9 @@ import { ProductsStore } from "@/components/booking/ProductsStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PackageQRModal } from "@/components/booking/PackageQRModal";
-import { generateBookingSteps, StepType } from "@/utils/bookingEngine";
+import { generateBookingSteps, StepType, BookingEngineContext } from "@/utils/bookingEngine";
+import { OtpVerificationModal } from "@/components/booking/OtpVerificationModal";
+import { requestOtp, OtpPurpose } from "@/api/otpApi";
 
 const bookingFormSchema = z.object({
     serviceId: z.string().optional(),
@@ -122,7 +126,7 @@ const BusinessBookingPage = () => {
     const { businessId } = useParams<{ businessId: string }>();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
 
     const [business, setBusiness] = useState<Business | null>(null);
     const [services, setServices] = useState<Service[]>([]);
@@ -153,6 +157,11 @@ const BusinessBookingPage = () => {
     const { theme, setTheme } = useTheme();
     const { t, i18n } = useTranslation();
     const [bookingSteps, setBookingSteps] = useState<StepType[]>(['SERVICE', 'SCHEDULE', 'DETAILS', 'CONFIRMATION']);
+    const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+    const [otpPurpose, setOtpPurpose] = useState<OtpPurpose>('ASSET_USAGE');
+    const [otpToken, setOtpToken] = useState<string | null>(null);
+    const [otpVerifiedEmail, setOtpVerifiedEmail] = useState<string | null>(null);
+    const [expiredAssetError, setExpiredAssetError] = useState(false);
 
     const form = useForm<z.infer<typeof bookingFormSchema>>({
         resolver: zodResolver(bookingFormSchema),
@@ -192,9 +201,39 @@ const BusinessBookingPage = () => {
     }, [businessId, user]);
 
     const handleNext = () => setStep(prev => Math.min(prev + 1, bookingSteps.length));
-    const handleBack = () => setStep(prev => Math.max(prev - 1, 1));
-    const goToStepType = (type: StepType) => {
-        const index = bookingSteps.indexOf(type);
+    const handleBack = () => {
+        if (step === 1) {
+            setSelectedService(null);
+            setSelectedProduct(null);
+            setPreSelectedPackage(null);
+            form.setValue('serviceId', '');
+            form.setValue('productId', '');
+            sessionStorage.removeItem('buyAndBookPackage');
+            return;
+        }
+        setStep(prev => Math.max(prev - 1, 1));
+    };
+    const goToStepType = (type: StepType, overrides?: Partial<BookingEngineContext>) => {
+        let currentSteps = bookingSteps;
+
+        if (overrides && business) {
+            const isBuyAndBook = overrides.isBuyAndBook ?? !!sessionStorage.getItem('buyAndBookPackage');
+
+            // Re-calculate steps based on NEW state (before the state update actually reflects in the closure)
+            currentSteps = generateBookingSteps({
+                bookingConfig: business.bookingConfig,
+                paymentMode: business.paymentMode,
+                productType: (selectedProduct || preSelectedPackage) ? 'PACKAGE' : 'SERVICE',
+                requiresResource: selectedService?.requireResource || false,
+                userHasValidPackage: false,
+                isBuyAndBook,
+                paymentPolicy: business.paymentConfig?.paymentPolicy,
+                ...overrides
+            });
+            setBookingSteps(currentSteps);
+        }
+
+        const index = currentSteps.indexOf(type);
         if (index !== -1) setStep(index + 1);
     };
 
@@ -225,7 +264,8 @@ const BusinessBookingPage = () => {
             productType: (selectedProduct || preSelectedPackage) ? 'PACKAGE' : 'SERVICE',
             requiresResource: selectedService?.requireResource || false,
             userHasValidPackage: hasValidPackage,
-            isBuyAndBook
+            isBuyAndBook,
+            paymentPolicy: business.paymentConfig?.paymentPolicy
         });
 
         setBookingSteps(steps);
@@ -236,7 +276,8 @@ const BusinessBookingPage = () => {
         }
     }, [business, selectedService, selectedProduct, preSelectedPackage, availableAssets, step]);
 
-    // Watch email and phone to fetch assets automatically for guest users
+    // Watch fields to ensure whole page re-renders on change (important for summary panel)
+    const clientName = form.watch("clientName");
     const clientEmail = form.watch("clientEmail");
     const clientPhone = form.watch("clientPhone");
     const prevStepRef = useRef(step);
@@ -254,11 +295,35 @@ const BusinessBookingPage = () => {
         if (currentStepType === 'PACKAGE' && activeFilter !== 'packages') {
             setActiveFilter('packages');
         } else if (currentStepType === 'SERVICE' && activeFilter === 'packages') {
-            // Only force reset to 'all' if we are actually entering or staying on SERVICE step 
-            // and we had 'packages' filter. This is fine because it only runs when step changes.
             setActiveFilter('all');
         }
-    }, [step, bookingSteps]);
+
+        // Auto-select payment method
+        const hasValidPackage = availableAssets.some(asset => {
+            if (!selectedServiceId) return true;
+            const allowed = asset.productId?.allowedServiceIds;
+            return !allowed || allowed.length === 0 || allowed.includes(selectedServiceId);
+        });
+
+        if (hasValidPackage && !paymentMethod) {
+            const compatibleAssets = availableAssets.filter(asset => {
+                const allowed = asset.productId?.allowedServiceIds;
+                return !allowed || allowed.length === 0 || allowed.includes(selectedServiceId!);
+            });
+            if (compatibleAssets.length > 0) {
+                const bestAsset = prioritizeAssets(compatibleAssets)[0];
+                setPaymentMethod('ASSET');
+                setSelectedAsset(bestAsset);
+                form.setValue('assetId', bestAsset._id);
+                form.setValue('paymentOption', 'ASSET');
+            }
+        } else if (currentStepType === 'PAYMENT' && !paymentMethod) {
+            if (!business?.paymentConfig?.allowCash && !business?.paymentConfig?.allowTransfer) {
+                setPaymentMethod('STRIPE');
+                form.setValue('paymentOption', 'STRIPE');
+            }
+        }
+    }, [step, bookingSteps, availableAssets, business, paymentMethod, selectedServiceId]);
 
     const fetchAssetsForContact = async (email?: string, phone?: string) => {
         if (isCheckingAssets) return;
@@ -280,14 +345,20 @@ const BusinessBookingPage = () => {
                 setAvailableAssets(assets);
 
                 if (assets.length > 0) {
-                    const compatibleAssets = assets.filter(asset => {
-                        if (!selectedServiceId) return true;
-                        const allowed = asset.productId?.allowedServiceIds;
-                        return !allowed || allowed.length === 0 || allowed.includes(selectedServiceId);
+                    const usableAssets = assets.filter(asset => {
+                        const isServiceAllowed = !selectedServiceId ||
+                            !asset.productId?.allowedServiceIds ||
+                            asset.productId.allowedServiceIds.length === 0 ||
+                            asset.productId.allowedServiceIds.includes(selectedServiceId);
+
+                        const hasUses = asset.isUnlimited || (asset.remainingUses && asset.remainingUses > 0);
+                        const isDateValid = !asset.expiresAt || !selectedDate || new Date(asset.expiresAt) >= selectedDate;
+
+                        return isServiceAllowed && hasUses && isDateValid;
                     });
 
-                    if (compatibleAssets.length > 0) {
-                        const sortedAssets = prioritizeAssets(compatibleAssets);
+                    if (usableAssets.length > 0) {
+                        const sortedAssets = prioritizeAssets(usableAssets);
                         const bestAsset = sortedAssets[0];
 
                         const currentAssetId = form.getValues('assetId');
@@ -295,6 +366,9 @@ const BusinessBookingPage = () => {
 
                         if (!currentAssetId || !isCurrentStillValid) {
                             form.setValue('assetId', bestAsset._id);
+                            form.setValue('paymentOption', 'ASSET');
+                            setPaymentMethod('ASSET');
+                            setSelectedAsset(bestAsset);
                             setActiveTab('credits');
 
                             const expiresAt = bestAsset.expiresAt ? new Date(bestAsset.expiresAt) : null;
@@ -340,7 +414,7 @@ const BusinessBookingPage = () => {
         if (serviceId) {
             const service = services.find(s => s._id === serviceId);
             setSelectedService(service || null);
-            goToStepType('SCHEDULE'); // Auto advance to calendar
+            goToStepType('SCHEDULE', { productType: 'SERVICE' }); // Auto advance to calendar
         } else {
             setSelectedService(null);
         }
@@ -484,12 +558,18 @@ const BusinessBookingPage = () => {
                 packageName: product.name
             }));
             toast.info(`¡Genial! Seleccionaste: ${product.name}. Ahora elige tu horario para reservar.`);
-            goToStepType('SERVICE'); // Go to step 1 to choose service/time
+            goToStepType('SERVICE', { productType: 'PACKAGE', isBuyAndBook: true }); // Go to step 1 to choose service/time
             setActiveFilter('all'); // Show services
         } else {
             sessionStorage.removeItem('buyAndBookPackage');
+            // Clear service selection if it's just a package purchase
+            setSelectedService(null);
+            form.setValue('serviceId', '');
+            form.setValue('date', undefined);
+            form.setValue('time', '');
+
             toast.info(`Has seleccionado: ${product.name}. Procede a confirmar para realizar el pago.`);
-            goToStepType('DETAILS'); // Direct to checkout if buying package only
+            goToStepType('DETAILS', { productType: 'PACKAGE', isBuyAndBook: false }); // Direct to checkout if buying package only
         }
     };
 
@@ -499,7 +579,7 @@ const BusinessBookingPage = () => {
         if (isSubmitting) return;
         setIsSubmitting(true);
 
-        if (selectedService?.requireResource && !selectedResourceId) {
+        if (values.serviceId && selectedService?.requireResource && !selectedResourceId) {
             toast.error("Por favor selecciona un lugar en el mapa");
             setIsSubmitting(false);
             return;
@@ -526,7 +606,7 @@ const BusinessBookingPage = () => {
                 scheduledAt = date.toISOString();
             }
 
-            const bookingData = {
+            const bookingData: any = {
                 businessId,
                 serviceId: values.serviceId,
                 clientName: values.clientName,
@@ -536,13 +616,18 @@ const BusinessBookingPage = () => {
                 resourceId: selectedResourceId || undefined,
                 status: "pending" as const,
                 notes: values.notes,
-                assetId: values.assetId,
+                otpToken: otpToken || undefined,
             };
+
+            // Only include assetId if it's a valid customer asset (not a resource selection)
+            if (values.assetId) {
+                bookingData.assetId = values.assetId;
+            }
 
             const policy = business.paymentConfig?.paymentPolicy || 'RESERVE_ONLY';
 
-            // Scenario 1: Buying a package
-            if (values.productId && !values.assetId) {
+            // Scenario 1: Buying a package (Package purchase takes priority if productId is present)
+            if (values.productId && values.productId !== "") {
                 const isAutoBooking = !!sessionStorage.getItem('buyAndBookPackage');
 
                 // Trim booking data to ensure it fits in Stripe metadata (max 500 chars per value)
@@ -563,8 +648,8 @@ const BusinessBookingPage = () => {
                     clientEmail: values.clientEmail,
                     clientPhone: values.clientPhone,
                     clientName: values.clientName,
-                    successUrl: `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}&type=${isAutoBooking ? 'product-with-booking' : 'product'}`,
-                    cancelUrl: window.location.href,
+                    successUrl: `${window.location.origin}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=${isAutoBooking ? 'product-with-booking' : 'product'}&businessId=${businessId}${isAutoBooking ? `&booking_data=${btoa(JSON.stringify(trimmedBookingData))}` : ''}`,
+                    cancelUrl: `${window.location.origin}/payment/cancel`,
                     bookingData: trimmedBookingData,
                 });
 
@@ -589,13 +674,29 @@ const BusinessBookingPage = () => {
                         status: 'pending_payment'
                     });
 
+                    // Extract numeric amount from price string (e.g., "$800.00 MXN" -> 800.00)
+                    const priceStr = String(selectedService!.price).replace(/[^0-9.]/g, '');
+                    const numericAmount = parseFloat(priceStr) || 0;
+                    const amountInCents = Math.round(numericAmount * 100);
+
+                    // Stripe requires at least ~0.50 USD (approx 10 MXN)
+                    if (amountInCents < 1000) {
+                        toast.error("El precio del servicio es menor al mínimo requerido para pago en línea ($10 MXN).");
+                        setIsSubmitting(false);
+                        return;
+                    }
+
+                    if (!pendingBooking._id) {
+                        toast.error("Error al crear la reserva previa.");
+                        setIsSubmitting(false);
+                        return;
+                    }
+
                     const checkout = await createBookingCheckout({
-                        bookingId: pendingBooking._id!,
-                        businessId,
-                        amount: Math.round(selectedService!.price * 100),
-                        serviceName: selectedService!.name,
-                        successUrl: `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}&type=booking`,
-                        cancelUrl: window.location.href,
+                        bookingId: String(pendingBooking._id),
+                        businessId: String(businessId),
+                        successUrl: `${window.location.origin}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=booking&bookingId=${pendingBooking._id}&businessId=${businessId}`,
+                        cancelUrl: `${window.location.origin}/payment/cancel`,
                     });
 
                     window.location.href = checkout.url;
@@ -640,6 +741,17 @@ const BusinessBookingPage = () => {
                 toast.error("Este horario acaba de ser reservado. Por favor elige otro.");
                 goToStepType('SCHEDULE');
                 form.setValue("time", "");
+                return;
+            }
+
+            if (errData?.code === "ASSET_EXPIRED_FOR_DATE") {
+                setExpiredAssetError(true);
+                return;
+            }
+
+            if (errData?.code === "OTP_REQUIRED") {
+                setIsOtpModalOpen(true);
+                setOtpPurpose(errData.reason);
                 return;
             }
 
@@ -754,46 +866,47 @@ const BusinessBookingPage = () => {
             case 'PACKAGE':
                 return (
                     <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
-                        <CardHeader className="pb-2">
-                            <div className="text-center mb-6 px-2">
+                        <CardHeader className="pb-2 px-3 sm:px-6">
+                            <div className="text-center mb-4 sm:mb-6 px-2">
                                 <div className="flex items-center justify-center gap-2 mb-2">
-                                    <div className="h-1 w-6 bg-primary rounded-full"></div>
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Paso 01</span>
+                                    <div className="h-1 w-4 sm:w-6 bg-primary rounded-full"></div>
+                                    <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-primary">Paso 01</span>
                                 </div>
-                                <CardTitle className="text-3xl lg:text-5xl font-black uppercase italic tracking-tighter dark:text-white leading-tight">
+                                <CardTitle className="text-2xl sm:text-3xl lg:text-5xl font-black uppercase italic tracking-tighter dark:text-white leading-tight px-2">
                                     NUESTROS <span className="text-primary italic">SERVICIOS</span>
                                 </CardTitle>
-                                <CardDescription className="text-base mt-2 px-4 font-medium italic opacity-70">Encuentra la experiencia perfecta para tu transformación</CardDescription>
+                                <CardDescription className="text-sm sm:text-base mt-1 sm:mt-2 px-2 sm:px-4 font-medium italic opacity-70">Encuentra la experiencia perfecta</CardDescription>
                             </div>
 
                             {/* Search & Filter Bar */}
-                            <div className="flex flex-col gap-4 mb-4 px-2 max-w-3xl mx-auto w-full">
-                                <div className="bg-slate-50 dark:bg-slate-900 px-4 py-1 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                            <div className="flex flex-col gap-3 sm:gap-4 mb-4 px-2 max-w-3xl mx-auto w-full">
+                                <div className="bg-slate-50 dark:bg-slate-900 px-3 sm:px-4 py-1 rounded-xl sm:rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
                                     <div className="relative group">
-                                        <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                        <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-4 sm:h-5 w-4 sm:w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                         <input
                                             type="text"
-                                            placeholder="¿Qué servicio buscas hoy?"
-                                            className="w-full pl-8 pr-2 h-14 bg-transparent outline-none text-base font-bold italic"
+                                            placeholder="¿Qué servicio buscas?"
+                                            className="w-full pl-6 sm:pl-8 pr-2 h-10 sm:h-14 bg-transparent outline-none text-sm sm:text-base font-bold italic placeholder:text-sm"
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
                                         />
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-center gap-2 p-1.5 bg-slate-100 dark:bg-slate-900 rounded-[1.2rem] border border-slate-200 dark:border-slate-800">
+                                <div className="flex items-center justify-center gap-1.5 sm:gap-2 p-1 sm:p-1.5 bg-slate-100 dark:bg-slate-900 rounded-lg sm:rounded-[1.2rem] border border-slate-200 dark:border-slate-800">
                                     {[
                                         { id: 'all', label: 'Todos' },
                                         { id: 'presencial', label: 'Presencial' },
                                         { id: 'online', label: 'Online' },
-                                        { id: 'packages', label: 'Ver Paquetes' }
+                                        { id: 'packages', label: 'Paquetes' }
                                     ].map((filter) => (
                                         (filter.id !== 'packages' || products.length > 0) && (
                                             <Button
                                                 key={filter.id}
+                                                type="button"
                                                 variant={activeFilter === filter.id ? 'default' : 'ghost'}
                                                 size="sm"
                                                 className={cn(
-                                                    "rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-[0.15em] h-9 px-4 flex-1 md:flex-none transition-all duration-300",
+                                                    "rounded-lg sm:rounded-xl font-black text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-[0.10em] sm:tracking-[0.15em] h-7 sm:h-9 px-2 sm:px-4 flex-1 md:flex-none transition-all duration-300",
                                                     activeFilter === filter.id && "shadow-lg shadow-primary/20"
                                                 )}
                                                 onClick={() => setActiveFilter(filter.id as any)}
@@ -805,50 +918,50 @@ const BusinessBookingPage = () => {
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="pt-6 px-3 md:px-8 pb-10">
+                        <CardContent className="pt-4 sm:pt-6 px-2 sm:px-3 md:px-8 pb-6 sm:pb-10">
                             {/* Selected Package/Service Banner */}
                             {selectedProduct && (
-                                <div className="mb-8 animate-in fade-in slide-in-from-top-6 duration-700">
-                                    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-transparent border-2 border-amber-500/20 p-6 group">
+                                <div className="mb-6 sm:mb-8 animate-in fade-in slide-in-from-top-6 duration-700">
+                                    <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-amber-500/10 via-amber-400/5 to-transparent border-2 border-amber-500/20 p-4 sm:p-6 group">
                                         {/* Background decoration */}
                                         <div className="absolute -right-8 -top-8 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
                                         <div className="absolute -left-8 -bottom-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
 
-                                        <div className="relative flex items-start gap-4">
+                                        <div className="relative flex items-start gap-3 sm:gap-4">
                                             {/* Icon */}
-                                            <div className="shrink-0 h-16 w-16 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                                                <Sparkles className="h-8 w-8 text-white" />
+                                            <div className="shrink-0 h-12 w-12 sm:h-16 sm:w-16 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                                                <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                                             </div>
 
                                             {/* Content */}
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <Badge className="bg-amber-500 text-white border-0 text-[9px] font-black uppercase tracking-widest px-2 py-0.5">
-                                                        ✓ Ya seleccionado
+                                                <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2 flex-wrap">
+                                                    <Badge className="bg-amber-500 text-white border-0 text-[8px] sm:text-[9px] font-black uppercase tracking-wider sm:tracking-widest px-1.5 sm:px-2 py-0.5">
+                                                        ✓ Seleccionado
                                                     </Badge>
-                                                    <div className="h-1 w-1 rounded-full bg-amber-500/50 animate-pulse"></div>
-                                                    <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">Vía QR</span>
+                                                    <div className="h-1 w-1 rounded-full bg-amber-500/50 animate-pulse hidden sm:block"></div>
+                                                    <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider sm:tracking-widest text-amber-600 dark:text-amber-400 hidden sm:inline">Vía QR</span>
                                                 </div>
 
-                                                <h3 className="text-xl md:text-2xl font-black uppercase italic tracking-tighter text-amber-700 dark:text-amber-400 mb-1 leading-tight">
+                                                <h3 className="text-lg sm:text-xl md:text-2xl font-black uppercase italic tracking-tighter text-amber-700 dark:text-amber-400 mb-1 leading-tight">
                                                     {selectedProduct.name}
                                                 </h3>
 
-                                                <p className="text-xs text-muted-foreground font-medium mb-3 line-clamp-2">
+                                                <p className="text-[10px] sm:text-xs text-muted-foreground font-medium mb-2 sm:mb-3 line-clamp-2">
                                                     {selectedProduct.description || "Paquete premium seleccionado"}
                                                 </p>
 
-                                                <div className="flex items-center gap-4 flex-wrap">
-                                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 rounded-full border border-amber-500/20">
-                                                        <Star className="w-3.5 h-3.5 text-amber-600 fill-amber-600" />
-                                                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-500">
+                                                <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+                                                    <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-amber-500/10 rounded-full border border-amber-500/20">
+                                                        <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 fill-amber-600" />
+                                                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-500">
                                                             {selectedProduct.isUnlimited ? 'Ilimitado' : `${selectedProduct.totalUses} Sesiones`}
                                                         </span>
                                                     </div>
 
-                                                    <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full border border-primary/20">
-                                                        <DollarSign className="w-3.5 h-3.5 text-primary" />
-                                                        <span className="text-[10px] font-black uppercase tracking-wider text-primary">
+                                                    <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-primary/10 rounded-full border border-primary/20">
+                                                        <DollarSign className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" />
+                                                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-primary">
                                                             ${selectedProduct.price} {business.settings?.currency || 'MXN'}
                                                         </span>
                                                     </div>
@@ -857,11 +970,11 @@ const BusinessBookingPage = () => {
                                         </div>
 
                                         {/* Action hint */}
-                                        <div className="mt-4 pt-4 border-t border-amber-500/10 flex items-center justify-between">
-                                            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-500">
-                                                <ArrowDown className="w-4 h-4 animate-bounce" />
-                                                <span className="text-[10px] font-black uppercase tracking-widest italic">
-                                                    Elige un servicio para usar este paquete
+                                        <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-amber-500/10 flex items-center justify-between gap-2">
+                                            <div className="flex items-center gap-1.5 sm:gap-2 text-amber-600 dark:text-amber-500">
+                                                <ArrowDown className="w-3 h-3 sm:w-4 sm:h-4 animate-bounce" />
+                                                <span className="text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-wider sm:tracking-widest italic">
+                                                    Elige un servicio para usar
                                                 </span>
                                             </div>
                                             <button
@@ -871,7 +984,7 @@ const BusinessBookingPage = () => {
                                                     form.setValue('productId', undefined);
                                                     setActiveFilter('all');
                                                 }}
-                                                className="text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors px-3 py-1 rounded-lg hover:bg-destructive/10"
+                                                className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors px-2 sm:px-3 py-1 rounded-lg hover:bg-destructive/10 shrink-0"
                                             >
                                                 Cancelar
                                             </button>
@@ -886,7 +999,7 @@ const BusinessBookingPage = () => {
                                     <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">No hay servicios disponibles</p>
                                 </div>
                             ) : (
-                                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                                <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                                     {(() => {
                                         if (activeFilter === 'packages') {
                                             return products
@@ -895,20 +1008,20 @@ const BusinessBookingPage = () => {
                                                     <motion.div key={product._id} whileHover={{ y: -5 }}>
                                                         <Card
                                                             onClick={() => handleBuyPackage(product)}
-                                                            className="cursor-pointer border-2 border-slate-100 dark:border-slate-800/50 hover:border-amber-500/50 transition-all p-6 rounded-[2rem] h-full flex flex-col group"
+                                                            className="cursor-pointer border-2 border-slate-100 dark:border-slate-800/50 hover:border-amber-500/50 transition-all p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] h-full flex flex-col group"
                                                         >
-                                                            <div className="flex justify-between items-start mb-4">
-                                                                <Badge className="bg-amber-500 text-white border-0 text-[8px] font-black uppercase italic italic px-2">Paquete</Badge>
-                                                                <span className="text-2xl font-black italic text-amber-500 group-hover:scale-110 transition-transform">${product.price}</span>
+                                                            <div className="flex justify-between items-start mb-3 sm:mb-4 gap-2">
+                                                                <Badge className="bg-amber-500 text-white border-0 text-[7px] sm:text-[8px] font-black uppercase italic px-1.5 sm:px-2">Paquete</Badge>
+                                                                <span className="text-xl sm:text-2xl font-black italic text-amber-500 group-hover:scale-110 transition-transform">${product.price}</span>
                                                             </div>
-                                                            <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none mb-2 group-hover:text-amber-500 transition-colors">{product.name}</h4>
-                                                            <p className="text-[10px] text-muted-foreground font-medium mb-6 line-clamp-2">{product.description}</p>
-                                                            <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800/50">
-                                                                <div className="flex justify-between items-center text-[10px] font-black uppercase italic tracking-widest text-slate-400">
+                                                            <h4 className="text-xl sm:text-2xl font-black uppercase italic tracking-tighter leading-none mb-1.5 sm:mb-2 group-hover:text-amber-500 transition-colors">{product.name}</h4>
+                                                            <p className="text-[9px] sm:text-[10px] text-muted-foreground font-medium mb-4 sm:mb-6 line-clamp-2">{product.description}</p>
+                                                            <div className="mt-auto pt-3 sm:pt-4 border-t border-slate-100 dark:border-slate-800/50">
+                                                                <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase italic tracking-wider sm:tracking-widest text-slate-400">
                                                                     <span>Contenido</span>
                                                                     <span className="text-foreground">{product.isUnlimited ? 'Ilimitado' : `${product.totalUses} Usos`}</span>
                                                                 </div>
-                                                                <Button className="w-full mt-4 rounded-xl font-black uppercase italic text-[10px] bg-amber-500 hover:bg-amber-600">Elegir Plan</Button>
+                                                                <Button className="w-full mt-3 sm:mt-4 h-9 sm:h-10 rounded-lg sm:rounded-xl font-black uppercase italic text-[9px] sm:text-[10px] bg-amber-500 hover:bg-amber-600">Elegir Plan</Button>
                                                             </div>
                                                         </Card>
                                                     </motion.div>
@@ -920,20 +1033,32 @@ const BusinessBookingPage = () => {
                                                 const matchesFilter = activeFilter === 'all' || (activeFilter === 'online' ? s.isOnline : !s.isOnline);
                                                 return matchesSearch && matchesFilter;
                                             })
-                                            .map(service => (
-                                                <ServiceCard
-                                                    key={service._id}
-                                                    service={{
-                                                        id: service._id,
-                                                        ...service,
-                                                        duration: `${service.durationMinutes} min`,
-                                                        price: `$${service.price}`
-                                                    }}
-                                                    onBook={() => handleServiceSelect(service._id)}
-                                                    isSelected={selectedServiceId === service._id}
-                                                    primaryColor={business?.settings?.primaryColor}
-                                                />
-                                            ));
+                                            .map(service => {
+                                                const applicablePackages = products
+                                                    // Filter for active packages/passes that include this service
+                                                    .filter(p =>
+                                                        p.active &&
+                                                        (p.type === 'PACKAGE' || p.type === 'PASS') &&
+                                                        (!p.allowedServiceIds || p.allowedServiceIds.length === 0 || p.allowedServiceIds.includes(service._id))
+                                                    )
+                                                    .map(p => ({ id: p._id, name: p.name }));
+
+                                                return (
+                                                    <ServiceCard
+                                                        key={service._id}
+                                                        service={{
+                                                            id: service._id,
+                                                            ...service,
+                                                            duration: `${service.durationMinutes} min`,
+                                                            price: `$${service.price}`
+                                                        }}
+                                                        onBook={() => handleServiceSelect(service._id)}
+                                                        isSelected={selectedServiceId === service._id}
+                                                        primaryColor={business?.settings?.primaryColor}
+                                                        applicablePackages={applicablePackages}
+                                                    />
+                                                );
+                                            });
                                     })()}
                                 </div>
                             )}
@@ -943,34 +1068,37 @@ const BusinessBookingPage = () => {
             case 'SCHEDULE':
                 return (
                     <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
-                        <CardHeader className="pb-4">
-                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-4">
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-2 w-8 bg-primary rounded-full"></div>
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Paso 02</span>
+                        <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
+                            <div className="flex flex-col gap-3 sm:gap-4 md:gap-6 mb-3 sm:mb-4">
+                                <div className="space-y-1 sm:space-y-2">
+                                    <div className="flex items-center gap-1.5 sm:gap-2">
+                                        <div className="h-1 sm:h-2 w-4 sm:w-8 bg-primary rounded-full"></div>
+                                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-primary">Paso 02</span>
                                     </div>
-                                    <CardTitle className="text-4xl lg:text-6xl font-black uppercase italic tracking-tighter leading-none dark:text-white">
+                                    <CardTitle className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black uppercase italic tracking-tighter leading-tight sm:leading-none dark:text-white">
                                         ELIGE TU <span className="text-primary italic">HORARIO</span>
                                     </CardTitle>
-                                    <CardDescription className="text-base font-medium italic opacity-70">Selecciona la fecha y hora que mejor se adapte a ti</CardDescription>
+                                    <CardDescription className="text-sm sm:text-base font-medium italic opacity-70">Selecciona fecha y hora</CardDescription>
                                 </div>
 
                                 {selectedService && (
-                                    <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-900 px-6 py-4 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
-                                        <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                            <Zap className="h-6 w-6" />
+                                    <div className="flex items-center gap-2 sm:gap-3 md:gap-4 bg-slate-50 dark:bg-slate-900 px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 rounded-xl sm:rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+                                        <div className="h-7 w-7 sm:h-10 sm:w-10 md:h-12 md:w-12 rounded-lg sm:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                            <Zap className="h-3.5 w-3.5 sm:h-5 sm:w-5 md:h-6 md:w-6" />
                                         </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Servicio Seleccionado</span>
-                                            <div className="flex items-center gap-3">
-                                                <h4 className="text-lg font-black uppercase italic tracking-tighter leading-none">{selectedService.name}</h4>
+                                        <div className="flex flex-col min-w-0 flex-1">
+                                            <span className="text-[7px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-wider sm:tracking-widest text-muted-foreground mb-0.5 sm:mb-1">Servicio</span>
+                                            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
+                                                <h4 className="text-xs sm:text-base md:text-lg font-black uppercase italic tracking-tighter leading-none truncate">{selectedService.name}</h4>
                                                 <Button
                                                     variant="ghost"
-                                                    className="rounded-xl font-black uppercase italic text-[10px] text-primary hover:bg-primary/10 transition-colors"
+                                                    size="sm"
+                                                    type="button"
+                                                    className="rounded-lg sm:rounded-xl font-black uppercase italic text-[7px] sm:text-[9px] md:text-[10px] text-primary hover:bg-primary/10 transition-colors h-5 sm:h-7 px-1.5 sm:px-3 shrink-0"
                                                     onClick={() => goToStepType('SERVICE')}
                                                 >
-                                                    <ArrowLeft className="w-3.5 h-3.5 mr-2" /> Cambiar
+                                                    <ArrowLeft className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 sm:mr-1" />
+                                                    <span className="hidden sm:inline">Cambiar</span>
                                                 </Button>
                                             </div>
                                         </div>
@@ -978,94 +1106,94 @@ const BusinessBookingPage = () => {
                                 )}
                             </div>
                         </CardHeader>
-                        <CardContent className="px-3 md:px-8 pb-10">
-                            <div className="grid lg:grid-cols-[1fr_400px] gap-8">
+                        <CardContent className="px-2 sm:px-3 md:px-8 pb-6 sm:pb-10">
+                            <div className="flex flex-col lg:grid lg:grid-cols-[1fr_400px] gap-4 sm:gap-6 md:gap-8 max-w-full">
                                 {/* Left: Calendar */}
-                                <div className="space-y-6">
-                                    <div className="bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] p-4 md:p-8 border border-slate-200 dark:border-slate-800 shadow-inner">
+                                <div className="space-y-3 sm:space-y-4 md:space-y-6 w-full">
+                                    <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] p-3 sm:p-4 md:p-6 lg:p-8 border border-slate-200 dark:border-slate-800 shadow-inner w-full">
                                         <Calendar
                                             mode="single"
                                             selected={selectedDate}
                                             onSelect={(date) => {
                                                 if (date) {
-                                                    form.setValue("date", date); // Ensure it matches schema
+                                                    form.setValue("date", date);
                                                     form.setValue("time", "");
                                                 }
                                             }}
                                             disabled={isDateDisabled}
-                                            className="rounded-3xl border-0 shadow-none bg-transparent w-full"
+                                            className="rounded-2xl sm:rounded-3xl border-0 shadow-none bg-transparent w-full mx-auto p-0"
                                             classNames={{
-                                                months: "flex flex-col space-y-4 w-full",
-                                                month: "space-y-6 w-full",
-                                                caption: "flex justify-center pt-1 relative items-center mb-4",
-                                                caption_label: "text-2xl font-black uppercase italic tracking-tighter",
-                                                nav: "flex items-center gap-2",
-                                                nav_button: "h-11 w-11 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700/50 rounded-2xl flex items-center justify-center hover:bg-primary hover:text-white transition-all duration-300",
+                                                months: "flex flex-col space-y-2 sm:space-y-4 w-full",
+                                                month: "space-y-3 sm:space-y-4 md:space-y-6 w-full",
+                                                caption: "flex justify-center pt-1 relative items-center mb-2 sm:mb-3 md:mb-4",
+                                                caption_label: "text-base sm:text-lg md:text-xl lg:text-2xl font-black uppercase italic tracking-tighter",
+                                                nav: "flex items-center gap-1 sm:gap-2",
+                                                nav_button: "h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-11 lg:w-11 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700/50 rounded-xl sm:rounded-2xl flex items-center justify-center hover:bg-primary hover:text-white transition-all duration-300 text-sm sm:text-base",
                                                 table: "w-full border-collapse space-y-1",
-                                                head_row: "flex justify-between mb-4",
-                                                head_cell: "text-muted-foreground w-12 md:w-16 font-black text-[10px] uppercase tracking-widest text-center",
-                                                row: "flex justify-between w-full mt-2",
-                                                cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20",
-                                                day: "h-12 w-12 md:h-16 md:w-16 p-0 font-bold aria-selected:opacity-100 rounded-2xl transition-all duration-300 hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-base",
-                                                day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-xl shadow-primary/20 scale-110 rotate-3",
-                                                day_today: "bg-slate-100 dark:bg-slate-800 text-primary border-2 border-primary/20",
+                                                head_row: "grid grid-cols-7 mb-2 sm:mb-3 md:mb-4 w-full",
+                                                head_cell: "text-muted-foreground w-full font-black text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-wider sm:tracking-widest text-center flex items-center justify-center",
+                                                row: "grid grid-cols-7 w-full mt-1 sm:mt-1.5 md:mt-2",
+                                                cell: "relative p-0 text-center text-xs sm:text-sm focus-within:relative focus-within:z-20 flex items-center justify-center",
+                                                day: "h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-16 lg:w-16 p-0 font-bold aria-selected:opacity-100 rounded-lg sm:rounded-xl md:rounded-2xl transition-all duration-300 hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-xs sm:text-sm md:text-base",
+                                                day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg sm:shadow-xl shadow-primary/20 scale-105 sm:scale-110 rotate-2 sm:rotate-3",
+                                                day_today: "bg-slate-100 dark:bg-slate-800 text-primary border border-primary/20 sm:border-2",
                                                 day_disabled: "text-muted-foreground/20 italic line-through cursor-not-allowed hover:bg-transparent",
                                                 day_outside: "opacity-0",
                                             }}
                                         />
                                     </div>
-                                    <div className="flex items-center gap-3 px-6 py-4 bg-primary/5 rounded-2xl border border-primary/10">
-                                        <CalendarIcon className="h-5 w-5 text-primary" />
-                                        <p className="text-[11px] font-bold uppercase tracking-widest text-primary/80">
-                                            {selectedDate ? `Reservando para el ${format(selectedDate, "EEEE d 'de' MMMM", { locale: es })}` : 'Selecciona una fecha disponible'}
+                                    <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 bg-primary/5 rounded-xl sm:rounded-2xl border border-primary/10">
+                                        <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
+                                        <p className="text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-wider sm:tracking-widest text-primary/80 leading-tight">
+                                            {selectedDate ? `${format(selectedDate, "d 'de' MMM", { locale: es })}` : 'Selecciona fecha'}
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Right: Slots & Resource */}
-                                <div className="space-y-6 flex flex-col">
+                                <div className="space-y-3 sm:space-y-4 md:space-y-6 flex flex-col w-full">
                                     <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-10 duration-1000">
-                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground mb-4 pl-1">Horarios Disponibles</h3>
-                                        <div className="bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-6 flex-1 min-h-[400px]">
+                                        <h3 className="text-[10px] sm:text-xs font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-muted-foreground mb-2 sm:mb-3 md:mb-4 pl-1">Horarios</h3>
+                                        <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-3 sm:p-4 md:p-6 flex-1 min-h-[300px] sm:min-h-[350px] md:min-h-[400px] w-full">
                                             {isLoadingSlots ? (
-                                                <div className="h-full flex flex-col items-center justify-center gap-4 opacity-50">
-                                                    <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                                                    <p className="text-[10px] font-black uppercase tracking-widest italic">Cargando disponibilidad...</p>
+                                                <div className="h-full flex flex-col items-center justify-center gap-3 sm:gap-4 opacity-50">
+                                                    <div className="h-8 w-8 sm:h-10 sm:w-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                                    <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider sm:tracking-widest italic">Cargando...</p>
                                                 </div>
                                             ) : timeSlots.length > 0 ? (
-                                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-2 gap-3">
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 sm:gap-3">
                                                     {timeSlots.map((slot) => (
                                                         <motion.button
                                                             key={slot}
+                                                            type="button"
                                                             whileHover={{ scale: 1.05 }}
                                                             whileTap={{ scale: 0.95 }}
                                                             onClick={() => {
                                                                 form.setValue("time", slot);
-                                                                // Short delay for the ripple effect then auto-advance to next step
                                                                 setTimeout(() => handleNext(), 300);
                                                             }}
                                                             className={cn(
-                                                                "h-14 rounded-2xl border-2 font-black transition-all duration-300 flex items-center justify-center gap-3 group relative overflow-hidden",
+                                                                "h-10 sm:h-12 md:h-14 rounded-xl sm:rounded-2xl border-2 font-black transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 group relative overflow-hidden",
                                                                 selectedTime === slot
                                                                     ? "bg-primary border-primary text-white shadow-lg shadow-primary/20"
                                                                     : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700/50 hover:border-primary/50"
                                                             )}
                                                         >
                                                             <div className={cn(
-                                                                "h-1.5 w-1.5 rounded-full transition-all duration-300",
+                                                                "h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full transition-all duration-300",
                                                                 selectedTime === slot ? "bg-white scale-150 animate-pulse" : "bg-slate-300 dark:bg-slate-600 group-hover:bg-primary"
                                                             )}></div>
-                                                            <span className="text-base italic">{slot}</span>
+                                                            <span className="text-sm sm:text-base italic">{slot}</span>
                                                         </motion.button>
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-white/50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
-                                                    <div className="h-20 w-20 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center mb-6">
-                                                        <Clock className="h-10 w-10 text-slate-300" />
+                                                <div className="h-full flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 text-center bg-white/50 dark:bg-slate-800/50 rounded-2xl sm:rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                                    <div className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center mb-3 sm:mb-4 md:mb-6">
+                                                        <Clock className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-slate-300" />
                                                     </div>
-                                                    <p className="text-base font-bold italic text-muted-foreground mb-2">No hay horarios disponibles</p>
-                                                    <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">Prueba con otra fecha o profesional</p>
+                                                    <p className="text-sm sm:text-base font-bold italic text-muted-foreground mb-1 sm:mb-2">No disponible</p>
+                                                    <p className="text-[9px] sm:text-[10px] uppercase font-black tracking-wider sm:tracking-widest text-slate-400">Prueba otra fecha</p>
                                                 </div>
                                             )}
                                         </div>
@@ -1078,26 +1206,30 @@ const BusinessBookingPage = () => {
             case 'RESOURCE':
                 return (
                     <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
-                        <CardHeader className="pb-4">
-                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-4">
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-2 w-8 bg-primary rounded-full"></div>
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Paso 03</span>
+                        <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
+                            <div className="flex flex-col gap-3 sm:gap-4 md:gap-6 mb-3 sm:mb-4">
+                                <div className="space-y-1 sm:space-y-2">
+                                    <div className="flex items-center gap-1.5 sm:gap-2">
+                                        <div className="h-1 sm:h-2 w-4 sm:w-8 bg-primary rounded-full"></div>
+                                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-primary">Paso 03</span>
                                     </div>
-                                    <CardTitle className="text-4xl lg:text-6xl font-black uppercase italic tracking-tighter leading-none dark:text-white">
-                                        ELIGE TU <span className="text-primary italic">{business?.resourceConfig?.resourceLabel || 'LUGAR'}</span>
+                                    <CardTitle className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black uppercase italic tracking-tighter leading-tight sm:leading-none dark:text-white">
+                                        ELIGE TU <span className="text-primary italic">{
+                                            business?.resourceConfig?.resourceLabel?.toUpperCase() === 'B'
+                                                ? 'BICI'
+                                                : (business?.resourceConfig?.resourceLabel || 'LUGAR')
+                                        }</span>
                                     </CardTitle>
-                                    <CardDescription className="text-base font-medium italic opacity-70">Selecciona el profesional o espacio para tu cita</CardDescription>
+                                    <CardDescription className="text-sm sm:text-base font-medium italic opacity-70">Selecciona profesional o espacio</CardDescription>
                                 </div>
                                 {selectedDate && selectedTime && (
-                                    <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-900 px-6 py-4 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
-                                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                            <CalendarIcon className="h-5 w-5" />
+                                    <div className="flex items-center gap-2 sm:gap-3 md:gap-4 bg-slate-50 dark:bg-slate-900 px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 rounded-xl sm:rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm">
+                                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                            <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                                         </div>
                                         <div>
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Fecha Seleccionada</p>
-                                            <p className="text-sm font-bold italic">{format(selectedDate, "d 'de' MMM")} - {selectedTime}</p>
+                                            <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider sm:tracking-widest text-muted-foreground">Fecha</p>
+                                            <p className="text-xs sm:text-sm font-bold italic">{format(selectedDate, "d 'de' MMM")} - {selectedTime}</p>
                                         </div>
                                     </div>
                                 )}
@@ -1117,7 +1249,6 @@ const BusinessBookingPage = () => {
                                             scheduledAt={scheduledAt}
                                             onResourceSelected={(id) => {
                                                 setSelectedResourceId(id);
-                                                form.setValue("assetId", id);
                                                 // Auto advance after short delay
                                                 setTimeout(() => handleNext(), 500);
                                             }}
@@ -1127,6 +1258,7 @@ const BusinessBookingPage = () => {
                                 })()}
                                 <div className="mt-12 flex justify-between items-center">
                                     <Button
+                                        type="button"
                                         variant="ghost"
                                         onClick={handleBack}
                                         className="h-14 px-8 rounded-2xl font-black uppercase italic tracking-widest text-muted-foreground"
@@ -1134,6 +1266,7 @@ const BusinessBookingPage = () => {
                                         <ArrowLeft className="w-4 h-4 mr-2" /> Volver
                                     </Button>
                                     <Button
+                                        type="button"
                                         onClick={() => handleNext()}
                                         disabled={!selectedResourceId}
                                         className="h-16 px-12 rounded-2xl font-black uppercase italic tracking-tighter text-xl shadow-xl shadow-primary/20"
@@ -1148,17 +1281,17 @@ const BusinessBookingPage = () => {
             case 'DETAILS':
                 return (
                     <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
-                        <CardHeader className="pb-4">
-                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-4">
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-2 w-8 bg-primary rounded-full"></div>
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Paso 04</span>
+                        <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
+                            <div className="flex flex-col gap-3 sm:gap-4 md:gap-6 mb-3 sm:mb-4">
+                                <div className="space-y-1 sm:space-y-2">
+                                    <div className="flex items-center gap-1.5 sm:gap-2">
+                                        <div className="h-1 sm:h-2 w-4 sm:w-8 bg-primary rounded-full"></div>
+                                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-primary">Paso {(bookingSteps.indexOf('DETAILS') + 1).toString().padStart(2, '0')}</span>
                                     </div>
-                                    <CardTitle className="text-4xl lg:text-6xl font-black uppercase italic tracking-tighter leading-none dark:text-white">
+                                    <CardTitle className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black uppercase italic tracking-tighter leading-tight sm:leading-none dark:text-white">
                                         TUS <span className="text-primary italic">DATOS</span>
                                     </CardTitle>
-                                    <CardDescription className="text-base font-medium italic opacity-70">Casi listos, solo necesitamos contactarte</CardDescription>
+                                    <CardDescription className="text-sm sm:text-base font-medium italic opacity-70">Completa tus datos</CardDescription>
                                 </div>
                             </div>
                         </CardHeader>
@@ -1204,6 +1337,11 @@ const BusinessBookingPage = () => {
                                                                     {...field}
                                                                     placeholder="tu@email.com"
                                                                     className="h-14 pl-12 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 font-bold italic focus:ring-primary/20 transition-all"
+                                                                    onChange={(e) => {
+                                                                        field.onChange(e);
+                                                                        if (otpToken) setOtpToken(null);
+                                                                        if (otpVerifiedEmail) setOtpVerifiedEmail(null);
+                                                                    }}
                                                                     onBlur={() => fetchAssetsForContact()}
                                                                 />
                                                             </div>
@@ -1230,24 +1368,38 @@ const BusinessBookingPage = () => {
                                                                 value={field.value}
                                                                 onChange={(phone) => field.onChange(phone)}
                                                                 onBlur={() => fetchAssetsForContact()}
+                                                                specialLabel=""
+                                                                inputProps={{
+                                                                    name: 'clientPhone',
+                                                                    required: true,
+                                                                    autoFocus: false
+                                                                }}
                                                                 inputStyle={{
                                                                     width: '100%',
                                                                     height: '3.5rem',
-                                                                    borderRadius: '1rem',
+                                                                    borderRadius: '1.2rem',
                                                                     border: '2px solid #e2e8f0',
-                                                                    fontSize: '1rem',
+                                                                    fontSize: '1.1rem',
                                                                     fontWeight: '700',
                                                                     fontStyle: 'italic',
-                                                                    paddingLeft: '3rem'
+                                                                    paddingLeft: '3.5rem',
+                                                                    color: '#0f172a', // Navy dark color for text visibility
+                                                                    backgroundColor: '#ffffff'
                                                                 }}
                                                                 buttonStyle={{
                                                                     border: 'none',
                                                                     backgroundColor: 'transparent',
-                                                                    paddingLeft: '0.5rem'
+                                                                    paddingLeft: '0.8rem',
+                                                                    borderRadius: '1.2rem 0 0 1.2rem'
+                                                                }}
+                                                                containerStyle={{
+                                                                    borderRadius: '1.2rem'
                                                                 }}
                                                                 dropdownStyle={{
-                                                                    borderRadius: '1rem',
-                                                                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
+                                                                    borderRadius: '1.2rem',
+                                                                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                                                                    color: '#0f172a',
+                                                                    backgroundColor: '#ffffff'
                                                                 }}
                                                             />
                                                         </FormControl>
@@ -1258,7 +1410,7 @@ const BusinessBookingPage = () => {
                                         </div>
 
                                         {/* Booking Highlights/Security */}
-                                        <div className="mt-10 pt-10 border-t border-slate-200 dark:border-slate-800 grid md:grid-cols-2 gap-8">
+                                        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 grid md:grid-cols-2 gap-8">
                                             <div className="flex items-start gap-4">
                                                 <div className="h-10 w-10 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0">
                                                     <ShieldCheck className="w-5 h-5 text-green-500" />
@@ -1281,24 +1433,75 @@ const BusinessBookingPage = () => {
                                     </div>
 
                                     {/* Action Buttons */}
-                                    <div className="flex items-center justify-between pt-4">
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 pt-3 sm:pt-4">
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             onClick={handleBack}
-                                            className="h-14 px-8 rounded-2xl font-black uppercase italic tracking-widest text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800"
+                                            className="h-10 sm:h-12 md:h-14 px-4 sm:px-6 md:px-8 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-wider sm:tracking-widest text-[10px] sm:text-xs text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 order-2 sm:order-1"
                                         >
-                                            <ArrowLeft className="w-4 h-4 mr-2" /> Volver
+                                            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> Volver
                                         </Button>
                                         <Button
                                             type="button"
                                             onClick={async () => {
                                                 const isValid = await form.trigger(['clientName', 'clientEmail', 'clientPhone']);
-                                                if (isValid) handleNext();
+                                                if (isValid) {
+                                                    // If user is logged in, skip OTP
+                                                    if (user) {
+                                                        handleNext();
+                                                        return;
+                                                    }
+
+                                                    const email = form.getValues('clientEmail');
+                                                    const assetId = form.getValues('assetId');
+                                                    const policy = business?.paymentConfig?.paymentPolicy || 'RESERVE_ONLY';
+
+                                                    // Determine if OTP is needed based on assets or online payment
+                                                    const usableAssetsForBooking = availableAssets.filter(asset => {
+                                                        const isSAllowed = !asset.productId?.allowedServiceIds ||
+                                                            asset.productId.allowedServiceIds.length === 0 ||
+                                                            asset.productId.allowedServiceIds.includes(selectedServiceId!);
+                                                        const isDValid = !asset.expiresAt || !selectedDate || new Date(asset.expiresAt) >= selectedDate;
+                                                        const hasU = asset.isUnlimited || (asset.remainingUses && asset.remainingUses > 0);
+                                                        return isSAllowed && isDValid && hasU;
+                                                    });
+
+                                                    const hasUsableAssets = usableAssetsForBooking.length > 0;
+
+                                                    if (assetId && !usableAssetsForBooking.some(a => a._id === assetId)) {
+                                                        form.setValue('assetId', '');
+                                                        setSelectedAsset(null);
+                                                    }
+
+                                                    const updatedAssetId = form.getValues('assetId');
+                                                    const isOnlinePayment = (policy === 'PAY_BEFORE_BOOKING' || policy === 'PACKAGE_OR_PAY') &&
+                                                        !updatedAssetId &&
+                                                        selectedService &&
+                                                        selectedService.price > 0;
+
+                                                    const isAlreadyVerified = otpToken && otpVerifiedEmail === email;
+
+                                                    if (hasUsableAssets && !isAlreadyVerified) {
+                                                        try {
+                                                            const purpose = 'ASSET_USAGE';
+                                                            const res = await requestOtp(email, businessId!, purpose);
+                                                            if (res.requiresOtp) {
+                                                                setOtpPurpose(purpose);
+                                                                setIsOtpModalOpen(true);
+                                                                return;
+                                                            }
+                                                        } catch (err) {
+                                                            console.error("OTP request failed", err);
+                                                        }
+                                                    }
+
+                                                    handleNext();
+                                                }
                                             }}
-                                            className="h-16 px-12 rounded-2xl font-black uppercase italic tracking-tighter text-xl shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                            className="h-12 sm:h-14 md:h-16 px-6 sm:px-10 md:px-12 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-tighter text-sm sm:text-lg md:text-xl shadow-lg sm:shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all order-1 sm:order-2"
                                         >
-                                            Continuar <ArrowRight className="w-5 h-5 ml-2" />
+                                            Continuar <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
                                         </Button>
                                     </div>
                                 </div>
@@ -1363,202 +1566,378 @@ const BusinessBookingPage = () => {
                         </CardContent>
                     </Card>
                 );
-            case 'CONFIRMATION':
+            case 'PAYMENT':
                 return (
                     <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
-                        <CardHeader className="pb-4">
-                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-4">
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-2 w-8 bg-primary rounded-full"></div>
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Paso 05</span>
+                        <CardHeader className="pb-2 sm:pb-4 px-3 sm:px-6">
+                            <div className="flex flex-col gap-2 sm:gap-4 md:gap-6 mb-2 sm:mb-4">
+                                <div className="space-y-1 sm:space-y-2">
+                                    <div className="flex items-center gap-1.5 sm:gap-2">
+                                        <div className="h-1 sm:h-2 w-4 sm:w-8 bg-primary rounded-full"></div>
+                                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-primary">Paso {(bookingSteps.indexOf('PAYMENT') + 1).toString().padStart(2, '0')}</span>
                                     </div>
-                                    <CardTitle className="text-4xl lg:text-6xl font-black uppercase italic tracking-tighter leading-none dark:text-white">
-                                        REVISA Y <span className="text-primary italic">CONFIRMA</span>
+                                    <CardTitle className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black uppercase italic tracking-tighter leading-tight sm:leading-none dark:text-white">
+                                        MÉTODO DE <span className="text-primary italic">PAGO</span>
                                     </CardTitle>
-                                    <CardDescription className="text-base font-medium italic opacity-70">Verifica que todo esté correcto antes de finalizar</CardDescription>
+                                    <CardDescription className="text-xs sm:text-base font-medium italic opacity-70">Elige cómo pagar</CardDescription>
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="px-3 md:px-8 pb-10">
-                            <div className="grid lg:grid-cols-[1fr_400px] gap-8">
-                                {/* Left: Review & Payment Selection */}
-                                <div className="space-y-8">
-                                    {/* Item summary for mobile (cleaner) */}
-                                    <div className="lg:hidden bg-slate-50 dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800">
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                                                {selectedProduct ? <Ticket className="w-6 h-6" /> : <Zap className="w-6 h-6" />}
-                                            </div>
-                                            <div>
-                                                <h4 className="font-black uppercase italic tracking-tighter">{selectedProduct?.name || selectedService?.name}</h4>
-                                                <p className="text-xs font-bold text-primary">${selectedProduct?.price || selectedService?.price}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground mb-6 pl-1">Método de Pago</h3>
-                                        <div className="grid gap-4">
-                                            {/* Stripe Payment */}
-                                            {((!selectedProduct && business?.paymentConfig?.paymentPolicy !== 'RESERVE_ONLY') || (selectedProduct)) && (
-                                                <motion.button
-                                                    type="button"
-                                                    whileHover={{ scale: 1.02 }}
-                                                    whileTap={{ scale: 0.98 }}
-                                                    onClick={() => {
-                                                        setPaymentMethod('STRIPE');
-                                                        form.setValue('paymentOption', 'STRIPE');
-                                                    }}
-                                                    className={cn(
-                                                        "p-6 rounded-[2rem] border-2 transition-all duration-300 flex items-center justify-between group",
-                                                        paymentMethod === 'STRIPE'
-                                                            ? "bg-primary border-primary text-white shadow-xl shadow-primary/20"
-                                                            : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-primary/50"
-                                                    )}
-                                                >
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={cn(
-                                                            "h-12 w-12 rounded-2xl flex items-center justify-center transition-colors",
-                                                            paymentMethod === 'STRIPE' ? "bg-white/20" : "bg-primary/10 text-primary"
-                                                        )}>
-                                                            <CreditCard className="w-6 h-6" />
-                                                        </div>
-                                                        <div className="text-left">
-                                                            <p className="text-base font-black uppercase italic tracking-tighter">Tarjeta de Crédito/Débito</p>
-                                                            <p className={cn(
-                                                                "text-[10px] font-bold uppercase tracking-widest",
-                                                                paymentMethod === 'STRIPE' ? "text-white/60" : "text-muted-foreground"
-                                                            )}>Pago seguro vía Stripe</p>
-                                                        </div>
+                        <CardContent className="px-2 sm:px-3 md:px-8 pb-6 sm:pb-10">
+                            <div className="grid lg:grid-cols-[1fr_400px] gap-4 sm:gap-6 md:gap-8">
+                                <div className="space-y-4 sm:space-y-6">
+                                    <div className="grid gap-3 sm:gap-4">
+                                        {/* Stripe Payment */}
+                                        {((!selectedProduct && business?.paymentConfig?.paymentPolicy !== 'RESERVE_ONLY') || (selectedProduct)) && (
+                                            <motion.button
+                                                type="button"
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={() => {
+                                                    setPaymentMethod('STRIPE');
+                                                    form.setValue('paymentOption', 'STRIPE');
+                                                }}
+                                                className={cn(
+                                                    "p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl md:rounded-[2rem] border-2 transition-all duration-300 flex items-center justify-between group",
+                                                    paymentMethod === 'STRIPE'
+                                                        ? "bg-primary border-primary text-white shadow-lg sm:shadow-xl shadow-primary/20"
+                                                        : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-primary/50"
+                                                )}
+                                            >
+                                                <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                                                    <div className={cn(
+                                                        "h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl flex items-center justify-center transition-colors shrink-0",
+                                                        paymentMethod === 'STRIPE' ? "bg-white/20" : "bg-primary/10 text-primary"
+                                                    )}>
+                                                        <CreditCard className="w-5 h-5 sm:w-6 sm:h-6" />
                                                     </div>
-                                                    {paymentMethod === 'STRIPE' && <CheckCircle2 className="w-6 h-6" />}
-                                                </motion.button>
-                                            )}
+                                                    <div className="text-left min-w-0 flex-1">
+                                                        <p className="text-sm sm:text-base font-black uppercase italic tracking-tighter truncate">Tarjeta Crédito/Débito</p>
+                                                        <p className={cn(
+                                                            "text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-widest",
+                                                            paymentMethod === 'STRIPE' ? "text-white/60" : "text-muted-foreground"
+                                                        )}>Vía Stripe</p>
+                                                    </div>
+                                                </div>
+                                                {paymentMethod === 'STRIPE' && <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />}
+                                            </motion.button>
+                                        )}
 
-                                            {/* Packages Wallet (If available) */}
-                                            {selectedService && (availableAssets.length > 0) && (
-                                                <div className="space-y-3">
-                                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary px-1">Tus paquetes disponibles</p>
-                                                    <div className="grid gap-3">
-                                                        {prioritizeAssets(availableAssets).map((asset) => {
-                                                            const isCompatible = !asset.productId?.allowedServiceIds ||
-                                                                asset.productId.allowedServiceIds.length === 0 ||
-                                                                asset.productId.allowedServiceIds.includes(selectedServiceId!);
+                                        {/* Packages Wallet (If available) */}
+                                        {selectedService && (availableAssets.length > 0) && (
+                                            <div className="space-y-3">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-primary px-1">Tus paquetes disponibles</p>
+                                                <div className="grid gap-3">
+                                                    {prioritizeAssets(availableAssets).map((asset) => {
+                                                        const isServiceAllowed = !asset.productId?.allowedServiceIds ||
+                                                            asset.productId.allowedServiceIds.length === 0 ||
+                                                            asset.productId.allowedServiceIds.includes(selectedServiceId!);
 
-                                                            return (
-                                                                <motion.button
-                                                                    key={asset._id}
-                                                                    type="button"
-                                                                    disabled={!isCompatible}
-                                                                    whileHover={isCompatible ? { scale: 1.01 } : {}}
-                                                                    onClick={() => {
-                                                                        if (isCompatible) {
-                                                                            setPaymentMethod('ASSET');
-                                                                            setSelectedAsset(asset);
-                                                                            form.setValue('assetId', asset._id);
-                                                                            form.setValue('paymentOption', 'ASSET');
-                                                                        }
-                                                                    }}
-                                                                    className={cn(
-                                                                        "p-4 rounded-2xl border-2 transition-all duration-300 flex items-center justify-between gap-4",
-                                                                        !isCompatible ? "opacity-40 grayscale cursor-not-allowed" : "cursor-pointer",
-                                                                        paymentMethod === 'ASSET' && selectedAsset?._id === asset._id
-                                                                            ? "bg-amber-500 border-amber-500 text-white shadow-lg shadow-amber-500/20"
-                                                                            : "bg-amber-50 dark:bg-amber-950/20 border-amber-100 dark:border-amber-900/30 hover:border-amber-500/50"
-                                                                    )}
-                                                                >
-                                                                    <div className="flex items-center gap-3">
-                                                                        <div className={cn(
-                                                                            "h-10 w-10 rounded-xl flex items-center justify-center",
-                                                                            paymentMethod === 'ASSET' && selectedAsset?._id === asset._id ? "bg-white/20" : "bg-amber-500/10 text-amber-600"
-                                                                        )}>
-                                                                            <Ticket className="w-5 h-5" />
-                                                                        </div>
-                                                                        <div className="text-left">
-                                                                            <p className="text-sm font-black uppercase italic tracking-tighter">{asset.productId?.name || 'Paquete'}</p>
-                                                                            <p className={cn(
-                                                                                "text-[9px] font-bold uppercase tracking-widest",
-                                                                                paymentMethod === 'ASSET' && selectedAsset?._id === asset._id ? "text-white/70" : "text-amber-600/70"
-                                                                            )}>
-                                                                                {asset.isUnlimited ? 'Uso Ilimitado' : `${asset.remainingUses} usos restantes`}
-                                                                            </p>
-                                                                        </div>
+                                                        const isDateValid = !asset.expiresAt || !selectedDate || new Date(asset.expiresAt) >= selectedDate;
+                                                        const isCompatible = isServiceAllowed && isDateValid;
+
+                                                        return (
+                                                            <motion.button
+                                                                key={asset._id}
+                                                                type="button"
+                                                                disabled={!isCompatible}
+                                                                whileHover={isCompatible ? { scale: 1.01 } : {}}
+                                                                onClick={() => {
+                                                                    if (isCompatible) {
+                                                                        setPaymentMethod('ASSET');
+                                                                        setSelectedAsset(asset);
+                                                                        form.setValue('assetId', asset._id);
+                                                                        form.setValue('paymentOption', 'ASSET');
+                                                                    }
+                                                                }}
+                                                                className={cn(
+                                                                    "p-4 rounded-xl sm:rounded-2xl border-2 transition-all duration-300 flex items-center justify-between gap-4",
+                                                                    !isCompatible ? "opacity-40 grayscale cursor-not-allowed" : "cursor-pointer",
+                                                                    paymentMethod === 'ASSET' && selectedAsset?._id === asset._id
+                                                                        ? "bg-amber-600 border-amber-600 text-white shadow-lg shadow-amber-500/20"
+                                                                        : "bg-amber-50 dark:bg-amber-950/20 border-amber-100 dark:border-amber-900/30 hover:border-amber-500/50"
+                                                                )}
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className={cn(
+                                                                        "h-10 w-10 rounded-xl flex items-center justify-center",
+                                                                        paymentMethod === 'ASSET' && selectedAsset?._id === asset._id ? "bg-white/20" : "bg-amber-500/10 text-amber-600"
+                                                                    )}>
+                                                                        <Ticket className="w-5 h-5" />
                                                                     </div>
-                                                                    {paymentMethod === 'ASSET' && selectedAsset?._id === asset._id && <CheckCircle2 className="w-5 h-5" />}
-                                                                </motion.button>
-                                                            );
-                                                        })}
+                                                                    <div className="text-left">
+                                                                        <p className="text-sm font-black uppercase italic tracking-tighter">{asset.productId?.name || 'Paquete'}</p>
+                                                                        <p className={cn(
+                                                                            "text-[9px] font-bold uppercase tracking-widest",
+                                                                            paymentMethod === 'ASSET' && selectedAsset?._id === asset._id ? "text-white/70" : "text-amber-600/70"
+                                                                        )}>
+                                                                            {asset.isUnlimited ? 'Uso Ilimitado' : `${asset.remainingUses} usos restantes`}
+                                                                            {!isCompatible && !isDateValid && (
+                                                                                <span className="block text-red-500 font-black mt-0.5">Vencido para esta fecha</span>
+                                                                            )}
+                                                                            {!isCompatible && !isServiceAllowed && (
+                                                                                <span className="block text-red-500 font-black mt-0.5">No válido para este servicio</span>
+                                                                            )}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                                {isCompatible && paymentMethod === 'ASSET' && selectedAsset?._id === asset._id && <CheckCircle2 className="w-5 h-5" />}
+                                                                {!isCompatible && <X className="w-5 h-5 text-red-500/50" />}
+                                                            </motion.button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* In-Person / Cash */}
+                                        {selectedService && !selectedProduct && business?.paymentConfig?.allowCash && (
+                                            <motion.button
+                                                type="button"
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={() => {
+                                                    setPaymentMethod('IN_PERSON');
+                                                    form.setValue('paymentOption', 'IN_PERSON');
+                                                    form.setValue('assetId', undefined);
+                                                }}
+                                                className={cn(
+                                                    "p-6 rounded-[2rem] border-2 transition-all duration-300 flex items-center justify-between group",
+                                                    paymentMethod === 'IN_PERSON'
+                                                        ? "bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-900/20"
+                                                        : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-900/50"
+                                                )}
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className={cn(
+                                                        "h-12 w-12 rounded-2xl flex items-center justify-center transition-colors",
+                                                        paymentMethod === 'IN_PERSON' ? "bg-white/20" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                                                    )}>
+                                                        <Receipt className="w-6 h-6" />
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <p className="text-base font-black uppercase italic tracking-tighter">Pago en Establecimiento</p>
+                                                        <p className={cn(
+                                                            "text-[10px] font-bold uppercase tracking-widest",
+                                                            paymentMethod === 'IN_PERSON' ? "text-white/60" : "text-muted-foreground"
+                                                        )}>Reserva ahora, paga al llegar</p>
                                                     </div>
                                                 </div>
-                                            )}
-
-                                            {/* In-Person / Cash */}
-                                            {selectedService && !selectedProduct && business?.paymentConfig?.allowCash && (
-                                                <motion.button
-                                                    type="button"
-                                                    whileHover={{ scale: 1.02 }}
-                                                    whileTap={{ scale: 0.98 }}
-                                                    onClick={() => {
-                                                        setPaymentMethod('IN_PERSON');
-                                                        form.setValue('paymentOption', 'IN_PERSON');
-                                                        form.setValue('assetId', undefined);
-                                                    }}
-                                                    className={cn(
-                                                        "p-6 rounded-[2rem] border-2 transition-all duration-300 flex items-center justify-between group",
-                                                        paymentMethod === 'IN_PERSON'
-                                                            ? "bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-900/20"
-                                                            : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-900/50"
-                                                    )}
-                                                >
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={cn(
-                                                            "h-12 w-12 rounded-2xl flex items-center justify-center transition-colors",
-                                                            paymentMethod === 'IN_PERSON' ? "bg-white/20" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                                                        )}>
-                                                            <Receipt className="w-6 h-6" />
-                                                        </div>
-                                                        <div className="text-left">
-                                                            <p className="text-base font-black uppercase italic tracking-tighter">Pago en Establecimiento</p>
-                                                            <p className={cn(
-                                                                "text-[10px] font-bold uppercase tracking-widest",
-                                                                paymentMethod === 'IN_PERSON' ? "text-white/60" : "text-muted-foreground"
-                                                            )}>Reserva ahora, paga al llegar</p>
-                                                        </div>
-                                                    </div>
-                                                    {paymentMethod === 'IN_PERSON' && <CheckCircle2 className="w-6 h-6" />}
-                                                </motion.button>
-                                            )}
-                                        </div>
+                                                {paymentMethod === 'IN_PERSON' && <CheckCircle2 className="w-6 h-6" />}
+                                            </motion.button>
+                                        )}
                                     </div>
 
-                                    {/* Final Action */}
-                                    <div className="flex flex-col gap-4">
-                                        <Button
-                                            type="submit"
-                                            disabled={isSubmitting || !paymentMethod}
-                                            className="h-20 w-full rounded-[2rem] font-black uppercase italic tracking-tighter text-2xl shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all relative overflow-hidden group"
-                                        >
-                                            {isSubmitting ? (
-                                                <div className="flex items-center gap-3">
-                                                    <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                                    <span>Procesando...</span>
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center justify-center gap-3">
-                                                    <span>Confirmar {selectedProduct ? 'Compra' : 'Reserva'}</span>
-                                                    <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
-                                                </div>
-                                            )}
-                                        </Button>
+                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 pt-3 sm:pt-4">
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             onClick={handleBack}
-                                            className="h-12 font-black uppercase italic tracking-widest text-muted-foreground"
+                                            className="h-10 sm:h-12 md:h-14 px-4 sm:px-6 md:px-8 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-wider sm:tracking-widest text-[10px] sm:text-xs text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 order-2 sm:order-1"
                                         >
-                                            Corregir datos
+                                            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> Volver
                                         </Button>
+                                        <Button
+                                            type="button"
+                                            onClick={() => handleNext()}
+                                            disabled={!paymentMethod}
+                                            className="h-12 sm:h-14 md:h-16 px-8 sm:px-10 md:px-12 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-tighter text-base sm:text-lg md:text-xl shadow-lg sm:shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all order-1 sm:order-2"
+                                        >
+                                            Continuar <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4 sm:space-y-6">
+                                    <div className="bg-slate-900 dark:bg-slate-950 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] p-5 sm:p-6 md:p-8 text-white shadow-xl sm:shadow-2xl relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/30 transition-colors duration-500"></div>
+
+                                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-6 flex items-center gap-3">
+                                            <Search className="w-3.5 h-3.5" /> Tu Selección
+                                        </h3>
+
+                                        {selectedProduct && (
+                                            <div className="mb-6 pb-6 border-b border-white/10">
+                                                <Badge className="bg-amber-500 text-white border-0 text-[8px] font-black uppercase italic mb-2">Paquete</Badge>
+                                                <h4 className="text-xl font-black uppercase italic tracking-tighter leading-none mb-1 text-amber-500">{selectedProduct.name}</h4>
+                                                <p className="text-2xl font-black italic">${selectedProduct.price}</p>
+                                            </div>
+                                        )}
+
+                                        {selectedService && !selectedProduct && (
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none mb-2">{selectedService.name}</h4>
+                                                    <div className="flex items-center gap-3 opacity-60">
+                                                        <Clock className="w-3.5 h-3.5" />
+                                                        <span className="text-[11px] font-bold uppercase tracking-widest">{selectedService.durationMinutes} min</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-6 mt-6 border-t border-white/5 space-y-4">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center">
+                                                            <CalendarIcon className="w-5 h-5 text-primary" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Fecha Reserva</p>
+                                                            <p className="text-sm font-bold italic">{selectedDate ? format(selectedDate, "d 'de' MMMM, yyyy", { locale: es }) : '---'}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center">
+                                                            <Clock className="w-5 h-5 text-primary" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Horario</p>
+                                                            <p className="text-sm font-bold italic">{selectedTime || '---'}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="mt-10 bg-white/5 rounded-2xl p-4 border border-white/10 flex items-center justify-between">
+                                            <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Total a pagar</span>
+                                            <span className="text-3xl font-black italic text-primary">${selectedProduct ? selectedProduct.price : (selectedService?.price || 0)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                );
+            case 'CONFIRMATION':
+                return (
+                    <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
+                        <CardHeader className="pb-2 sm:pb-4 px-3 sm:px-6">
+                            <div className="flex flex-col gap-2 sm:gap-4 md:gap-6 mb-2 sm:mb-4">
+                                <div className="space-y-1 sm:space-y-2">
+                                    <div className="flex items-center gap-1.5 sm:gap-2">
+                                        <div className="h-1 sm:h-2 w-4 sm:w-8 bg-primary rounded-full"></div>
+                                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-primary">Paso {(bookingSteps.indexOf('CONFIRMATION') + 1).toString().padStart(2, '0')}</span>
+                                    </div>
+                                    <CardTitle className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black uppercase italic tracking-tighter leading-tight sm:leading-none dark:text-white">
+                                        REVISA Y <span className="text-primary italic">CONFIRMA</span>
+                                    </CardTitle>
+                                    <CardDescription className="text-xs sm:text-base font-medium italic opacity-70">Verifica los datos</CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="px-2 sm:px-3 md:px-8 pb-6 sm:pb-10">
+                            <div className="grid lg:grid-cols-[minmax(0,1fr)_400px] gap-4 sm:gap-6 md:gap-8">
+                                {/* Left: Review & Payment Selection */}
+                                <div className="space-y-3 sm:space-y-6 md:space-y-8">
+                                    {/* Item summary for mobile (cleaner) */}
+                                    <div className="lg:hidden bg-slate-50 dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-3 sm:p-6 border border-slate-200 dark:border-slate-800">
+                                        <div className="flex items-center gap-3 sm:gap-4">
+                                            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                                {selectedProduct ? <Ticket className="w-5 h-5 sm:w-6 sm:h-6" /> : <Zap className="w-5 h-5 sm:w-6 sm:h-6" />}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h4 className="font-black uppercase italic tracking-tighter text-sm sm:text-base truncate">{selectedProduct?.name || selectedService?.name}</h4>
+                                                <p className="text-xs sm:text-sm font-bold text-primary">${selectedProduct?.price || selectedService?.price}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-50 dark:bg-slate-900 rounded-[1.5rem] sm:rounded-[2.5rem] p-4 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-800 space-y-4 sm:space-y-6 md:space-y-8">
+                                        <div>
+                                            <h3 className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-muted-foreground mb-3 sm:mb-6 pl-1">Resumen de Pago</h3>
+                                            <div className="p-3 sm:p-6 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                                                <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                                                    <div className="h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                                        {paymentMethod === 'STRIPE' ? <CreditCard className="w-4 h-4 sm:w-6 sm:h-6" /> :
+                                                            paymentMethod === 'ASSET' ? <Ticket className="w-4 h-4 sm:w-6 sm:h-6" /> : <Receipt className="w-4 h-4 sm:w-6 sm:h-6" />}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs sm:text-base font-black uppercase italic tracking-tighter truncate">
+                                                            {paymentMethod === 'STRIPE' ? 'Tarjeta Crédito/Débito' :
+                                                                paymentMethod === 'ASSET' ? (selectedAsset?.productId?.name || 'Paquete Seleccionado') :
+                                                                    paymentMethod === 'IN_PERSON' ? 'Pago en Sitio' :
+                                                                        business?.paymentConfig?.allowTransfer ? 'Transferencia' :
+                                                                            (!bookingSteps.includes('PAYMENT') ? (selectedService?.price === 0 ? 'Sin Costo' : 'Reserva Directa') : 'Pendiente')}
+                                                        </p>
+                                                        <p className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground truncate">
+                                                            {!bookingSteps.includes('PAYMENT') && !paymentMethod ? 'Reserva Garantizada' : 'Método Seleccionado'}
+                                                        </p>
+                                                        {paymentMethod === 'ASSET' && otpToken && (
+                                                            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-green-500 bg-green-500/10 px-2 py-0.5 rounded-md w-fit">
+                                                                <ShieldCheck className="w-3 h-3" />
+                                                                Crédito protegido ✔️
+                                                            </div>
+                                                        )}
+                                                        {paymentMethod === 'ASSET' && selectedAsset && (
+                                                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                                                                <div className="grid grid-cols-2 gap-4">
+                                                                    <div className="space-y-1">
+                                                                        <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60">Balance Actual</p>
+                                                                        <p className="text-xs font-black italic">{selectedAsset.isUnlimited ? '∞' : selectedAsset.remainingUses} créditos</p>
+                                                                    </div>
+                                                                    <div className="space-y-1 text-right">
+                                                                        <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60">Esta Reserva</p>
+                                                                        <p className="text-xs font-black italic text-amber-500">-1 crédito</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="bg-primary/5 rounded-xl p-3 flex items-center justify-between border border-primary/10">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <Ticket className="w-3 h-3 text-primary/60" />
+                                                                        <span className="text-[9px] font-black uppercase tracking-widest text-primary/80">Balance Final</span>
+                                                                    </div>
+                                                                    <span className="text-sm font-black italic text-primary">{selectedAsset.isUnlimited ? '∞' : (selectedAsset.remainingUses! - 1)}</span>
+                                                                </div>
+                                                                {selectedAsset.expiresAt && (
+                                                                    <div className="flex items-center gap-1.5 pt-1 px-1">
+                                                                        <Clock className="w-3 h-3 text-muted-foreground/60" />
+                                                                        <p className="text-[9px] text-muted-foreground font-medium italic">
+                                                                            Vence el {format(new Date(selectedAsset.expiresAt), "d 'de' MMM, yyyy", { locale: es })}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-primary font-black uppercase italic text-[8px] sm:text-[10px] px-1.5 sm:px-2 h-7 sm:h-8"
+                                                    onClick={() => goToStepType('PAYMENT')}
+                                                >
+                                                    Cambiar
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {/* Final Action */}
+                                        <div className="flex flex-col gap-3 sm:gap-4">
+                                            <Button
+                                                type="submit"
+                                                disabled={isSubmitting || (bookingSteps.includes('PAYMENT') && !paymentMethod)}
+                                                className="h-12 sm:h-16 md:h-20 w-full rounded-xl sm:rounded-2xl md:rounded-[2rem] font-black uppercase italic tracking-tighter text-base sm:text-xl md:text-2xl shadow-xl sm:shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all relative overflow-hidden group"
+                                            >
+                                                {isSubmitting ? (
+                                                    <div className="flex items-center gap-2 sm:gap-3">
+                                                        <div className="h-4 w-4 sm:h-5 sm:w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                        <span>Procesando...</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center justify-center gap-2 sm:gap-3">
+                                                        <span>Confirmar {selectedProduct ? 'Compra' : 'Reserva'}</span>
+                                                        <ArrowRight className="w-4 h-4 sm:w-6 sm:h-6 group-hover:translate-x-2 transition-transform" />
+                                                    </div>
+                                                )}
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                onClick={handleBack}
+                                                className="h-9 sm:h-12 font-black uppercase italic tracking-widest text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 text-[10px] sm:text-sm"
+                                            >
+                                                Corregir datos
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1615,11 +1994,15 @@ const BusinessBookingPage = () => {
                                                     <div className="space-y-3">
                                                         <div className="flex items-center gap-3">
                                                             <User className="w-3.5 h-3.5 text-primary" />
-                                                            <span className="text-xs font-bold truncate opacity-80">{form.watch('clientName') || '---'}</span>
+                                                            <span className="text-xs font-bold truncate opacity-80">{clientName || '---'}</span>
                                                         </div>
                                                         <div className="flex items-center gap-3">
                                                             <Mail className="w-3.5 h-3.5 text-primary" />
-                                                            <span className="text-xs font-bold truncate opacity-80">{form.watch('clientEmail') || '---'}</span>
+                                                            <span className="text-xs font-bold truncate opacity-80">{clientEmail || '---'}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <Phone className="w-3.5 h-3.5 text-primary" />
+                                                            <span className="text-xs font-bold truncate opacity-80">{clientPhone || '---'}</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1629,10 +2012,12 @@ const BusinessBookingPage = () => {
                                                     <div className="flex items-end justify-between mb-4">
                                                         <p className="text-xs font-black uppercase tracking-widest opacity-60">Total Final</p>
                                                         <p className="text-5xl font-black italic text-primary tracking-tighter">
-                                                            ${selectedProduct ? selectedProduct.price : (selectedService?.price || 0)}
+                                                            {paymentMethod === 'ASSET' ? '$0' : `$${selectedProduct ? selectedProduct.price : (selectedService?.price || 0)}`}
                                                         </p>
                                                     </div>
-                                                    <p className="text-[9px] font-bold text-center opacity-30 uppercase tracking-widest">Incluye todos los impuestos y cargos</p>
+                                                    <p className="text-[9px] font-bold text-center opacity-30 uppercase tracking-widest">
+                                                        {paymentMethod === 'ASSET' ? 'Cubierto por tu paquete' : 'Incluye todos los impuestos y cargos'}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>
@@ -1655,6 +2040,7 @@ const BusinessBookingPage = () => {
                 return null;
         }
     };
+
 
     if (!business) {
         return (
@@ -1685,10 +2071,10 @@ const BusinessBookingPage = () => {
                     borderColor: 'transparent'
                 } : {}}
             >
-                <div className="max-w-5xl mx-auto px-4 py-6 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                <div className="max-w-5xl mx-auto px-2 sm:px-4 py-2.5 sm:py-6 flex items-center justify-between">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 mr-2">
                         {business.logoUrl ? (
-                            <div className="h-16 w-16 rounded-xl overflow-hidden flex items-center justify-center bg-muted">
+                            <div className="h-9 w-9 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl overflow-hidden flex items-center justify-center bg-muted shrink-0">
                                 <img
                                     src={business.logoUrl}
                                     alt={`${business.businessName} logo`}
@@ -1698,26 +2084,44 @@ const BusinessBookingPage = () => {
                                         e.currentTarget.style.display = 'none';
                                         const parent = e.currentTarget.parentElement;
                                         if (parent) {
-                                            parent.innerHTML = '<div class="h-16 w-16 rounded-xl bg-primary/10 flex items-center justify-center"><svg class="h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M14 8h1"/><path d="M6 21V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/></svg></div>';
+                                            parent.innerHTML = '<div class="h-9 w-9 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl bg-primary/10 flex items-center justify-center"><svg class="h-4 w-4 sm:h-8 sm:w-8 text-primary" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M14 8h1"/><path d="M6 21V4a2 2 0 0 1 2-2h8a2 0 0 1 2 2v17"/></svg></div>';
                                         }
                                     }}
                                 />
                             </div>
                         ) : (
-                            <div className="h-16 w-16 rounded-xl bg-primary/10 flex items-center justify-center">
-                                <Building2 className="h-8 w-8 text-primary" />
+                            <div className="h-9 w-9 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                                <Building2 className="h-4 w-4 sm:h-8 sm:w-8 text-primary" />
                             </div>
                         )}
-                        <div>
-                            <h1 className="text-2xl font-bold">{business.businessName}</h1>
-                            <p className="text-sm text-muted-foreground">{t('booking.header.system')}</p>
+                        <div className="min-w-0 flex-1">
+                            <h1 className="text-sm sm:text-2xl font-bold truncate leading-tight">{business.businessName}</h1>
+                            <p className="text-[10px] sm:text-sm text-muted-foreground truncate opacity-70">{t('booking.header.system')}</p>
                         </div>
                     </div>
-                    <BusinessThemeToggle hasCustomTheme={!!business.settings?.primaryColor} />
+                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                        {user && (
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => {
+                                    logout();
+                                    toast.success(t('auth.logout_success') || 'Sesión cerrada exitosamente');
+                                    navigate('/');
+                                }}
+                                className="ios-btn h-8 w-8 sm:h-10 sm:w-10"
+                                title={t('auth.logout') || 'Cerrar sesión'}
+                            >
+                                <LogOut className="h-4 w-4 sm:h-[1.2rem] sm:w-[1.2rem]" />
+                                <span className="sr-only">{t('auth.logout') || 'Cerrar sesión'}</span>
+                            </Button>
+                        )}
+                        <BusinessThemeToggle hasCustomTheme={!!business.settings?.primaryColor} />
+                    </div>
                 </div>
             </div>
 
-            <div className="max-w-5xl mx-auto px-3 md:px-4 py-6 md:py-8 space-y-6 md:space-y-8">
+            <div className="max-w-5xl mx-auto px-1.5 sm:px-4 py-4 sm:py-8 space-y-4 sm:space-y-8">
                 {/* Stepper */}
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -1885,6 +2289,20 @@ const BusinessBookingPage = () => {
                     </div>
                 )
             }
+            <OtpVerificationModal
+                isOpen={isOtpModalOpen}
+                onClose={() => setIsOtpModalOpen(false)}
+                onSuccess={(token) => {
+                    setOtpToken(token);
+                    setOtpVerifiedEmail(form.getValues('clientEmail'));
+                    toast.success("Tus créditos han sido verificados. Se descontarán automáticamente al confirmar la reserva.");
+                    handleNext();
+                }}
+                email={form.getValues('clientEmail')}
+                businessId={businessId!}
+                purpose={otpPurpose}
+            />
+
             <AlertDialog open={!!conflictError} onOpenChange={(open) => !open && setConflictError(null)}>
                 <AlertDialogContent className="max-h-[90vh] overflow-y-auto">
                     <AlertDialogHeader>
@@ -1933,6 +2351,41 @@ const BusinessBookingPage = () => {
                     />
                 )
             }
+
+            <AlertDialog open={expiredAssetError} onOpenChange={setExpiredAssetError}>
+                <AlertDialogContent className="rounded-[2rem] border-2 border-amber-500/20 shadow-2xl">
+                    <AlertDialogHeader>
+                        <div className="h-16 w-16 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 mb-4 mx-auto">
+                            <CalendarIcon className="w-8 h-8" />
+                        </div>
+                        <AlertDialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-center">
+                            Paquete <span className="text-amber-500">Expirado</span>
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-center text-base font-medium italic opacity-70">
+                            Lo sentimos, tu paquete no será válido para la fecha seleccionada ({selectedDate ? format(selectedDate, "d 'de' MMMM", { locale: es }) : '---'}).
+                            {selectedAsset?.expiresAt && (
+                                <span className="block mt-2 font-black text-amber-500">
+                                    Tu paquete vence el {format(new Date(selectedAsset.expiresAt), "d 'de' MMMM, yyyy", { locale: es })}
+                                </span>
+                            )}
+                            <span className="block mt-2">
+                                Por favor, elige una fecha anterior al vencimiento o usa otro método de pago.
+                            </span>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="sm:justify-center mt-6">
+                        <AlertDialogAction
+                            onClick={() => {
+                                setExpiredAssetError(false);
+                                goToStepType('SCHEDULE');
+                            }}
+                            className="bg-amber-500 hover:bg-amber-600 text-white font-black uppercase italic tracking-widest px-8 h-12 rounded-xl shadow-xl shadow-amber-500/20"
+                        >
+                            Cambiar Fecha
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div >
     );
 };

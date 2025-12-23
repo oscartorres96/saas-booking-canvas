@@ -1,10 +1,14 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Req, Query } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { ProductsService } from './products.service';
+import { StripeSyncService } from '../stripe/stripe-sync.service';
 
 @Controller('products')
 export class ProductsController {
-    constructor(private readonly productsService: ProductsService) { }
+    constructor(
+        private readonly productsService: ProductsService,
+        private readonly stripeSyncService: StripeSyncService,
+    ) { }
 
     @Get('business/:businessId')
     async findAll(@Param('businessId') businessId: string) {
@@ -27,5 +31,12 @@ export class ProductsController {
     @Delete(':id')
     async remove(@Param('id') id: string) {
         return this.productsService.remove(id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post(':id/stripe/retry')
+    async retryStripeSync(@Param('id') id: string) {
+        await this.stripeSyncService.syncProduct(id);
+        return { success: true };
     }
 }

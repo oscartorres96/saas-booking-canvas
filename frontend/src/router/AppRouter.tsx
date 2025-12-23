@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AdminDashboard from '../pages/admin/AdminDashboard';
-import BookingPage from '../pages/BookingPage';
 import BusinessDashboard from '../pages/business/BusinessDashboard';
 import BusinessBookingPage from '../pages/business/BusinessBookingPage';
 import Landing from '../pages/Landing';
@@ -24,7 +23,6 @@ const AppRouter = () => (
   >
     <Routes>
       <Route path="/" element={<Landing />} />
-      <Route path="/:businessSlug" element={<BookingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Login />} />
       <Route path="/activate/:token" element={<ActivateAccount />} />
@@ -80,14 +78,6 @@ const AppRouter = () => (
         element={
           <PrivateRoute roles={['owner', 'business']}>
             <BusinessDashboard />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/bookings"
-        element={
-          <PrivateRoute>
-            <BookingPage />
           </PrivateRoute>
         }
       />

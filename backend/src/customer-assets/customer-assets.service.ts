@@ -11,7 +11,7 @@ export class CustomerAssetsService {
         @InjectModel(Product.name) private productModel: Model<ProductDocument>,
     ) { }
 
-    async createFromPurchase(businessId: string, clientEmail: string, productId: string, clientPhone?: string, stripeSessionId?: string) {
+    async createFromPurchase(businessId: string, clientEmail: string, productId: string, clientPhone?: string, stripeSessionId?: string, stripePaymentIntentId?: string) {
         // Idempotency check: if stripeSessionId is provided, check if we already processed this session
         if (stripeSessionId) {
             const existing = await this.assetModel.findOne({ stripeSessionId });
@@ -39,6 +39,7 @@ export class CustomerAssetsService {
             expiresAt,
             status: AssetStatus.Active,
             stripeSessionId,
+            stripePaymentIntentId,
         });
 
         return asset.save();
@@ -89,20 +90,23 @@ export class CustomerAssetsService {
      * Consumes one use from the asset.
      * Uses findOneAndUpdate for atomic decrement to prevent race conditions.
      */
-    async consumeUse(assetId: string, verificationContact?: { email?: string; phone?: string }) {
+    async consumeUse(assetId: string, options?: { email?: string; phone?: string; referenceDate?: Date }) {
         const now = new Date();
+        const compareDate = (options?.referenceDate && options.referenceDate > now) ? options.referenceDate : now;
 
         // First find to check if it's unlimited and verify ownership
         const existing = await this.assetModel.findById(assetId);
         if (!existing) throw new BadRequestException('Asset not found');
 
         // Verify ownership if contact info is provided
-        if (verificationContact) {
-            const matchesEmail = verificationContact.email && existing.clientEmail === verificationContact.email;
-            const matchesPhone = verificationContact.phone && existing.clientPhone === verificationContact.phone;
+        if (options) {
+            const matchesEmail = options.email && existing.clientEmail === options.email;
+            const matchesPhone = options.phone && existing.clientPhone === options.phone;
 
-            if (!matchesEmail && !matchesPhone) {
-                throw new BadRequestException('El paquete seleccionado no pertenece a tu cuenta (email/teléfono)');
+            if (options.email || options.phone) {
+                if (!matchesEmail && !matchesPhone) {
+                    throw new BadRequestException('El paquete seleccionado no pertenece a tu cuenta (email/teléfono)');
+                }
             }
         }
 
@@ -116,7 +120,7 @@ export class CustomerAssetsService {
                     status: AssetStatus.Active,
                     $or: [
                         { expiresAt: { $exists: false } },
-                        { expiresAt: { $gt: now } }
+                        { expiresAt: { $gt: compareDate } }
                     ]
                 },
                 {
@@ -134,7 +138,7 @@ export class CustomerAssetsService {
                     remainingUses: { $gt: 0 },
                     $or: [
                         { expiresAt: { $exists: false } },
-                        { expiresAt: { $gt: now } }
+                        { expiresAt: { $gt: compareDate } }
                     ]
                 },
                 {
@@ -146,7 +150,10 @@ export class CustomerAssetsService {
         }
 
         if (!updatedAsset) {
-            throw new BadRequestException('El paquete no está disponible, no tiene usos restantes o ha expirado.');
+            throw new BadRequestException({
+                message: 'El paquete no está disponible para esta fecha, no tiene usos restantes o ha expirado.',
+                code: 'ASSET_EXPIRED_FOR_DATE'
+            });
         }
 
         // Check if we just consumed the last use for limited assets

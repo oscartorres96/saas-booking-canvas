@@ -1,25 +1,25 @@
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateBookingCheckoutDto {
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
-    bookingId!: string;
+    bookingId?: string;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
-    businessId!: string;
+    businessId?: string;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsNumber()
-    amount!: number;
+    amount?: number;
 
     @IsOptional()
     @IsString()
     currency?: string;
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
-    serviceName!: string;
+    serviceName?: string;
 
     @IsOptional()
     @IsString()

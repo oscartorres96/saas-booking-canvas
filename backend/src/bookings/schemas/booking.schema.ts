@@ -71,6 +71,12 @@ export class Booking {
 
   @Prop()
   assetId?: string;
+
+  @Prop()
+  stripeSessionId?: string;
+
+  @Prop()
+  stripePaymentIntentId?: string;
 }
 
 

@@ -18,6 +18,12 @@ export interface Product {
     validityDays?: number;
     allowedServiceIds: string[];
     active: boolean;
+    stripe?: {
+        syncStatus: 'PENDING' | 'SYNCING' | 'SYNCED' | 'ERROR';
+        lastSyncError?: string;
+        lastSyncedAt?: string;
+        retryCount?: number;
+    };
 }
 
 export const getProductsByBusiness = async (businessId: string): Promise<Product[]> => {
@@ -51,4 +57,9 @@ export const createProductCheckout = async (payload: {
 }): Promise<{ sessionId: string; url: string }> => {
     const { data } = await apiClient.post<{ success: boolean; data: { sessionId: string; url: string } }>('/stripe/checkout/product', payload);
     return data.data;
+};
+
+export const retryProductSync = async (productId: string): Promise<{ success: boolean }> => {
+    const { data } = await apiClient.post<{ success: boolean }>(`/products/${productId}/stripe/retry`);
+    return data;
 };

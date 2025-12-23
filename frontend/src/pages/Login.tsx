@@ -219,7 +219,7 @@ const Login = () => {
 
               <div className="text-center mt-4">
                 <Button variant="link" onClick={() => navigate('/')} className="text-sm text-muted-foreground">
-                  ← Volver al inicio
+                  ← {t('common.back_to_home')}
                 </Button>
               </div>
             </div>

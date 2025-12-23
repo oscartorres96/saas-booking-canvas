@@ -79,6 +79,7 @@ import {
   createBusiness,
   getAllBusinesses,
   updateBusiness,
+  updatePaymentConfig,
   type Business
 } from "@/api/businessesApi";
 
@@ -142,6 +143,7 @@ const AdminDashboard = () => {
   const [editOwnerEmail, setEditOwnerEmail] = useState("");
   const [editOwnerName, setEditOwnerName] = useState("");
   const [editOwnerPassword, setEditOwnerPassword] = useState("");
+  const [editStripeConnectAccountId, setEditStripeConnectAccountId] = useState("");
 
   // Estadísticas para panel
   const [stats, setStats] = useState({
@@ -308,6 +310,7 @@ const AdminDashboard = () => {
     }
 
     setEditOwnerPassword("");
+    setEditStripeConnectAccountId(business.stripeConnectAccountId || "");
     setShowEditModal(true);
   };
 
@@ -330,6 +333,13 @@ const AdminDashboard = () => {
           description: editFormData.description,
         }
       });
+
+      // Actualizar configuración de pagos si hubo cambios en Stripe Connect ID
+      if (editStripeConnectAccountId !== (selectedBusiness.stripeConnectAccountId || "")) {
+        await updatePaymentConfig(selectedBusiness._id, {
+          stripeConnectAccountId: editStripeConnectAccountId
+        });
+      }
 
       await loadData();
       toast.success("Negocio actualizado");
@@ -842,128 +852,175 @@ Contraseña: ${successCredentials.password || "(Tu contraseña actual)"}
               Modifica la información del negocio y su administrador.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Panel izquierdo - negocio */}
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <Label>Nombre comercial</Label>
-                <Input
-                  value={editFormData.name}
-                  onChange={(e) =>
-                    setEditFormData((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                />
+          <Tabs defaultValue="general" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="general">Información General</TabsTrigger>
+              <TabsTrigger value="payments">Configuración de Pagos</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="general" className="mt-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Panel izquierdo - negocio */}
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label>Nombre comercial</Label>
+                    <Input
+                      value={editFormData.name}
+                      onChange={(e) =>
+                        setEditFormData((prev) => ({ ...prev, name: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Tipo</Label>
+                    <Select
+                      value={editFormData.type}
+                      onValueChange={(val) =>
+                        setEditFormData((prev) => ({ ...prev, type: val }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="dentist">Dentista</SelectItem>
+                        <SelectItem value="barber">Barbería</SelectItem>
+                        <SelectItem value="nutritionist">Nutriólogo</SelectItem>
+                        <SelectItem value="spa">Spa</SelectItem>
+                        <SelectItem value="gym">Gym</SelectItem>
+                        <SelectItem value="other">Otro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Estado</Label>
+                    <Select
+                      value={editFormData.subscriptionStatus}
+                      onValueChange={(val) =>
+                        setEditFormData((prev) => ({ ...prev, subscriptionStatus: val }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Activo</SelectItem>
+                        <SelectItem value="trial">Prueba</SelectItem>
+                        <SelectItem value="inactive">Inactivo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Teléfono</Label>
+                    <PhoneInput
+                      country="mx"
+                      enableSearch
+                      countryCodeEditable={false}
+                      value={editFormData.phone}
+                      onChange={(value) =>
+                        setEditFormData((prev) => ({ ...prev, phone: value }))
+                      }
+                      containerClass="w-full"
+                      inputClass="!w-full !h-10 !text-base !bg-background !border !border-input !rounded-md !pl-14 !text-foreground"
+                      buttonClass="!h-10 !bg-background !border !border-input !rounded-l-md !px-3"
+                      dropdownClass="!bg-popover !text-foreground !shadow-lg !border !rounded-md"
+                      inputStyle={{ paddingLeft: '3.5rem' }}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Dirección</Label>
+                    <Textarea
+                      value={editFormData.address}
+                      onChange={(e) =>
+                        setEditFormData((prev) => ({ ...prev, address: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+                {/* Panel derecho - administrador y otros datos */}
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label>Nombre del administrador</Label>
+                    <Input
+                      value={editOwnerName}
+                      onChange={(e) => setEditOwnerName(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Email del administrador</Label>
+                    <Input
+                      value={editOwnerEmail}
+                      onChange={(e) => setEditOwnerEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Nueva contraseña (opcional)</Label>
+                    <Input
+                      type="password"
+                      value={editOwnerPassword}
+                      onChange={(e) => setEditOwnerPassword(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Descripción breve</Label>
+                    <Textarea
+                      value={editFormData.description}
+                      onChange={(e) =>
+                        setEditFormData((prev) => ({ ...prev, description: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Sitio web</Label>
+                    <Input
+                      value={editFormData.website}
+                      onChange={(e) =>
+                        setEditFormData((prev) => ({ ...prev, website: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label>Tipo</Label>
-                <Select
-                  value={editFormData.type}
-                  onValueChange={(val) =>
-                    setEditFormData((prev) => ({ ...prev, type: val }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dentist">Dentista</SelectItem>
-                    <SelectItem value="barber">Barbería</SelectItem>
-                    <SelectItem value="nutritionist">Nutriólogo</SelectItem>
-                    <SelectItem value="spa">Spa</SelectItem>
-                    <SelectItem value="gym">Gym</SelectItem>
-                    <SelectItem value="other">Otro</SelectItem>
-                  </SelectContent>
-                </Select>
+            </TabsContent>
+
+            <TabsContent value="payments" className="mt-4 space-y-4">
+              <div className="rounded-lg border bg-slate-50 dark:bg-slate-900 p-4">
+                <div className="mb-4">
+                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Modo de Pago Actual
+                  </label>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Badge variant={editStripeConnectAccountId ? "default" : "secondary"} className={editStripeConnectAccountId ? "bg-[#635BFF] hover:bg-[#635BFF]/90" : ""}>
+                      {editStripeConnectAccountId ? "DIRECT_TO_BUSINESS" : "BOOKPRO_COLLECTS"}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {editStripeConnectAccountId
+                        ? "El negocio cobra directamente a través de su cuenta Stripe."
+                        : "BookPro cobra y gestiona los fondos."}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="stripeConnectId">Stripe Connect Account ID</Label>
+                  <Input
+                    id="stripeConnectId"
+                    placeholder="acct_..."
+                    value={editStripeConnectAccountId}
+                    onChange={(e) => setEditStripeConnectAccountId(e.target.value)}
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Ingresa el ID de la cuenta conectada de Stripe (ej. <code>acct_123456789</code>).
+                    <br />
+                    Al ingresar un ID válido, el modo cambiará automáticamente a <strong>DIRECT_TO_BUSINESS</strong>.
+                    <br />
+                    Si lo dejas vacío, el modo volverá a <strong>BOOKPRO_COLLECTS</strong>.
+                  </p>
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label>Estado</Label>
-                <Select
-                  value={editFormData.subscriptionStatus}
-                  onValueChange={(val) =>
-                    setEditFormData((prev) => ({ ...prev, subscriptionStatus: val }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Activo</SelectItem>
-                    <SelectItem value="trial">Prueba</SelectItem>
-                    <SelectItem value="inactive">Inactivo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>Teléfono</Label>
-                <PhoneInput
-                  country="mx"
-                  enableSearch
-                  countryCodeEditable={false}
-                  value={editFormData.phone}
-                  onChange={(value) =>
-                    setEditFormData((prev) => ({ ...prev, phone: value }))
-                  }
-                  containerClass="w-full"
-                  inputClass="!w-full !h-10 !text-base !bg-background !border !border-input !rounded-md !pl-14 !text-foreground"
-                  buttonClass="!h-10 !bg-background !border !border-input !rounded-l-md !px-3"
-                  dropdownClass="!bg-popover !text-foreground !shadow-lg !border !rounded-md"
-                  inputStyle={{ paddingLeft: '3.5rem' }}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Dirección</Label>
-                <Textarea
-                  value={editFormData.address}
-                  onChange={(e) =>
-                    setEditFormData((prev) => ({ ...prev, address: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-            {/* Panel derecho - administrador y otros datos */}
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <Label>Nombre del administrador</Label>
-                <Input
-                  value={editOwnerName}
-                  onChange={(e) => setEditOwnerName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Email del administrador</Label>
-                <Input
-                  value={editOwnerEmail}
-                  onChange={(e) => setEditOwnerEmail(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Nueva contraseña (opcional)</Label>
-                <Input
-                  type="password"
-                  value={editOwnerPassword}
-                  onChange={(e) => setEditOwnerPassword(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Descripción breve</Label>
-                <Textarea
-                  value={editFormData.description}
-                  onChange={(e) =>
-                    setEditFormData((prev) => ({ ...prev, description: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Sitio web</Label>
-                <Input
-                  value={editFormData.website}
-                  onChange={(e) =>
-                    setEditFormData((prev) => ({ ...prev, website: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setShowEditModal(false)}>
               Cancelar

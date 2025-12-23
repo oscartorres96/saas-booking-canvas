@@ -13,6 +13,12 @@ export interface Service {
     requireResource?: boolean;
     requireProduct?: boolean;
     createdAt?: string;
+    stripe?: {
+        syncStatus: 'PENDING' | 'SYNCING' | 'SYNCED' | 'ERROR';
+        lastSyncError?: string;
+        lastSyncedAt?: string;
+        retryCount?: number;
+    };
 }
 
 export const getServicesByBusiness = async (businessId: string): Promise<Service[]> => {
@@ -37,4 +43,9 @@ export const updateService = async (serviceId: string, serviceData: Partial<Serv
 
 export const deleteService = async (serviceId: string): Promise<void> => {
     await apiClient.delete(`/services/${serviceId}`);
+};
+
+export const retryServiceSync = async (serviceId: string): Promise<{ success: boolean }> => {
+    const { data } = await apiClient.post<{ success: boolean }>(`/services/${serviceId}/stripe/retry`);
+    return data;
 };

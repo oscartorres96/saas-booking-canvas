@@ -8,6 +8,7 @@ import { NotificationService } from '../services/notification.service';
 import { Service, ServiceDocument } from '../services/schemas/service.schema';
 import { CustomerAssetsService } from '../customer-assets/customer-assets.service';
 import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
+import { OtpService } from './otp/otp.service';
 
 export interface CreateBookingPayload {
   clientName: string;
@@ -25,6 +26,7 @@ export interface CreateBookingPayload {
   assetId?: string;
   paymentStatus?: string;
   paymentMethod?: string;
+  otpToken?: string;
 }
 
 export type UpdateBookingPayload = Partial<CreateBookingPayload>;
@@ -45,6 +47,7 @@ export class BookingsService {
     @InjectModel(Business.name) private readonly businessModel: Model<BusinessDocument>,
     private readonly notificationService: NotificationService,
     private readonly customerAssetsService: CustomerAssetsService,
+    private readonly otpService: OtpService,
   ) { }
 
   private buildFilter(authUser: AuthUser) {
@@ -131,7 +134,7 @@ export class BookingsService {
     if (!service) {
       throw new NotFoundException('Service not found');
     }
-    if (service.businessId && payload.businessId && service.businessId !== payload.businessId) {
+    if (service.businessId && payload.businessId && service.businessId.toString() !== payload.businessId.toString()) {
       throw new ForbiddenException('Service does not belong to this business');
     }
     if (service.active === false) {
@@ -151,31 +154,81 @@ export class BookingsService {
       if ((policy === 'PAY_BEFORE_BOOKING' || policy === 'PACKAGE_OR_PAY') &&
         !payload.assetId &&
         payload.paymentStatus !== PaymentStatus.Paid &&
+        payload.status !== BookingStatus.PendingPayment && // Permitir si es para pago posterior
         service.price > 0) {
         throw new ForbiddenException('Este negocio requiere el pago previo o el uso de un paquete para confirmar la reserva.');
       }
     }
 
-    // ✅ Validación de slot disponible (prevenir doble reserva del mismo horario)
-    const slotOccupied = await this.bookingModel.findOne({
+    // ✅ Validación de capacidad por slot (configurable: SINGLE o MULTIPLE)
+    const capacityConfig = business.bookingCapacityConfig || { mode: 'SINGLE', maxBookingsPerSlot: null };
+
+    // Contar reservas existentes para este slot específico
+    const existingBookings = await this.bookingModel.find({
       businessId: payload.businessId,
       serviceId: payload.serviceId,
       scheduledAt: payload.scheduledAt,
       status: { $ne: BookingStatus.Cancelled },
     }).lean();
 
-    if (slotOccupied) {
+    const existingBookingsCount = existingBookings.length;
+
+    // RULE: If there's already a PENDING_PAYMENT booking for this EXACT user/slot, just REUSE it
+    // instead of throwing Conflict. This allows retrying payment if Stripe redirect failed.
+    const myPendingBooking = existingBookings.find(b =>
+      b.status === BookingStatus.PendingPayment &&
+      (b.clientEmail === payload.clientEmail || (payload.userId && b.userId?.toString() === payload.userId))
+    );
+
+    if (myPendingBooking) {
+      console.log(`[DEBUG] Reusing existing pending_payment booking: ${(myPendingBooking as any)._id}`);
+      return myPendingBooking as any;
+    }
+
+    // Aplicar reglas de capacidad
+    if (capacityConfig.mode === 'SINGLE' && existingBookingsCount >= 1) {
       throw new ConflictException({
         message: 'Este horario ya no está disponible. Por favor elige otro.',
-        code: 'SLOT_UNAVAILABLE',
+        code: 'booking.capacity.single_exceeded',
+      });
+    }
+
+    if (capacityConfig.mode === 'MULTIPLE' && capacityConfig.maxBookingsPerSlot && existingBookingsCount >= capacityConfig.maxBookingsPerSlot) {
+      throw new ConflictException({
+        message: `Cupo lleno para este horario (${capacityConfig.maxBookingsPerSlot}/${capacityConfig.maxBookingsPerSlot} reservas).`,
+        code: 'booking.capacity.multiple_exceeded',
+        capacity: {
+          current: existingBookingsCount,
+          max: capacityConfig.maxBookingsPerSlot,
+        },
       });
     }
 
     // Handle Asset Consumption
     if (payload.assetId) {
+      if (!payload.clientEmail) {
+        throw new ForbiddenException('Email required for asset usage verification');
+      }
+
+      const isVerified = await this.otpService.isTokenValid(
+        payload.clientEmail,
+        payload.otpToken || '',
+        'ASSET_USAGE'
+      );
+
+      if (!isVerified) {
+        throw new ForbiddenException({
+          message: 'Se requiere verificación por correo para usar tus créditos.',
+          code: 'OTP_REQUIRED',
+          requiresOtp: true,
+          reason: 'ASSET_USAGE'
+        });
+      }
+
       await this.customerAssetsService.consumeUse(payload.assetId, {
         email: payload.clientEmail,
         phone: payload.clientPhone,
+        referenceDate: payload.scheduledAt,
       });
       payload.paymentStatus = PaymentStatus.Paid;
       payload.status = BookingStatus.Confirmed;
@@ -185,8 +238,15 @@ export class BookingsService {
     const booking = new this.bookingModel(payload);
     const savedBooking = await booking.save();
 
-    // Enviar notificaciones por email
-    await this.notificationService.sendBookingConfirmation(savedBooking);
+    // Enviar notificaciones por email (Skip if pending payment)
+    console.log('[DEBUG] savedBooking status:', savedBooking.status);
+    console.log('[DEBUG] BookingStatus.PendingPayment:', BookingStatus.PendingPayment);
+    console.log('[DEBUG] Should skip email?', savedBooking.status === BookingStatus.PendingPayment);
+
+    // Strict check for the status
+    if (savedBooking.status !== BookingStatus.PendingPayment && (savedBooking.status as string) !== 'pending_payment') {
+      await this.notificationService.sendBookingConfirmation(savedBooking);
+    }
 
     return savedBooking;
   }
@@ -202,8 +262,8 @@ export class BookingsService {
     }
     const filter = this.buildFilter(authUser);
     if (
-      (filter.businessId && booking.businessId !== filter.businessId) ||
-      (filter.userId && booking.userId !== filter.userId)
+      (filter.businessId && booking.businessId?.toString() !== filter.businessId.toString()) ||
+      (filter.userId && booking.userId?.toString() !== filter.userId.toString())
     ) {
       throw new ForbiddenException('Not allowed');
     }
@@ -332,7 +392,7 @@ export class BookingsService {
     if (!booking) throw new NotFoundException('Booking not found');
 
     const filter = this.buildFilter(authUser);
-    if (filter.businessId && booking.businessId !== filter.businessId) {
+    if (filter.businessId && booking.businessId?.toString() !== filter.businessId.toString()) {
       throw new ForbiddenException('Not allowed');
     }
 
@@ -352,7 +412,7 @@ export class BookingsService {
     if (!booking) throw new NotFoundException('Booking not found');
 
     const filter = this.buildFilter(authUser);
-    if (filter.businessId && booking.businessId !== filter.businessId) {
+    if (filter.businessId && booking.businessId?.toString() !== filter.businessId.toString()) {
       throw new ForbiddenException('Not allowed');
     }
 
@@ -366,7 +426,7 @@ export class BookingsService {
     if (!booking) throw new NotFoundException('Booking not found');
 
     const filter = this.buildFilter(authUser);
-    if (filter.businessId && booking.businessId !== filter.businessId) {
+    if (filter.businessId && booking.businessId?.toString() !== filter.businessId.toString()) {
       throw new ForbiddenException('Not allowed');
     }
 

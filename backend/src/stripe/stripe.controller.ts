@@ -58,7 +58,8 @@ export class StripeController {
      * POST /api/stripe/checkout/booking
      */
     @Post('checkout/booking')
-    async createBookingCheckout(@Body() dto: CreateBookingCheckoutDto) {
+    async createBookingCheckout(@Body() dto: any) {
+        console.log('[DEBUG] Create Booking Checkout Body:', JSON.stringify(dto));
         const result = await this.stripeService.createBookingCheckout(dto);
         return {
             success: true,
@@ -132,6 +133,26 @@ export class StripeController {
             return {
                 success: true,
                 message: 'Asset created and payment recorded',
+            };
+        } catch (error: any) {
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    }
+
+    /**
+     * Manual completion endpoint for booking purchases (Services)
+     * POST /api/stripe/booking-purchase/complete
+     */
+    @Post('booking-purchase/complete')
+    async completeBookingPurchase(@Body() body: { sessionId: string }) {
+        try {
+            await this.stripeService.manualCompleteBookingPurchase(body.sessionId);
+            return {
+                success: true,
+                message: 'Booking confirmed and payment recorded',
             };
         } catch (error: any) {
             return {

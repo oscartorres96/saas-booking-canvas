@@ -14,6 +14,7 @@ import {
   businessRegistrationReceiptTemplate,
   demoRequestReceiptTemplate,
   DemoRequestData,
+  otpTemplate,
 } from '../utils/email-templates';
 import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
 import { Booking } from '../bookings/schemas/booking.schema';
@@ -441,6 +442,34 @@ export class NotificationService {
     } catch (error) {
       console.error('Error sending account activation email:', error);
       throw error;
+    }
+  }
+
+  /** Envia mensaje OTP para verificacion de email */
+  async sendOtpEmail(email: string, code: string, businessId: string): Promise<void> {
+    try {
+      const business = await this.getBusinessInfo(businessId);
+      const businessName = business?.name || business?.businessName || 'BookPro';
+      const language = business?.language || 'es';
+      const lang = language.startsWith('es') ? 'es' : 'en';
+
+      const html = otpTemplate({
+        businessName,
+        code,
+        language: lang,
+      });
+
+      const subject = lang === 'es'
+        ? `${code} es tu código de verificación - ${businessName}`
+        : `${code} is your verification code - ${businessName}`;
+
+      await sendEmail({
+        to: email,
+        subject,
+        html,
+      });
+    } catch (error) {
+      console.error('Error sending OTP email:', error);
     }
   }
 }

@@ -128,6 +128,17 @@ export class Business {
 
   @Prop({
     type: {
+      mode: { type: String, enum: ['SINGLE', 'MULTIPLE'], default: 'SINGLE' },
+      maxBookingsPerSlot: { type: Number, default: null },
+    }
+  })
+  bookingCapacityConfig?: {
+    mode: 'SINGLE' | 'MULTIPLE';
+    maxBookingsPerSlot: number | null;
+  };
+
+  @Prop({
+    type: {
       enabled: { type: Boolean, default: false },
       taxName: { type: String, default: 'IVA' },
       taxRate: { type: Number, default: 0.16 },
@@ -241,5 +252,22 @@ BusinessSchema.pre('save', function (next) {
   if (!this.slug && this.name) {
     this.slug = slugify(this.name);
   }
+
+  // Migration: Fix invalid paymentPolicy values
+  if (this.paymentConfig?.paymentPolicy) {
+    const policy = this.paymentConfig.paymentPolicy as any;
+    // Migrate old 'PACKAGES' value to 'PACKAGE_OR_PAY'
+    if (policy === 'PACKAGES') {
+      console.log('[MIGRATION] Converting invalid paymentPolicy "PACKAGES" to "PACKAGE_OR_PAY"');
+      this.paymentConfig.paymentPolicy = 'PACKAGE_OR_PAY';
+    }
+    // Ensure only valid values
+    const validPolicies = ['RESERVE_ONLY', 'PAY_BEFORE_BOOKING', 'PACKAGE_OR_PAY'];
+    if (!validPolicies.includes(this.paymentConfig.paymentPolicy)) {
+      console.log(`[MIGRATION] Invalid paymentPolicy "${this.paymentConfig.paymentPolicy}", defaulting to "RESERVE_ONLY"`);
+      this.paymentConfig.paymentPolicy = 'RESERVE_ONLY';
+    }
+  }
+
   next();
 });

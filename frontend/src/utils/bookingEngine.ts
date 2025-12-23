@@ -17,6 +17,7 @@ export interface BookingEngineContext {
     requiresResource?: boolean;
     userHasValidPackage?: boolean;
     isBuyAndBook?: boolean;
+    paymentPolicy?: 'RESERVE_ONLY' | 'PAY_BEFORE_BOOKING' | 'PACKAGE_OR_PAY';
 }
 
 /**
@@ -30,13 +31,13 @@ export function generateBookingSteps(context: BookingEngineContext): StepType[] 
 
     // 1. Initial product selection
     if (productType === 'PACKAGE' || isBuyAndBook) {
-        if (bookingConfig?.packages?.enabled !== false) {
+        if (bookingConfig?.packages?.enabled !== false || productType === 'PACKAGE') {
             steps.push('PACKAGE');
         }
     }
 
     if (productType === 'SERVICE' || isBuyAndBook) {
-        if (bookingConfig?.services?.enabled !== false) {
+        if (bookingConfig?.services?.enabled !== false || productType === 'SERVICE') {
             steps.push('SERVICE');
         }
 
@@ -59,7 +60,10 @@ export function generateBookingSteps(context: BookingEngineContext): StepType[] 
         paymentRequired = bookingConfig?.packages?.paymentTiming === 'BEFORE_BOOKING';
     } else {
         // SERVICE flow
-        if (bookingConfig?.services?.paymentTiming === 'BEFORE_BOOKING' && !userHasValidPackage) {
+        const policy = context.paymentPolicy;
+        const isMandatoryByPolicy = policy === 'PAY_BEFORE_BOOKING' || policy === 'PACKAGE_OR_PAY';
+
+        if ((bookingConfig?.services?.paymentTiming === 'BEFORE_BOOKING' || isMandatoryByPolicy) && !userHasValidPackage) {
             paymentRequired = true;
         }
     }

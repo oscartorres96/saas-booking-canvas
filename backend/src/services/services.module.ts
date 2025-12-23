@@ -19,8 +19,7 @@ import { TestEmailController } from './test-email.controller';
       { name: Business.name, schema: BusinessSchema },
       { name: Booking.name, schema: BookingSchema },
     ]),
-    // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
-    // WhatsappModule,
+    forwardRef(() => import('../stripe/stripe.module').then(m => m.StripeModule)),
   ],
   controllers: [ServicesController, TestEmailController],
   providers: [ServicesService, JwtAuthGuard, NotificationService, CronService],

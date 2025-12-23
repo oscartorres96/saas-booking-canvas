@@ -21,8 +21,14 @@
     "closed": "Cerrado",
     "to": "a",
     "minutes": "minutos",
+    "hours": "horas",
     "optional": "(Opcional)",
-    "coming_soon": "Esta funcionalidad estará disponible próximamente."
+    "coming_soon": "Esta funcionalidad estará disponible próximamente.",
+    "back_to_home": "Volver al inicio"
+  },
+  "auth": {
+    "logout": "Cerrar sesión",
+    "logout_success": "Sesión cerrada exitosamente"
   },
   "home": {
     "header": {
@@ -408,6 +414,18 @@
     "welcome": "Bienvenido",
     "subtitle": "Panel de gestión de tu negocio",
     "viewBookingPage": "Ver página de reservas",
+    "stripe": {
+      "status": {
+        "pending": "Preparando...",
+        "syncing": "Sincronizando...",
+        "synced": "Listo para vender",
+        "error": "Error de pagos"
+      },
+      "retry": "Reintentar sincronización",
+      "retry_initiated": "Reintento de sincronización iniciado",
+      "retry_error": "Error al iniciar el reintento",
+      "error_tooltip": "Hubo un problema al sincronizar con Stripe. Reintenta manualmente o espera al sistema."
+    },
     "v2": {
       "kpis": {
         "bookings_today": "Reservas de hoy",
@@ -428,6 +446,26 @@
       },
       "customers": {
         "title": "Clientes Relevantes"
+      },
+      "revenue": {
+        "title": "Ingresos",
+        "label": "Ingreso obtenido",
+        "services": "Servicios",
+        "packages": "Paquetes",
+        "manual": "Manual (Caja)",
+        "periods": {
+          "today": "Hoy",
+          "week": "Semana",
+          "month": "Mes",
+          "year": "Año"
+        }
+      },
+      "insights": {
+        "title": "Insights Clave",
+        "most_sold_service": "Servicio más vendido",
+        "most_sold_package": "Paquete más vendido",
+        "best_customer": "Cliente estrella",
+        "no_data": "Aún no hay suficientes datos"
       }
     },
     "copyInvitation": "Copiar Invitación",
@@ -612,7 +650,22 @@
       "allow_multiple": "Permitir múltiples clases hoy",
       "allow_multiple_desc": "Si se apaga, el cliente solo puede reservar UNA VEZ por día. Actívalo para permitir que un cliente tome varias clases el mismo día.",
       "cancellation_window": "Ventana de cancelación (horas)",
-      "cancellation_window_desc": "Horas mínimas antes de la cita para cancelar con reembolso automático (si aplica)."
+      "cancellation_window_desc": "Horas mínimas antes de la cita para cancelar con reembolso automático (si aplica).",
+      "capacity": {
+        "title": "Capacidad de Reservas por Horario",
+        "description": "Define cuántas reservas pueden existir al mismo tiempo en un horario",
+        "mode_label": "¿Cuántas reservas permites por horario?",
+        "single_radio": "Solo una reserva por horario",
+        "single_desc": "Recomendado para consultas 1-a-1 (dentista, nutriólogo, consultas privadas)",
+        "multiple_radio": "Varias reservas en el mismo horario",
+        "multiple_desc": "Ideal para clases grupales, sesiones paralelas o eventos (spinning, yoga, talleres)",
+        "max_label": "Número máximo de reservas por horario",
+        "max_placeholder": "Ej: 10",
+        "max_helper": "Ejemplo: 10 personas en una clase de spinning, 20 en una sesión de yoga",
+        "validation_min": "Debes permitir al menos 2 reservas simultáneas",
+        "tooltip_single": "Cada horario solo puede tener 1 cliente",
+        "tooltip_multiple": "Múltiples clientes pueden reservar el mismo horario"
+      }
     },
     "save": "Guardar Cambios",
     "saved": "Configuración guardada",
@@ -1036,19 +1089,6 @@
       "annual": "Anual",
       "save_badge": "Ahorra 2 meses"
     },
-    "trial": {
-      "badge": "Prueba",
-      "name": "Paquete de Prueba",
-      "price": "$1",
-      "period": "único",
-      "subtitle": "Prueba todas las funciones por 7 días",
-      "includes": "Incluye:",
-      "feature1": "Acceso completo por 7 días",
-      "feature2": "Todas las funcionalidades",
-      "feature3": "Sin compromiso",
-      "feature4": "Soporte básico",
-      "cta": "Probar ahora"
-    },
     "plan": {
       "name": "BookPro – Plan Mensual",
       "name_annual": "BookPro – Plan Anual",
@@ -1103,6 +1143,7 @@
       "step3": "Personaliza tu página de reservas",
       "step4": "¡Comienza a recibir clientes!",
       "cta": "Ir al Panel de Control",
+      "book_now": "Reservar",
       "session_id": "ID de Sesión"
     },
     "cancel": {
