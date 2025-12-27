@@ -2262,7 +2262,7 @@ const BusinessBookingPage = () => {
 
     return (
         <div
-            className="min-h-screen transition-colors duration-300"
+            className="min-h-screen transition-colors duration-300 max-w-[100vw] overflow-x-hidden"
             style={{
                 ...(theme === 'custom' && business.settings?.secondaryColor ? {
                     backgroundColor: business.settings.secondaryColor + '10'
@@ -2911,7 +2911,7 @@ const BusinessBookingPage = () => {
             />
 
             <AlertDialog open={isRequestingDashboard} onOpenChange={setIsRequestingDashboard}>
-                <AlertDialogContent className="rounded-[1.5rem] sm:rounded-[2rem] border-2 border-slate-100 dark:border-slate-800 shadow-2xl overflow-hidden p-0 max-w-[90vw] sm:max-w-[400px] mx-4">
+                <AlertDialogContent className="rounded-[1.5rem] sm:rounded-[2rem] border-2 border-slate-100 dark:border-slate-800 shadow-2xl overflow-hidden p-0 max-w-[95%] sm:max-w-[400px] mx-4">
                     <div className="bg-primary/5 p-4 sm:p-6 md:p-8 border-b border-primary/10 relative">
                         <div className="absolute top-4 right-4 h-8 w-8 sm:h-12 sm:w-12 bg-primary/10 rounded-full blur-xl animate-pulse"></div>
                         <div className="h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 rounded-xl sm:rounded-2xl bg-primary flex items-center justify-center text-white mb-3 sm:mb-4 shadow-lg shadow-primary/20">

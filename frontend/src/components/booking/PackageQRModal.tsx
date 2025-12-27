@@ -27,7 +27,7 @@ export const PackageQRModal = ({
 
     return (
         <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-            <DialogContent className="sm:max-w-[450px] w-[95vw] rounded-[2rem] md:rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden bg-white dark:bg-slate-950 max-h-[90vh] overflow-y-auto scrollbar-none">
+            <DialogContent className="sm:max-w-[450px] w-[95%] rounded-[2rem] md:rounded-[3rem] border-none shadow-2xl p-0 overflow-hidden bg-white dark:bg-slate-950 max-h-[90vh] overflow-y-auto scrollbar-none">
                 <div className="relative">
                     {/* Glassmorphic Background decoration */}
                     <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 rounded-full blur-[60px] animate-pulse" />
