@@ -58,7 +58,7 @@ export class StripeController {
      * POST /api/stripe/checkout/booking
      */
     @Post('checkout/booking')
-    async createBookingCheckout(@Body() dto: any) {
+    async createBookingCheckout(@Body() dto: CreateBookingCheckoutDto) {
         console.log('[DEBUG] Create Booking Checkout Body:', JSON.stringify(dto));
         const result = await this.stripeService.createBookingCheckout(dto);
         return {

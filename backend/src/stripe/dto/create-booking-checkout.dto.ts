@@ -1,13 +1,13 @@
 import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateBookingCheckoutDto {
-    @IsOptional()
+    @IsNotEmpty()
     @IsString()
-    bookingId?: string;
+    bookingId!: string;
 
-    @IsOptional()
+    @IsNotEmpty()
     @IsString()
-    businessId?: string;
+    businessId!: string;
 
     @IsOptional()
     @IsNumber()

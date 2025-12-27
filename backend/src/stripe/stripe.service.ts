@@ -612,6 +612,9 @@ export class StripeService {
         // DIRECT_TO_BUSINESS -> PAID (The money was automatically routed to Business via Destination Charge)
         const sessionStatus = paymentMode === 'BOOKPRO_COLLECTS' ? 'PENDING_PAYOUT' : 'PAID';
 
+        // Update booking record
+        const booking = await this.bookingModel.findById(bookingId);
+
         // Update payment record
         const payment = await this.paymentModel.findOne({ stripeSessionId: sessionId });
         if (payment) {
@@ -625,6 +628,7 @@ export class StripeService {
                 stripePaymentIntentId: paymentIntentId,
                 bookingId,
                 businessId,
+                userId: booking?.userId || businessId, // Emergency fallback
                 amount: session.amount_total || 0,
                 netAmount: session.amount_total || 0,
                 platformFee: 0,
@@ -635,8 +639,6 @@ export class StripeService {
             });
         }
 
-        // Update booking record
-        const booking = await this.bookingModel.findById(bookingId);
         if (booking) {
             // Check if already processed to prevent duplicate work
             if (booking.paymentStatus === PaymentStatus.Paid && booking.stripeSessionId === sessionId) {
@@ -1044,8 +1046,10 @@ export class StripeService {
 
         if (!finalPriceId) {
             this.logger.error(`Service ${service._id} is NOT ready for payments even after JIT sync.`);
-            if (service.stripe?.syncStatus === 'ERROR') {
-                throw new BadRequestException(`Stripe Sync Error: ${service.stripe.lastSyncError}`);
+            // Fetch updated service to check sync status
+            const updatedService = await this.serviceModel.findById(service._id);
+            if (updatedService?.stripe?.syncStatus === 'ERROR') {
+                throw new BadRequestException(`Stripe Sync Error: ${updatedService.stripe.lastSyncError}`);
             }
             throw new BadRequestException('Este servicio no está configurado para pagos en Stripe todavía.');
         }
@@ -1092,15 +1096,16 @@ export class StripeService {
 
         // Create a Payment record in CREATED status
         await this.paymentModel.create({
-            stripeSessionId: session.id,
             bookingId,
             businessId,
-            userId: business.ownerUserId,
+            userId: booking.userId || business.ownerUserId || businessId,
+            serviceId: service._id,
+            stripeSessionId: session.id,
+            status: 'CREATED',
             amount: amountInCents,
             netAmount: amountInCents,
             platformFee: 0,
             currency: 'mxn',
-            status: 'CREATED',
             paymentMode,
             description: `Payment for booking: ${service.name}`,
         });
