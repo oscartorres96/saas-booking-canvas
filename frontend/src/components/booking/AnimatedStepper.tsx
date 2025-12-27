@@ -180,7 +180,7 @@ export default function AnimatedStepper({
             </div>
 
             {/* Content Stack - Using Grid for seamless transitions without layout issues */}
-            <div className={cn("grid w-full overflow-hidden", contentClassName)} style={{ gridTemplateColumns: '1fr' }}>
+            <div className={cn("grid w-full overflow-hidden", contentClassName)} style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}>
                 <AnimatePresence mode="popLayout" initial={false} custom={direction}>
                     <motion.div
                         key={currentStep}

@@ -1053,7 +1053,7 @@ const BusinessBookingPage = () => {
             case 'SERVICE':
             case 'PACKAGE':
                 return (
-                    <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
+                    <Card className="w-full max-w-full shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
                         <CardHeader className="pb-2 px-3 sm:px-6">
                             <div className="text-center mb-4 sm:mb-6 px-2">
                                 <div className="flex items-center justify-center gap-2 mb-2">
@@ -1255,7 +1255,7 @@ const BusinessBookingPage = () => {
                 );
             case 'SCHEDULE':
                 return (
-                    <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
+                    <Card className="w-full max-w-full shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
                         <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
                             <div className="flex flex-col gap-3 sm:gap-4 md:gap-6 mb-3 sm:mb-4">
                                 <div className="space-y-1 sm:space-y-2">
@@ -1405,7 +1405,7 @@ const BusinessBookingPage = () => {
                 );
             case 'RESOURCE':
                 return (
-                    <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
+                    <Card className="w-full max-w-full shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
                         <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
                             <div className="flex flex-col gap-3 sm:gap-4 md:gap-6 mb-3 sm:mb-4">
                                 <div className="space-y-1 sm:space-y-2">
@@ -1436,7 +1436,7 @@ const BusinessBookingPage = () => {
                             </div>
                         </CardHeader>
                         <CardContent className="px-3 md:px-8 pb-10">
-                            <div className="max-w-4xl mx-auto py-8">
+                            <div className="w-full max-w-full sm:max-w-4xl mx-auto py-8">
                                 {businessId && selectedDate && selectedTime && (() => {
                                     const [hours, minutes] = selectedTime.split(":").map(Number);
                                     const scheduledDate = new Date(selectedDate);
@@ -1445,7 +1445,7 @@ const BusinessBookingPage = () => {
 
                                     return (
                                         <ResourceSelector
-                                            businessId={businessId}
+                                            businessId={businessId!}
                                             scheduledAt={scheduledAt}
                                             selectedId={selectedResourceId}
                                             sessionId={bookingSessionId}
@@ -1458,22 +1458,22 @@ const BusinessBookingPage = () => {
                                         />
                                     );
                                 })()}
-                                <div className="mt-12 flex justify-between items-center">
+                                <div className="mt-8 sm:mt-12 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         onClick={handleBack}
-                                        className="h-14 px-8 rounded-2xl font-black uppercase italic tracking-widest text-muted-foreground"
+                                        className="h-10 sm:h-12 md:h-14 px-4 sm:px-6 md:px-8 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-widest text-[10px] sm:text-xs text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-800 order-2 sm:order-1"
                                     >
-                                        <ArrowLeft className="w-4 h-4 mr-2" /> Volver
+                                        <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> Volver
                                     </Button>
                                     <Button
                                         type="button"
                                         onClick={() => handleNext()}
                                         disabled={!selectedResourceId}
-                                        className="h-16 px-12 rounded-2xl font-black uppercase italic tracking-tighter text-xl shadow-xl shadow-primary/20"
+                                        className="h-12 sm:h-14 md:h-16 px-6 sm:px-10 md:px-12 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-tighter text-sm sm:text-lg md:text-xl shadow-lg sm:shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all order-1 sm:order-2"
                                     >
-                                        Continuar <ArrowRight className="w-5 h-5 ml-2" />
+                                        Continuar <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
                                     </Button>
                                 </div>
                             </div>
@@ -1482,7 +1482,7 @@ const BusinessBookingPage = () => {
                 );
             case 'DETAILS':
                 return (
-                    <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
+                    <Card className="w-full max-w-full shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
                         <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
                             <div className="flex flex-col gap-3 sm:gap-4 md:gap-6 mb-3 sm:mb-4">
                                 <div className="space-y-1 sm:space-y-2">
@@ -1770,7 +1770,7 @@ const BusinessBookingPage = () => {
                 );
             case 'PAYMENT':
                 return (
-                    <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
+                    <Card className="w-full max-w-full shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
                         <CardHeader className="pb-2 sm:pb-4 px-4 sm:px-6">
                             <div className="flex flex-col gap-2 sm:gap-4 md:gap-6 mb-2 sm:mb-4">
                                 <div className="space-y-1 sm:space-y-2">
@@ -2011,7 +2011,7 @@ const BusinessBookingPage = () => {
                 );
             case 'CONFIRMATION':
                 return (
-                    <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
+                    <Card className="w-full max-w-full shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
                         <CardHeader className="pb-2 sm:pb-4 px-3 sm:px-6">
                             <div className="flex flex-col gap-2 sm:gap-4 md:gap-6 mb-2 sm:mb-4">
                                 <div className="space-y-1 sm:space-y-2">
