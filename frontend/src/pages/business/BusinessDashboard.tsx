@@ -491,6 +491,12 @@ const BusinessDashboard = () => {
         return t(`dashboard.bookings.status.${status}`, status);
     };
 
+    const getResourceLabel = (resourceId?: string) => {
+        if (!resourceId || !business?.resourceConfig?.resources) return null;
+        const resource = business.resourceConfig.resources.find((r: any) => r.id === resourceId);
+        return resource?.label || resourceId;
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50/50">
@@ -691,6 +697,7 @@ const BusinessDashboard = () => {
                                                             <TableRow>
                                                                 <TableHead>{t('dashboard.bookings.table.client')}</TableHead>
                                                                 <TableHead>{t('dashboard.bookings.table.service')}</TableHead>
+                                                                <TableHead>{business?.resourceConfig?.enabled ? (business.resourceConfig.resourceType || "Recurso") : "Ref"}</TableHead>
                                                                 <TableHead>{t('dashboard.bookings.table.date')}</TableHead>
                                                                 <TableHead>{t('dashboard.bookings.table.status')}</TableHead>
                                                                 <TableHead className="text-right">{t('dashboard.bookings.table.actions')}</TableHead>
@@ -715,14 +722,32 @@ const BusinessDashboard = () => {
                                                                         </TableCell>
                                                                         <TableCell>
                                                                             <div className="flex items-center gap-2">
-                                                                                {service?.name || booking.serviceId}
+                                                                                <span className="font-medium truncate max-w-[120px]">{service?.name || booking.serviceId}</span>
                                                                                 {booking.assetId && (
-                                                                                    <Badge variant="outline" className="h-5 px-1 bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800 text-[9px] font-bold">
-                                                                                        <Package className="h-2.5 w-2.5 mr-0.5" />
-                                                                                        PAQUETE
+                                                                                    <Badge variant="outline" className="h-4 px-1 bg-purple-50 text-purple-700 border-purple-100 text-[8px] font-black uppercase">
+                                                                                        <Package className="h-2 w-2 mr-0.5" />
+                                                                                        PKG
                                                                                     </Badge>
                                                                                 )}
                                                                             </div>
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            {booking.resourceId ? (
+                                                                                <Badge variant="outline" className="font-black bg-slate-50 border-slate-200">
+                                                                                    {getResourceLabel(booking.resourceId)}
+                                                                                </Badge>
+                                                                            ) : (
+                                                                                <span className="text-xs text-muted-foreground italic">N/A</span>
+                                                                            )}
+                                                                        </TableCell>
+                                                                        <TableCell>
+                                                                            {booking.resourceId ? (
+                                                                                <Badge variant="outline" className="font-black bg-slate-50 border-slate-200">
+                                                                                    {getResourceLabel(booking.resourceId)}
+                                                                                </Badge>
+                                                                            ) : (
+                                                                                <span className="text-xs text-muted-foreground italic">N/A</span>
+                                                                            )}
                                                                         </TableCell>
                                                                         <TableCell>
                                                                             <div className="flex flex-col">
@@ -1482,16 +1507,33 @@ const BusinessDashboard = () => {
                                             {/* Service Info */}
                                             <div className="space-y-3">
                                                 <AdminLabel icon={Package}>{t('dashboard.bookings.details.service_info')}</AdminLabel>
-                                                <InnerCard className="p-5 flex items-center gap-4">
-                                                    <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                                                        <Package className="h-6 w-6 text-primary" />
+                                                <InnerCard className="p-5 flex flex-col gap-3">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                                                            <Package className="h-5 w-5 text-primary" />
+                                                        </div>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">{t('dashboard.bookings.details.service_name')}</p>
+                                                            <p className="font-bold text-slate-900 dark:text-slate-100 text-sm truncate">
+                                                                {services.find(s => s._id === bookingToView.serviceId)?.name || bookingToView.serviceId}
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                    <div className="min-w-0">
-                                                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">{t('dashboard.bookings.details.service_name')}</p>
-                                                        <p className="font-bold text-slate-900 dark:text-slate-100 text-base leading-tight">
-                                                            {services.find(s => s._id === bookingToView.serviceId)?.name || bookingToView.serviceId}
-                                                        </p>
-                                                    </div>
+                                                    {bookingToView.resourceId && (
+                                                        <div className="flex items-center gap-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                                                            <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center shrink-0">
+                                                                <Grid3X3 className="h-5 w-5" />
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600/70 mb-0.5">
+                                                                    {business.resourceConfig?.resourceType || "Recurso"} Asignado
+                                                                </p>
+                                                                <p className="font-black text-slate-900 dark:text-slate-100 text-base italic">
+                                                                    {getResourceLabel(bookingToView.resourceId)}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </InnerCard>
                                             </div>
 

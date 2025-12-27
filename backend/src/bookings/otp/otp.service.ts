@@ -15,7 +15,7 @@ export class OtpService {
         private readonly customerAssetsService: CustomerAssetsService,
     ) { }
 
-    async requestOtp(email: string, businessId: string, purpose: 'ASSET_USAGE' | 'ONLINE_PAYMENT' = 'ASSET_USAGE') {
+    async requestOtp(email: string, businessId: string, purpose: 'ASSET_USAGE' | 'ONLINE_PAYMENT' | 'CLIENT_ACCESS' = 'ASSET_USAGE') {
         // 1. Check if OTP is actually needed
         let requiresOtp = false;
         let reason = '';
@@ -29,6 +29,9 @@ export class OtpService {
         } else if (purpose === 'ONLINE_PAYMENT') {
             requiresOtp = true;
             reason = 'ONLINE_PAYMENT';
+        } else if (purpose === 'CLIENT_ACCESS') {
+            requiresOtp = true;
+            reason = 'CLIENT_ACCESS';
         }
 
         if (!requiresOtp) {
@@ -60,7 +63,7 @@ export class OtpService {
         };
     }
 
-    async verifyOtp(email: string, code: string, purpose: 'ASSET_USAGE' | 'ONLINE_PAYMENT' = 'ASSET_USAGE') {
+    async verifyOtp(email: string, code: string, purpose: 'ASSET_USAGE' | 'ONLINE_PAYMENT' | 'CLIENT_ACCESS' = 'ASSET_USAGE') {
         const otpRecord = await this.otpModel.findOne({
             email,
             purpose,
@@ -82,24 +85,67 @@ export class OtpService {
 
         otpRecord.verified = true;
         otpRecord.verificationToken = verificationToken;
+
+        // If it's for client access (dashboard), we extend the expiration to 24 hours
+        // as requested by the user for persistent sessions.
+        if (purpose === 'CLIENT_ACCESS') {
+            otpRecord.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+        } else {
+            // For other purposes, keep a shorter window (e.g., 30 minutes for checkout)
+            otpRecord.expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+        }
+
         await otpRecord.save();
 
         return {
             verified: true,
             verificationToken,
-            expiresIn: '15m'
+            expiresIn: purpose === 'CLIENT_ACCESS' ? '24h' : '30m'
         };
     }
 
-    async isTokenValid(email: string, token: string, purpose: string): Promise<boolean> {
-        const otpRecord = await this.otpModel.findOne({
+    async generateMagicLinkToken(email: string): Promise<string> {
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+        await this.otpModel.create({
             email,
-            verificationToken: token,
-            purpose,
+            codeHash: 'MAGIC_LINK',
+            expiresAt,
+            purpose: 'CLIENT_ACCESS',
             verified: true,
-            updatedAt: { $gt: new Date(Date.now() - 15 * 60 * 1000) } // Token valid for 15m
+            verificationToken: token,
         });
 
+        return token;
+    }
+
+    async isTokenValid(email: string, token: string, purpose: string): Promise<boolean> {
+        const query: any = {
+            email,
+            verificationToken: token,
+            verified: true,
+            expiresAt: { $gt: new Date() }
+        };
+
+        // If purpose is CLIENT_ACCESS, also allow tokens from ASSET_USAGE or ONLINE_PAYMENT
+        // since those also verified the user's identity.
+        if (purpose === 'CLIENT_ACCESS') {
+            query.purpose = { $in: ['CLIENT_ACCESS', 'ASSET_USAGE', 'ONLINE_PAYMENT'] };
+        } else {
+            query.purpose = purpose;
+        }
+
+        const otpRecord = await this.otpModel.findOne(query);
+
         return !!otpRecord;
+    }
+
+    async invalidateToken(email: string, token: string, purpose: string) {
+        await this.otpModel.deleteMany({
+            email,
+            verificationToken: token,
+            purpose
+        });
     }
 }

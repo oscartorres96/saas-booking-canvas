@@ -160,23 +160,22 @@ export class BookingsService {
       }
     }
 
-    // ✅ Validación de capacidad por slot (configurable: SINGLE o MULTIPLE)
-    const capacityConfig = business.bookingCapacityConfig || { mode: 'SINGLE', maxBookingsPerSlot: null };
+    // ✅ Validación de capacidad por slot mejorada
+    // Buscamos todas las reservas del mismo día para verificar solapamientos
+    const dayStart = startOfDay(new Date(payload.scheduledAt));
+    const dayEnd = endOfDay(new Date(payload.scheduledAt));
 
-    // Contar reservas existentes para este slot específico
-    const existingBookings = await this.bookingModel.find({
+    const dayBookings = await this.bookingModel.find({
       businessId: payload.businessId,
-      serviceId: payload.serviceId,
-      scheduledAt: payload.scheduledAt,
+      scheduledAt: { $gte: dayStart, $lte: dayEnd },
       status: { $ne: BookingStatus.Cancelled },
     }).lean();
 
-    const existingBookingsCount = existingBookings.length;
-
-    // RULE: If there's already a PENDING_PAYMENT booking for this EXACT user/slot, just REUSE it
-    // instead of throwing Conflict. This allows retrying payment if Stripe redirect failed.
-    const myPendingBooking = existingBookings.find(b =>
+    // RULE: If there's already a PENDING_PAYMENT booking for this EXACT user/slot/service, just REUSE it
+    const myPendingBooking = dayBookings.find(b =>
       b.status === BookingStatus.PendingPayment &&
+      b.serviceId?.toString() === payload.serviceId &&
+      new Date(b.scheduledAt).getTime() === new Date(payload.scheduledAt).getTime() &&
       (b.clientEmail === payload.clientEmail || (payload.userId && b.userId?.toString() === payload.userId))
     );
 
@@ -185,22 +184,41 @@ export class BookingsService {
       return myPendingBooking as any;
     }
 
-    // Aplicar reglas de capacidad
-    if (capacityConfig.mode === 'SINGLE' && existingBookingsCount >= 1) {
-      throw new ConflictException({
-        message: 'Este horario ya no está disponible. Por favor elige otro.',
-        code: 'booking.capacity.single_exceeded',
-      });
+    // Obtenemos duraciones de todos los servicios para calcular solapamientos correctamente
+    const allServices = await this.serviceModel.find({ businessId: payload.businessId }).lean();
+    const serviceDurationMap = new Map(allServices.map(s => [s._id.toString(), s.durationMinutes]));
+
+    const requestedDuration = service.durationMinutes || 30;
+    const requestedStart = new Date(payload.scheduledAt);
+    const requestedEnd = new Date(requestedStart.getTime() + requestedDuration * 60000);
+
+    // Contar cuántas reservas se solapan con el horario solicitado
+    const overlappingBookings = dayBookings.filter(b => {
+      const bStart = new Date(b.scheduledAt);
+      const bDuration = serviceDurationMap.get(b.serviceId?.toString()) || requestedDuration;
+      const bEnd = new Date(bStart.getTime() + bDuration * 60000);
+
+      // Overlap logic: (StartA < EndB) and (EndA > StartB)
+      return requestedStart < bEnd && requestedEnd > bStart;
+    });
+
+    // Determinar capacidad máxima
+    let maxCapacity = 1;
+    if (business.resourceConfig?.enabled) {
+      maxCapacity = business.resourceConfig.resources?.filter(r => r.isActive).length || 1;
+    } else if (business.bookingCapacityConfig?.mode === 'MULTIPLE') {
+      maxCapacity = business.bookingCapacityConfig.maxBookingsPerSlot || 1;
     }
 
-    if (capacityConfig.mode === 'MULTIPLE' && capacityConfig.maxBookingsPerSlot && existingBookingsCount >= capacityConfig.maxBookingsPerSlot) {
+    // Aplicar reglas de capacidad
+    if (overlappingBookings.length >= maxCapacity) {
       throw new ConflictException({
-        message: `Cupo lleno para este horario (${capacityConfig.maxBookingsPerSlot}/${capacityConfig.maxBookingsPerSlot} reservas).`,
-        code: 'booking.capacity.multiple_exceeded',
-        capacity: {
-          current: existingBookingsCount,
-          max: capacityConfig.maxBookingsPerSlot,
-        },
+        message: 'Este horario ya no está disponible por falta de capacidad. Por favor elige otro.',
+        code: 'SLOT_UNAVAILABLE',
+        details: {
+          current: overlappingBookings.length,
+          max: maxCapacity
+        }
       });
     }
 
@@ -245,10 +263,23 @@ export class BookingsService {
 
     // Strict check for the status
     if (savedBooking.status !== BookingStatus.PendingPayment && (savedBooking.status as string) !== 'pending_payment') {
-      await this.notificationService.sendBookingConfirmation(savedBooking);
+      await this.sendConfirmationEmail(savedBooking);
     }
 
     return savedBooking;
+  }
+
+  /** Genera token de acceso magico y envia email de confirmacion */
+  async sendConfirmationEmail(booking: Booking): Promise<void> {
+    try {
+      let magicLinkToken: string | undefined;
+      if (booking.clientEmail) {
+        magicLinkToken = await this.otpService.generateMagicLinkToken(booking.clientEmail);
+      }
+      await this.notificationService.sendBookingConfirmation(booking, magicLinkToken);
+    } catch (error) {
+      console.error('Error al enviar email de confirmacion:', error);
+    }
   }
 
   async findAll(authUser: AuthUser): Promise<Booking[]> {
@@ -402,7 +433,7 @@ export class BookingsService {
     const saved = await booking.save();
 
     // Optionally notify customer
-    await this.notificationService.sendBookingConfirmation(saved as Booking);
+    await this.sendConfirmationEmail(saved as Booking);
 
     return saved;
   }
@@ -430,8 +461,44 @@ export class BookingsService {
       throw new ForbiddenException('Not allowed');
     }
 
-    await this.notificationService.sendBookingConfirmation(booking as Booking);
+    await this.sendConfirmationEmail(booking as Booking);
     return { success: true };
+  }
+  async getClientDashboardData(email: string, businessId: string) {
+    const now = new Date();
+
+    // 1. Get client name from most recent booking
+    const recentBooking = await this.bookingModel.findOne({ clientEmail: email, businessId }).sort({ createdAt: -1 }).lean();
+    const clientName = recentBooking?.clientName || email.split('@')[0];
+
+    // 2. Get bookings
+    const allBookings = await this.bookingModel.find({
+      clientEmail: email,
+      businessId,
+    }).sort({ scheduledAt: -1 }).lean();
+
+    const upcoming = allBookings.filter(b =>
+      new Date(b.scheduledAt) >= startOfDay(now) &&
+      [BookingStatus.Pending, BookingStatus.Confirmed, BookingStatus.PendingPayment].includes(b.status as BookingStatus)
+    ).reverse(); // Sort upcoming by closest first
+
+    const past = allBookings.filter(b =>
+      new Date(b.scheduledAt) < startOfDay(now) ||
+      b.status === BookingStatus.Cancelled ||
+      b.status === BookingStatus.Completed
+    );
+
+    // 3. Get active assets (packages/credits)
+    const assets = await this.customerAssetsService.findActiveAssets(businessId, email);
+    const consumedAssets = await this.customerAssetsService.findRecentlyConsumedAssets(businessId, email);
+
+    return {
+      clientName,
+      bookings: upcoming,
+      pastBookings: past,
+      assets,
+      consumedAssets
+    };
   }
 }
 

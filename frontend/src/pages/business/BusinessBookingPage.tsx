@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { format } from "date-fns";
+import { format, isToday, isTomorrow } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
@@ -68,12 +68,16 @@ import {
     Star,
     Bell,
     User,
+    UserCircle,
     Mail,
     Phone,
-    LogOut
+    LogOut,
+    History,
+    CalendarCheck,
+    SearchX
 } from "lucide-react";
 import useAuth from "@/auth/useAuth";
-import { getBusinessById, type Business } from "@/api/businessesApi";
+import { getBusinessById, type Business, type Slot } from "@/api/businessesApi";
 import { getServicesByBusiness, type Service } from "@/api/servicesApi";
 import { createBooking, getBookingsByClient, type Booking } from "@/api/bookingsApi";
 import { getActiveAssets, type CustomerAsset } from "@/api/customerAssetsApi";
@@ -93,7 +97,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PackageQRModal } from "@/components/booking/PackageQRModal";
 import { generateBookingSteps, StepType, BookingEngineContext } from "@/utils/bookingEngine";
 import { OtpVerificationModal } from "@/components/booking/OtpVerificationModal";
-import { requestOtp, OtpPurpose } from "@/api/otpApi";
+import { requestOtp, verifyOtp, getDashboardData, logoutDashboard, OtpPurpose, ClientDashboardData } from "@/api/otpApi";
 
 const bookingFormSchema = z.object({
     serviceId: z.string().optional(),
@@ -122,6 +126,51 @@ const stepInfo: Record<StepType, { title: string; description: string }> = {
     CONFIRMATION: { title: "Confirmar", description: "Finaliza tu reserva" }
 };
 
+// Helper to manage persistent client session
+const CLIENT_SESSION_KEY = (businessId: string) => `client_session_${businessId}`;
+
+const saveClientSession = (businessId: string, email: string, token: string) => {
+    const session = {
+        email,
+        token,
+        timestamp: Date.now(),
+    };
+    localStorage.setItem(CLIENT_SESSION_KEY(businessId), JSON.stringify(session));
+};
+
+const getClientSession = (businessId: string) => {
+    const sessionStr = localStorage.getItem(CLIENT_SESSION_KEY(businessId));
+    if (!sessionStr) return null;
+    try {
+        const session = JSON.parse(sessionStr);
+        // 24 hours persistence as requested
+        const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+        if (Date.now() - session.timestamp > TWENTY_FOUR_HOURS) {
+            localStorage.removeItem(CLIENT_SESSION_KEY(businessId));
+            return null;
+        }
+        return session;
+    } catch {
+        return null;
+    }
+};
+
+const clearClientSession = (businessId: string) => {
+    localStorage.removeItem(CLIENT_SESSION_KEY(businessId));
+};
+
+const groupBookingsByDate = (bookings: any[]) => {
+    const groups: { [key: string]: any[] } = {};
+    bookings.forEach(booking => {
+        const dateKey = format(new Date(booking.scheduledAt), "yyyy-MM-dd");
+        if (!groups[dateKey]) {
+            groups[dateKey] = [];
+        }
+        groups[dateKey].push(booking);
+    });
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+};
+
 const BusinessBookingPage = () => {
     const { businessId } = useParams<{ businessId: string }>();
     const navigate = useNavigate();
@@ -132,7 +181,7 @@ const BusinessBookingPage = () => {
     const [services, setServices] = useState<Service[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [availableAssets, setAvailableAssets] = useState<CustomerAsset[]>([]);
-    const [myBookings, setMyBookings] = useState<Booking[]>([]);
+
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("packages");
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null); // Added selectedProduct state
@@ -162,6 +211,21 @@ const BusinessBookingPage = () => {
     const [otpToken, setOtpToken] = useState<string | null>(null);
     const [otpVerifiedEmail, setOtpVerifiedEmail] = useState<string | null>(null);
     const [expiredAssetError, setExpiredAssetError] = useState(false);
+    const [showDashboard, setShowDashboard] = useState(false);
+    const [clientDashboardData, setClientDashboardData] = useState<ClientDashboardData | null>(null);
+    const [isRequestingDashboard, setIsRequestingDashboard] = useState(false);
+    const [dashboardEmail, setDashboardEmail] = useState("");
+    const [dashboardSearchTerm, setDashboardSearchTerm] = useState("");
+    const isFetchingDashboardRef = useRef(false);
+
+    // Session ID for resource holds persistence
+    const [bookingSessionId] = useState(() => {
+        const saved = sessionStorage.getItem('booking_session_id');
+        if (saved) return saved;
+        const newId = `sess_${Math.random().toString(36).substring(2, 11)}`;
+        sessionStorage.setItem('booking_session_id', newId);
+        return newId;
+    });
 
     const form = useForm<z.infer<typeof bookingFormSchema>>({
         resolver: zodResolver(bookingFormSchema),
@@ -200,6 +264,76 @@ const BusinessBookingPage = () => {
         }
     }, [businessId, user]);
 
+    // Handle deep links to dashboard (e.g. from payment success or confirmation email)
+    useEffect(() => {
+        if (!businessId) return;
+
+        const view = searchParams.get('view');
+        const emailFromUrl = searchParams.get('email');
+        const tokenFromUrl = searchParams.get('token');
+
+        if (view === 'dashboard') {
+            const savedSession = getClientSession(businessId);
+
+            // Priority 1: New token provided in the URL (link from email)
+            if (tokenFromUrl && emailFromUrl) {
+                setOtpToken(tokenFromUrl);
+                setOtpVerifiedEmail(emailFromUrl);
+                setOtpPurpose('CLIENT_ACCESS');
+                handleFetchDashboard(emailFromUrl, tokenFromUrl);
+                setIsRequestingDashboard(false);
+
+                // Clean up URL parameters
+                const newParams = new URLSearchParams(searchParams);
+                newParams.delete('token');
+                navigate({ search: newParams.toString() }, { replace: true });
+                return;
+            }
+
+            // Priority 2: Valid session already in localStorage
+            if (savedSession) {
+                // Only use it if the email in URL matches the session email, or no email in URL
+                if (!emailFromUrl || emailFromUrl === savedSession.email) {
+                    // Prevent loop: don't re-fetch if already showing, loading or fetching this dashboard
+                    if ((showDashboard && clientDashboardData && otpVerifiedEmail === savedSession.email) || isFetchingDashboardRef.current) {
+                        return;
+                    }
+
+                    setOtpToken(savedSession.token);
+                    setOtpVerifiedEmail(savedSession.email);
+                    setOtpPurpose('CLIENT_ACCESS');
+                    handleFetchDashboard(savedSession.email, savedSession.token);
+                    setIsRequestingDashboard(false);
+                    return;
+                }
+            }
+
+            // Priority 3: No token/session but email present, show request code modal
+            if (emailFromUrl && !showDashboard) {
+                setDashboardEmail(emailFromUrl);
+                setIsRequestingDashboard(true);
+            } else if (!emailFromUrl && !savedSession && !showDashboard) {
+                // Priority 4: No info at all, show empty request modal
+                setIsRequestingDashboard(true);
+            }
+        }
+    }, [searchParams, navigate, businessId]);
+
+    // Restore session on initial load even without view=dashboard if we want it to be automatic
+    // However, user usually clicks "Ver mis reservas" first. 
+    // Let's make it so when they click "Ver mis reservas", if there's a session, it uses it.
+    useEffect(() => {
+        if (businessId && !otpToken) {
+            const savedSession = getClientSession(businessId);
+            if (savedSession) {
+                // Pre-fill but don't automatically show dashboard unless view=dashboard is set
+                // or we are ALREADY requesting the dashboard
+                setOtpToken(savedSession.token);
+                setOtpVerifiedEmail(savedSession.email);
+            }
+        }
+    }, [businessId]);
+
     const handleNext = () => setStep(prev => Math.min(prev + 1, bookingSteps.length));
     const handleBack = () => {
         if (step === 1) {
@@ -209,6 +343,7 @@ const BusinessBookingPage = () => {
             form.setValue('serviceId', '');
             form.setValue('productId', '');
             sessionStorage.removeItem('buyAndBookPackage');
+            setSelectedResourceId(null);
             return;
         }
         setStep(prev => Math.max(prev - 1, 1));
@@ -532,14 +667,7 @@ const BusinessBookingPage = () => {
                 }
             }
 
-            if (user?.userId) {
-                try {
-                    const bookingsData = await getBookingsByClient(user.userId);
-                    setMyBookings(bookingsData.filter(b => b.businessId === businessId));
-                } catch {
-                    console.log("Could not fetch user bookings");
-                }
-            }
+
         } catch (error: any) {
             toast.error(error?.response?.data?.message || t('common.load_error'));
         } finally {
@@ -571,6 +699,68 @@ const BusinessBookingPage = () => {
             toast.info(`Has seleccionado: ${product.name}. Procede a confirmar para realizar el pago.`);
             goToStepType('DETAILS', { productType: 'PACKAGE', isBuyAndBook: false }); // Direct to checkout if buying package only
         }
+    };
+
+    const handleFetchDashboard = async (email: string, token: string) => {
+        if (!businessId || isFetchingDashboardRef.current) return;
+        try {
+            isFetchingDashboardRef.current = true;
+            setLoading(true);
+            const data = await getDashboardData(email, token, businessId);
+            setClientDashboardData(data);
+            setShowDashboard(true);
+            setBookingSuccess(false); // Clear success screen if we are entering dashboard
+            // Save to localStorage for persistence
+            saveClientSession(businessId, email, token);
+
+            // Update URL to reflect dashboard state so reload works
+            const params = new URLSearchParams(window.location.search);
+            const currentView = params.get('view');
+            const currentEmail = params.get('email');
+
+            if (currentView !== 'dashboard' || currentEmail !== email) {
+                params.set('view', 'dashboard');
+                params.set('email', email);
+                navigate({ search: params.toString() }, { replace: true });
+            }
+        } catch (error) {
+            toast.error("Tu sesión ha expirado o es inválida. Por favor, solicita un nuevo acceso.");
+            setOtpToken(null);
+            setOtpVerifiedEmail(null);
+            setShowDashboard(false);
+            clearClientSession(businessId);
+        } finally {
+            setLoading(false);
+            isFetchingDashboardRef.current = false;
+        }
+    };
+
+    const handleDashboardLogout = async () => {
+        if (otpToken && otpVerifiedEmail) {
+            try {
+                await logoutDashboard(otpVerifiedEmail, otpToken);
+            } catch (error) {
+                console.error("Logout failed", error);
+            }
+        }
+        setOtpToken(null);
+        setOtpVerifiedEmail(null);
+        setClientDashboardData(null);
+        setShowDashboard(false);
+        if (businessId) clearClientSession(businessId);
+
+        // Clear dashboard URL parameters
+        const params = new URLSearchParams(window.location.search);
+        params.delete('view');
+        params.delete('email');
+        params.delete('token');
+        navigate({ search: params.toString() }, { replace: true });
+    };
+
+    const handleDashboardBookAgain = async () => {
+        await handleDashboardLogout();
+        setSelectedResourceId(null);
+        setStep(1);
     };
 
     const onSubmit = async (values: z.infer<typeof bookingFormSchema>) => {
@@ -648,7 +838,7 @@ const BusinessBookingPage = () => {
                     clientEmail: values.clientEmail,
                     clientPhone: values.clientPhone,
                     clientName: values.clientName,
-                    successUrl: `${window.location.origin}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=${isAutoBooking ? 'product-with-booking' : 'product'}&businessId=${businessId}${isAutoBooking ? `&booking_data=${btoa(JSON.stringify(trimmedBookingData))}` : ''}`,
+                    successUrl: `${window.location.origin}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=${isAutoBooking ? 'product-with-booking' : 'product'}&businessId=${businessId}${isAutoBooking ? `&booking_data=${btoa(JSON.stringify(trimmedBookingData))}` : ''}${otpToken ? `&token=${otpToken}` : ''}`,
                     cancelUrl: `${window.location.origin}/payment/cancel`,
                     bookingData: trimmedBookingData,
                 });
@@ -695,7 +885,7 @@ const BusinessBookingPage = () => {
                     const checkout = await createBookingCheckout({
                         bookingId: String(pendingBooking._id),
                         businessId: String(businessId),
-                        successUrl: `${window.location.origin}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=booking&bookingId=${pendingBooking._id}&businessId=${businessId}`,
+                        successUrl: `${window.location.origin}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=booking&bookingId=${pendingBooking._id}&businessId=${businessId}${otpToken ? `&token=${otpToken}` : ''}`,
                         cancelUrl: `${window.location.origin}/payment/cancel`,
                     });
 
@@ -711,10 +901,7 @@ const BusinessBookingPage = () => {
             setBookingSuccess(true);
             toast.success(t('booking.form.toasts.confirmed_desc'));
 
-            if (user?.userId) {
-                const bookingsData = await getBookingsByClient(user.userId);
-                setMyBookings(bookingsData.filter(b => b.businessId === businessId));
-            }
+
 
             form.reset({
                 serviceId: "",
@@ -726,6 +913,7 @@ const BusinessBookingPage = () => {
                 notes: "",
             });
             setSelectedService(null);
+            setSelectedResourceId(null);
         } catch (error: any) {
             const errData = error?.response?.data;
             if (errData?.code === "BOOKING_ALREADY_EXISTS") {
@@ -1097,8 +1285,8 @@ const BusinessBookingPage = () => {
                                                     className="rounded-lg sm:rounded-xl font-black uppercase italic text-[7px] sm:text-[9px] md:text-[10px] text-primary hover:bg-primary/10 transition-colors h-5 sm:h-7 px-1.5 sm:px-3 shrink-0"
                                                     onClick={() => goToStepType('SERVICE')}
                                                 >
-                                                    <ArrowLeft className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 sm:mr-1" />
-                                                    <span className="hidden sm:inline">Cambiar</span>
+                                                    <ArrowLeft className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 mr-1" />
+                                                    <span className="inline">Cambiar</span>
                                                 </Button>
                                             </div>
                                         </div>
@@ -1162,28 +1350,40 @@ const BusinessBookingPage = () => {
                                                 </div>
                                             ) : timeSlots.length > 0 ? (
                                                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 sm:gap-3">
-                                                    {timeSlots.map((slot) => (
+                                                    {(timeSlots as Slot[]).map((slot) => (
                                                         <motion.button
-                                                            key={slot}
+                                                            key={slot.time}
                                                             type="button"
-                                                            whileHover={{ scale: 1.05 }}
-                                                            whileTap={{ scale: 0.95 }}
+                                                            whileHover={slot.isAvailable ? { scale: 1.05 } : {}}
+                                                            whileTap={slot.isAvailable ? { scale: 0.95 } : {}}
+                                                            disabled={!slot.isAvailable}
                                                             onClick={() => {
-                                                                form.setValue("time", slot);
+                                                                form.setValue("time", slot.time);
                                                                 setTimeout(() => handleNext(), 300);
                                                             }}
                                                             className={cn(
                                                                 "h-10 sm:h-12 md:h-14 rounded-xl sm:rounded-2xl border-2 font-black transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 group relative overflow-hidden",
-                                                                selectedTime === slot
+                                                                selectedTime === slot.time
                                                                     ? "bg-primary border-primary text-white shadow-lg shadow-primary/20"
-                                                                    : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700/50 hover:border-primary/50"
+                                                                    : !slot.isAvailable
+                                                                        ? "bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed opacity-70"
+                                                                        : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700/50 hover:border-primary/50"
                                                             )}
                                                         >
-                                                            <div className={cn(
-                                                                "h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full transition-all duration-300",
-                                                                selectedTime === slot ? "bg-white scale-150 animate-pulse" : "bg-slate-300 dark:bg-slate-600 group-hover:bg-primary"
-                                                            )}></div>
-                                                            <span className="text-sm sm:text-base italic">{slot}</span>
+                                                            {slot.isAvailable && (
+                                                                <div className={cn(
+                                                                    "h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full transition-all duration-300",
+                                                                    selectedTime === slot.time ? "bg-white scale-150 animate-pulse" : "bg-slate-300 dark:bg-slate-600 group-hover:bg-primary"
+                                                                )}></div>
+                                                            )}
+                                                            <span className="text-sm sm:text-base italic">
+                                                                {slot.time}
+                                                            </span>
+                                                            {!slot.isAvailable && (
+                                                                <span className="absolute -right-2 top-0 bg-slate-200 dark:bg-slate-700 text-[6px] sm:text-[8px] px-2 py-0.5 rounded-bl-lg font-black uppercase tracking-tighter opacity-50">
+                                                                    LLENO
+                                                                </span>
+                                                            )}
                                                         </motion.button>
                                                     ))}
                                                 </div>
@@ -1247,6 +1447,8 @@ const BusinessBookingPage = () => {
                                         <ResourceSelector
                                             businessId={businessId}
                                             scheduledAt={scheduledAt}
+                                            selectedId={selectedResourceId}
+                                            sessionId={bookingSessionId}
                                             onResourceSelected={(id) => {
                                                 setSelectedResourceId(id);
                                                 // Auto advance after short delay
@@ -2047,7 +2249,12 @@ const BusinessBookingPage = () => {
             <div className="min-h-screen flex items-center justify-center bg-background">
                 <div className="text-center">
                     <h2 className="text-2xl font-bold">{t('common.error')}</h2>
-                    <Button className="mt-4" onClick={() => navigate("/")}>{t('common.cancel')}</Button>
+                    <Button
+                        className="mt-4 shadow-xl shadow-primary/20"
+                        onClick={() => window.location.reload()}
+                    >
+                        {t('common.retry')}
+                    </Button>
                 </div>
             </div>
         );
@@ -2071,8 +2278,8 @@ const BusinessBookingPage = () => {
                     borderColor: 'transparent'
                 } : {}}
             >
-                <div className="max-w-5xl mx-auto px-2 sm:px-4 py-2.5 sm:py-6 flex items-center justify-between">
-                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 mr-2">
+                <div className="max-w-5xl mx-auto px-1.5 sm:px-4 py-2 sm:py-6 flex items-center justify-between gap-1 sm:gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-1">
                         {business.logoUrl ? (
                             <div className="h-9 w-9 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl overflow-hidden flex items-center justify-center bg-muted shrink-0">
                                 <img
@@ -2084,22 +2291,41 @@ const BusinessBookingPage = () => {
                                         e.currentTarget.style.display = 'none';
                                         const parent = e.currentTarget.parentElement;
                                         if (parent) {
-                                            parent.innerHTML = '<div class="h-9 w-9 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl bg-primary/10 flex items-center justify-center"><svg class="h-4 w-4 sm:h-8 sm:w-8 text-primary" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M14 8h1"/><path d="M6 21V4a2 2 0 0 1 2-2h8a2 0 0 1 2 2v17"/></svg></div>';
+                                            parent.innerHTML = '<div class="h-9 w-9 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl bg-primary/10 flex items-center justify-center"><svg class="h-4 w-4 sm:h-8 sm:w-8 text-primary" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M9 8h1"/><path d="M14 8h1"/><path d="M6 21V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/></svg></div>';
                                         }
                                     }}
                                 />
                             </div>
                         ) : (
                             <div className="h-9 w-9 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                                <Building2 className="h-4 w-4 sm:h-8 sm:w-8 text-primary" />
+                                <Building2
+                                    className="h-4 w-4 sm:h-8 sm:w-8"
+                                    style={theme === 'custom' && business.settings?.primaryColor ? {
+                                        color: isColorDark(business.settings.primaryColor) ? '#ffffff' : '#000000'
+                                    } : {}}
+                                />
                             </div>
                         )}
                         <div className="min-w-0 flex-1">
-                            <h1 className="text-sm sm:text-2xl font-bold truncate leading-tight">{business.businessName}</h1>
-                            <p className="text-[10px] sm:text-sm text-muted-foreground truncate opacity-70">{t('booking.header.system')}</p>
+                            <h1
+                                className="text-xs sm:text-2xl font-bold truncate leading-tight"
+                                style={theme === 'custom' && business.settings?.primaryColor ? {
+                                    color: isColorDark(business.settings.primaryColor) ? '#ffffff' : '#000000'
+                                } : {}}
+                            >
+                                {business.businessName}
+                            </h1>
+                            <p
+                                className="text-[9px] sm:text-sm truncate opacity-70 hidden sm:block"
+                                style={theme === 'custom' && business.settings?.primaryColor ? {
+                                    color: isColorDark(business.settings.primaryColor) ? '#ffffff' : '#000000'
+                                } : {}}
+                            >
+                                {t('booking.header.system')}
+                            </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                    <div className="flex items-center gap-0.5 sm:gap-2 shrink-0">
                         {user && (
                             <Button
                                 variant="outline"
@@ -2111,11 +2337,59 @@ const BusinessBookingPage = () => {
                                 }}
                                 className="ios-btn h-8 w-8 sm:h-10 sm:w-10"
                                 title={t('auth.logout') || 'Cerrar sesión'}
+                                style={theme === 'custom' && business.settings?.primaryColor ? {
+                                    borderColor: isColorDark(business.settings.primaryColor) ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
+                                    color: isColorDark(business.settings.primaryColor) ? '#ffffff' : '#000000'
+                                } : {}}
                             >
                                 <LogOut className="h-4 w-4 sm:h-[1.2rem] sm:w-[1.2rem]" />
                                 <span className="sr-only">{t('auth.logout') || 'Cerrar sesión'}</span>
                             </Button>
                         )}
+                        {!showDashboard && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="hidden sm:flex items-center gap-2 font-black uppercase italic tracking-widest text-[10px] hover:bg-primary/10 rounded-xl px-4 py-2 border-2 transition-all duration-300 group"
+                                onClick={() => {
+                                    if (otpToken && otpVerifiedEmail) {
+                                        handleFetchDashboard(otpVerifiedEmail, otpToken);
+                                    } else {
+                                        setIsRequestingDashboard(true);
+                                    }
+                                }}
+                                style={theme === 'custom' && business.settings?.primaryColor ? {
+                                    borderColor: isColorDark(business.settings.primaryColor) ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
+                                    color: isColorDark(business.settings.primaryColor) ? '#ffffff' : '#000000'
+                                } : {}}
+                            >
+                                <UserCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                Ver mis reservas
+                            </Button>
+                        )}
+
+                        {!showDashboard && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="sm:hidden h-8 w-8 border rounded-lg"
+                                onClick={() => {
+                                    if (otpToken && otpVerifiedEmail) {
+                                        handleFetchDashboard(otpVerifiedEmail, otpToken);
+                                    } else {
+                                        setIsRequestingDashboard(true);
+                                    }
+                                }}
+                                title="Mis Reservas"
+                                style={theme === 'custom' && business.settings?.primaryColor ? {
+                                    borderColor: isColorDark(business.settings.primaryColor) ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
+                                    color: isColorDark(business.settings.primaryColor) ? '#ffffff' : '#000000'
+                                } : {}}
+                            >
+                                <UserCircle className="h-5 w-5" />
+                            </Button>
+                        )}
+
                         <BusinessThemeToggle hasCustomTheme={!!business.settings?.primaryColor} />
                     </div>
                 </div>
@@ -2125,7 +2399,361 @@ const BusinessBookingPage = () => {
                 {/* Stepper */}
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)}>
-                        {!bookingSuccess ? (
+                        {showDashboard && clientDashboardData ? (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="space-y-6 sm:space-y-8"
+                            >
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div>
+                                        <h2 className="text-2xl sm:text-4xl font-black uppercase italic tracking-tighter dark:text-white">
+                                            Hola, <span className="text-primary">{clientDashboardData.clientName}</span>
+                                        </h2>
+                                        <p className="text-sm sm:text-base text-muted-foreground font-medium italic">Bienvenido a tu panel de control</p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Button
+                                            onClick={handleDashboardBookAgain}
+                                            className="flex-1 sm:flex-none h-12 px-6 rounded-xl font-black uppercase italic tracking-wider shadow-lg shadow-primary/20"
+                                        >
+                                            <Zap className="w-4 h-4 mr-2" /> Reservar Ahora
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            onClick={handleDashboardLogout}
+                                            className="h-12 w-12 rounded-xl flex items-center justify-center p-0 border-2"
+                                            title="Cerrar Sesión"
+                                        >
+                                            <LogOut className="w-5 h-5 text-muted-foreground" />
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Dashboard KPIs */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <Card className="p-4 border-2 border-slate-100 dark:border-slate-800 bg-background flex flex-col items-center justify-center text-center">
+                                        <CalendarCheck className="w-5 h-5 mb-2 text-primary" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Próximas</span>
+                                        <span className="text-2xl font-black italic">{clientDashboardData.bookings.length}</span>
+                                    </Card>
+                                    <Card className="p-4 border-2 border-slate-100 dark:border-slate-800 bg-background flex flex-col items-center justify-center text-center">
+                                        <Ticket className="w-5 h-5 mb-2 text-amber-500" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Paquetes</span>
+                                        <span className="text-2xl font-black italic">{clientDashboardData.assets.length}</span>
+                                    </Card>
+                                    <Card className="p-4 border-2 border-slate-100 dark:border-slate-800 bg-background flex flex-col items-center justify-center text-center">
+                                        <Clock className="w-5 h-5 mb-2 text-emerald-500" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Créditos</span>
+                                        <span className="text-2xl font-black italic">
+                                            {clientDashboardData.assets.reduce((acc, curr) => acc + (curr.isUnlimited ? 0 : (curr.remainingUses || 0)), 0)}
+                                        </span>
+                                    </Card>
+                                    <Card className="p-4 border-2 border-slate-100 dark:border-slate-800 bg-background flex flex-col items-center justify-center text-center">
+                                        <History className="w-5 h-5 mb-2 text-blue-500" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Historial</span>
+                                        <span className="text-2xl font-black italic">{clientDashboardData.pastBookings?.length || 0}</span>
+                                    </Card>
+                                </div>
+
+                                <div className="grid gap-6 md:grid-cols-[1fr_350px]">
+                                    {/* Main Content: Bookings */}
+                                    <div className="space-y-6">
+                                        <Tabs defaultValue="upcoming" className="w-full">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                                <TabsList className="bg-slate-100 dark:bg-slate-800 rounded-xl p-1 shrink-0">
+                                                    <TabsTrigger value="upcoming" className="font-black uppercase italic tracking-widest text-[10px] px-6 py-2 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950">
+                                                        Citas Próximas
+                                                    </TabsTrigger>
+                                                    <TabsTrigger value="history" className="font-black uppercase italic tracking-widest text-[10px] px-6 py-2 rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950">
+                                                        Historial
+                                                    </TabsTrigger>
+                                                </TabsList>
+
+                                                <div className="relative flex-1 max-w-sm">
+                                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                                    <Input
+                                                        value={dashboardSearchTerm}
+                                                        onChange={(e) => setDashboardSearchTerm(e.target.value)}
+                                                        placeholder="Buscar por servicio, fecha o código..."
+                                                        className="pl-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 border-none focus-visible:ring-primary shadow-inner"
+                                                    />
+                                                    {dashboardSearchTerm && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => setDashboardSearchTerm("")}
+                                                            className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-transparent"
+                                                        >
+                                                            <SearchX className="w-4 h-4 text-muted-foreground" />
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <TabsContent value="upcoming" className="mt-0 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                {(() => {
+                                                    const filtered = clientDashboardData.bookings.filter(b => {
+                                                        const service = services.find(s => s._id === b.serviceId);
+                                                        const serviceName = (service?.name || "Servicio").toLowerCase();
+                                                        const searchTerm = dashboardSearchTerm.toLowerCase();
+                                                        const accessCode = (b.accessCode || "").toLowerCase();
+
+                                                        const date = new Date(b.scheduledAt);
+                                                        const day = format(date, "d");
+                                                        const month = format(date, "MMMM", { locale: es }).toLowerCase();
+                                                        const monthEn = format(date, "MMMM", { locale: enUS }).toLowerCase();
+
+                                                        return serviceName.includes(searchTerm) ||
+                                                            accessCode.includes(searchTerm) ||
+                                                            day === searchTerm ||
+                                                            month.includes(searchTerm) ||
+                                                            monthEn.includes(searchTerm);
+                                                    });
+
+                                                    if (filtered.length === 0) {
+                                                        return (
+                                                            <Card className="border-2 border-dashed border-slate-200 dark:border-slate-800 bg-transparent">
+                                                                <CardContent className="flex flex-col items-center justify-center py-20 text-center opacity-50">
+                                                                    <div className="h-20 w-20 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center mb-6">
+                                                                        <CalendarIcon className="w-10 h-10 text-slate-300" />
+                                                                    </div>
+                                                                    <p className="text-base font-bold italic text-muted-foreground">
+                                                                        {dashboardSearchTerm ? `No se encontraron resultados para "${dashboardSearchTerm}"` : "No tienes reservas programadas"}
+                                                                    </p>
+                                                                    {!dashboardSearchTerm && (
+                                                                        <Button variant="link" onClick={handleDashboardBookAgain} className="mt-4 text-primary font-black uppercase tracking-widest text-xs">Reservar una cita ahora</Button>
+                                                                    )}
+                                                                </CardContent>
+                                                            </Card>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <div className="space-y-8">
+                                                            {groupBookingsByDate(filtered).map(([dateKey, dayBookings]) => {
+                                                                const date = new Date(dateKey + 'T12:00:00'); // set local noon to avoid TZ shift
+                                                                let label = format(date, "EEEE d 'de' MMMM", { locale: es });
+                                                                if (isToday(date)) label = "HOY, " + label;
+                                                                else if (isTomorrow(date)) label = "MAÑANA, " + label;
+
+                                                                return (
+                                                                    <div key={dateKey} className="space-y-4">
+                                                                        <div className="flex items-center gap-4 px-1">
+                                                                            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary shrink-0">{label}</h4>
+                                                                            <div className="h-px w-full bg-slate-100 dark:bg-slate-800/50"></div>
+                                                                        </div>
+                                                                        <div className="grid gap-3">
+                                                                            {dayBookings.map((booking: any) => {
+                                                                                const service = services.find(s => s._id === booking.serviceId);
+                                                                                return (
+                                                                                    <Card key={booking._id} className="overflow-hidden border border-slate-100 dark:border-slate-800/50 hover:border-primary/30 transition-all group bg-white dark:bg-slate-950 shadow-sm hover:shadow-md">
+                                                                                        <div className="flex">
+                                                                                            <div className="w-1.5 bg-primary"></div>
+                                                                                            <div className="flex-1 p-3 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                                                                                                <div className="flex gap-4 items-center">
+                                                                                                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-slate-50 dark:bg-slate-900 border flex flex-col items-center justify-center shrink-0">
+                                                                                                        <span className="text-[10px] font-black leading-none">{format(new Date(booking.scheduledAt), "HH:mm")}</span>
+                                                                                                        <Clock className="w-3 h-3 text-muted-foreground mt-1" />
+                                                                                                    </div>
+                                                                                                    <div className="space-y-1">
+                                                                                                        <h4 className="text-base sm:text-lg font-black uppercase italic tracking-tighter leading-none group-hover:text-primary transition-colors">
+                                                                                                            {service?.name || "Servicio"}
+                                                                                                        </h4>
+                                                                                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground font-medium italic">
+                                                                                                            {booking.accessCode && (
+                                                                                                                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-md text-[9px] uppercase font-black tracking-widest text-slate-500">
+                                                                                                                    # ID: {booking.accessCode}
+                                                                                                                </div>
+                                                                                                            )}
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                                <Badge className={cn(
+                                                                                                    "w-fit font-black uppercase italic tracking-widest text-[9px] px-3 py-1",
+                                                                                                    booking.status === 'confirmed' ? "bg-green-500 hover:bg-green-600" :
+                                                                                                        booking.status === 'pending_payment' ? "bg-amber-500 hover:bg-amber-600" :
+                                                                                                            "bg-slate-400"
+                                                                                                )}>
+                                                                                                    {t(`dashboard.bookings.status.${booking.status}`) || booking.status}
+                                                                                                </Badge>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </Card>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </TabsContent>
+
+                                            <TabsContent value="history" className="mt-0 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                                {(() => {
+                                                    const filtered = (clientDashboardData.pastBookings || []).filter(b => {
+                                                        const service = services.find(s => s._id === b.serviceId);
+                                                        const serviceName = (service?.name || "Servicio").toLowerCase();
+                                                        const searchTerm = dashboardSearchTerm.toLowerCase();
+                                                        const accessCode = (b.accessCode || "").toLowerCase();
+
+                                                        const date = new Date(b.scheduledAt);
+                                                        const day = format(date, "d");
+                                                        const month = format(date, "MMMM", { locale: es }).toLowerCase();
+                                                        const monthEn = format(date, "MMMM", { locale: enUS }).toLowerCase();
+
+                                                        return serviceName.includes(searchTerm) ||
+                                                            accessCode.includes(searchTerm) ||
+                                                            day === searchTerm ||
+                                                            month.includes(searchTerm) ||
+                                                            monthEn.includes(searchTerm);
+                                                    });
+
+                                                    if (filtered.length === 0) {
+                                                        return (
+                                                            <div className="flex flex-col items-center justify-center py-20 text-center opacity-30">
+                                                                <History className="w-12 h-12 mb-4" />
+                                                                <p className="text-sm font-bold italic">
+                                                                    {dashboardSearchTerm ? `No se encontraron resultados para "${dashboardSearchTerm}"` : "No hay historial de reservas"}
+                                                                </p>
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <div className="grid gap-3">
+                                                            {filtered.map((booking: any) => {
+                                                                const service = services.find(s => s._id === booking.serviceId);
+                                                                const isCancelled = booking.status === 'cancelled';
+                                                                return (
+                                                                    <Card key={booking._id} className={cn(
+                                                                        "overflow-hidden border border-slate-100 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm opacity-80 hover:opacity-100 grayscale-[0.5] hover:grayscale-0 transition-all",
+                                                                        isCancelled && "opacity-60"
+                                                                    )}>
+                                                                        <div className="flex">
+                                                                            <div className={cn("w-1.5", isCancelled ? "bg-red-400" : "bg-slate-400")}></div>
+                                                                            <div className="flex-1 p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                                                                                <div className="space-y-1">
+                                                                                    <h4 className="text-base font-bold uppercase italic tracking-tighter leading-none">
+                                                                                        {service?.name || "Servicio"}
+                                                                                    </h4>
+                                                                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground font-medium italic">
+                                                                                        <div className="flex items-center gap-1.5">
+                                                                                            <Clock className="w-3 h-3" />
+                                                                                            {format(new Date(booking.scheduledAt), "d MMM, HH:mm", { locale: es })}
+                                                                                        </div>
+                                                                                        <div className="flex items-center gap-1.5">
+                                                                                            <span className="font-black">#{booking.accessCode}</span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <Badge variant="outline" className={cn(
+                                                                                    "w-fit font-black uppercase italic tracking-widest text-[8px] px-2 py-0.5",
+                                                                                    booking.status === 'completed' ? "border-green-500 text-green-500" :
+                                                                                        booking.status === 'cancelled' ? "border-red-500 text-red-500" :
+                                                                                            "border-slate-400 text-slate-400"
+                                                                                )}>
+                                                                                    {t(`dashboard.bookings.status.${booking.status}`) || booking.status}
+                                                                                </Badge>
+                                                                            </div>
+                                                                        </div>
+                                                                    </Card>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </TabsContent>
+                                        </Tabs>
+                                    </div>
+
+                                    {/* Sidebar: Assets */}
+                                    <div className="space-y-6">
+                                        <div className="flex items-center gap-2 px-1">
+                                            <div className="h-1.5 w-6 bg-amber-500 rounded-full"></div>
+                                            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Mis Paquetes / Saldo</h3>
+                                        </div>
+
+                                        {clientDashboardData.assets.length > 0 ? (
+                                            <div className="grid gap-4">
+                                                {clientDashboardData.assets.map((asset: any) => (
+                                                    <Card key={asset._id} className="p-4 bg-gradient-to-br from-amber-500/5 to-transparent border-2 border-amber-500/10 hover:border-amber-500/30 transition-all shadow-sm">
+                                                        <div className="flex items-start gap-3 mb-3">
+                                                            <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
+                                                                <Ticket className="w-5 h-5" />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <h5 className="text-sm font-black uppercase italic tracking-tighter truncate">{asset.productId?.name || "Paquete"}</h5>
+                                                                <p className="text-[10px] text-muted-foreground font-medium italic">
+                                                                    {asset.expiresAt ? `Expira el ${format(new Date(asset.expiresAt), "d MMM yyyy", { locale: es })}` : "Sin expiración"}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center justify-between pt-3 border-t border-amber-500/10">
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-amber-600">Disponibles:</span>
+                                                            <span className="text-lg font-black italic text-amber-600">
+                                                                {asset.isUnlimited ? "∞" : `${asset.remainingUses} Usos`}
+                                                            </span>
+                                                        </div>
+                                                    </Card>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                {clientDashboardData.consumedAssets && clientDashboardData.consumedAssets.length > 0 ? (
+                                                    <Card className="p-6 border-2 border-primary/20 bg-primary/5 rounded-[1.5rem] relative overflow-hidden group hover:border-primary/40 transition-all">
+                                                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                                                            <Zap className="w-12 h-12 text-primary" />
+                                                        </div>
+                                                        <div className="flex flex-col gap-4 relative z-10">
+                                                            <div className="flex items-start gap-3">
+                                                                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                                                    <History className="w-5 h-5" />
+                                                                </div>
+                                                                <div>
+                                                                    <h5 className="text-sm font-black uppercase italic tracking-tighter">{t('dashboard.v2.assets.consumed_title')}</h5>
+                                                                    <p className="text-[10px] text-muted-foreground font-medium italic">{clientDashboardData.consumedAssets[0].productId?.name}</p>
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-[11px] font-medium leading-relaxed italic text-muted-foreground">
+                                                                {t('dashboard.v2.assets.consumed_desc')}
+                                                            </p>
+                                                            <Button
+                                                                onClick={() => { setShowDashboard(false); setStep(1); setActiveFilter('packages'); }}
+                                                                className="w-full h-11 rounded-xl font-black uppercase tracking-widest text-[9px] shadow-lg shadow-primary/20"
+                                                                style={{ backgroundColor: business?.settings?.primaryColor }}
+                                                            >
+                                                                <Zap className="w-3 h-3 mr-2" /> {t('dashboard.v2.assets.renew_button')}
+                                                            </Button>
+                                                        </div>
+                                                    </Card>
+                                                ) : (
+                                                    <Card className="p-6 bg-slate-50 dark:bg-slate-900/50 border-2 border-slate-100 dark:border-slate-800 text-center opacity-60 rounded-[1.5rem]">
+                                                        <p className="text-xs font-bold italic text-muted-foreground mb-4">No tienes paquetes o créditos activos</p>
+                                                        <Button variant="outline" size="sm" onClick={() => { setShowDashboard(false); setStep(1); setActiveFilter('packages'); }} className="w-full h-10 rounded-xl font-black uppercase tracking-widest text-[9px]">Ver Paquetes</Button>
+                                                    </Card>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Help Card */}
+                                        <Card className="p-6 bg-primary/5 border-2 border-primary/10 rounded-[2rem]">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                                    <Info className="w-5 h-5" />
+                                                </div>
+                                                <h4 className="text-xs font-black uppercase tracking-widest">¿Necesitas Ayuda?</h4>
+                                            </div>
+                                            <p className="text-[10px] font-medium italic text-muted-foreground leading-relaxed">
+                                                Si tienes problemas con alguna reserva o paquete, por favor contacta al negocio directamente usando los enlaces de redes sociales al final de la página.
+                                            </p>
+                                        </Card>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ) : !bookingSuccess ? (
                             <AnimatedStepper
                                 currentStep={step}
                                 onStepChange={(s) => setStep(s)}
@@ -2155,19 +2783,33 @@ const BusinessBookingPage = () => {
                                             <div className="space-y-2">
                                                 <h3 className="text-3xl font-black uppercase italic tracking-tighter text-green-900 dark:text-green-400">{t('booking.form.confirmation_title')}</h3>
                                                 <p className="text-base text-green-700 dark:text-green-300 font-medium italic">
-                                                    {t('booking.form.need_code')}
+                                                    {t('booking.form.confirmation_desc')}
                                                 </p>
                                             </div>
                                             <Button
                                                 onClick={() => {
-                                                    const params = new URLSearchParams({
-                                                        email: form.getValues('clientEmail'),
-                                                        code: bookingSuccessCode || '',
-                                                        businessId: businessId || ''
-                                                    });
-                                                    navigate(`/my-bookings?${params.toString()}`);
+                                                    const email = form.getValues('clientEmail') || otpVerifiedEmail || "";
+
+                                                    if (businessId) {
+                                                        const session = getClientSession(businessId);
+                                                        // 1. Try saved session
+                                                        if (session && session.email === (email || session.email)) {
+                                                            handleFetchDashboard(session.email, session.token);
+                                                            return;
+                                                        }
+
+                                                        // 2. Try current OTP token if available
+                                                        if (otpToken && otpVerifiedEmail && (email === otpVerifiedEmail)) {
+                                                            handleFetchDashboard(otpVerifiedEmail, otpToken);
+                                                            return;
+                                                        }
+                                                    }
+
+                                                    setDashboardEmail(email);
+                                                    setIsRequestingDashboard(true);
                                                 }}
-                                                className="rounded-full font-black uppercase italic tracking-widest"
+                                                className="rounded-full font-black uppercase italic tracking-widest text-white shadow-lg shadow-green-500/20"
+                                                style={{ backgroundColor: business?.settings?.primaryColor }}
                                             >
                                                 Ver mis reservas
                                             </Button>
@@ -2179,50 +2821,7 @@ const BusinessBookingPage = () => {
                     </form>
                 </Form>
 
-                {
-                    myBookings.length > 0 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>{t('dashboard.bookings.title')}</CardTitle>
-                                <CardDescription>{t('booking.services.subtitle')}</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    {myBookings.map((booking) => {
-                                        const service = services.find(s => s._id === booking.serviceId);
-                                        return (
-                                            <div key={booking._id} className="flex items-center justify-between p-4 border rounded-lg">
-                                                <div className="space-y-1">
-                                                    <p className="font-semibold">{service?.name || t('booking.form.service_label')}</p>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {format(new Date(booking.scheduledAt), "PPP 'a las' p", { locale: i18n.language === 'es' ? es : enUS })}
-                                                    </p>
-                                                    {booking.accessCode && (
-                                                        <p className="text-xs text-muted-foreground">
-                                                            Código de acceso: <span className="font-medium text-foreground">{booking.accessCode}</span>
-                                                        </p>
-                                                    )}
-                                                </div>
-                                                <Badge variant={booking.status === "confirmed" ? "default" : "secondary"}>
-                                                    {t(`dashboard.bookings.status.${booking.status}`)}
-                                                </Badge>
-                                            </div>
-                                        );
-                                    })}
-                                    <div className="pt-2">
-                                        <Button
-                                            variant="outline"
-                                            className="w-full"
-                                            onClick={() => navigate(`/my-bookings?businessId=${businessId}`)}
-                                        >
-                                            {t('booking.form.check_booking')}
-                                        </Button>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )
-                }
+
             </div>
 
             {/* Social Media Footer */}
@@ -2294,14 +2893,98 @@ const BusinessBookingPage = () => {
                 onClose={() => setIsOtpModalOpen(false)}
                 onSuccess={(token) => {
                     setOtpToken(token);
-                    setOtpVerifiedEmail(form.getValues('clientEmail'));
-                    toast.success("Tus créditos han sido verificados. Se descontarán automáticamente al confirmar la reserva.");
-                    handleNext();
+                    const email = isRequestingDashboard ? dashboardEmail : form.getValues('clientEmail');
+                    setOtpVerifiedEmail(email);
+
+                    if (otpPurpose === 'CLIENT_ACCESS') {
+                        setIsRequestingDashboard(false);
+                        handleFetchDashboard(email, token);
+                        toast.success("¡Identidad verificada! Cargando tus datos...");
+                    } else {
+                        toast.success("Tus créditos han sido verificados. Se descontarán automáticamente al confirmar la reserva.");
+                        handleNext();
+                    }
                 }}
-                email={form.getValues('clientEmail')}
+                email={isRequestingDashboard ? dashboardEmail : form.getValues('clientEmail')}
                 businessId={businessId!}
                 purpose={otpPurpose}
             />
+
+            <AlertDialog open={isRequestingDashboard} onOpenChange={setIsRequestingDashboard}>
+                <AlertDialogContent className="rounded-[1.5rem] sm:rounded-[2rem] border-2 border-slate-100 dark:border-slate-800 shadow-2xl overflow-hidden p-0 max-w-[90vw] sm:max-w-[400px] mx-4">
+                    <div className="bg-primary/5 p-4 sm:p-6 md:p-8 border-b border-primary/10 relative">
+                        <div className="absolute top-4 right-4 h-8 w-8 sm:h-12 sm:w-12 bg-primary/10 rounded-full blur-xl animate-pulse"></div>
+                        <div className="h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 rounded-xl sm:rounded-2xl bg-primary flex items-center justify-center text-white mb-3 sm:mb-4 shadow-lg shadow-primary/20">
+                            <Receipt className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" />
+                        </div>
+                        <AlertDialogHeader className="text-left space-y-1 sm:space-y-2">
+                            <AlertDialogTitle className="text-xl sm:text-2xl md:text-3xl font-black uppercase italic tracking-tighter leading-none">
+                                Mis <span className="text-primary italic">Reservas</span>
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="text-xs sm:text-sm font-medium italic opacity-70 leading-relaxed">
+                                Ingresa tu correo para ver tus citas y paquetes. Te enviaremos un código de seguridad.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                    </div>
+
+                    <div className="p-4 sm:p-6 md:p-8 space-y-3 sm:space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Tu Correo Electrónico</label>
+                            <div className="relative group">
+                                <Mail className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                <Input
+                                    value={dashboardEmail}
+                                    onChange={(e) => setDashboardEmail(e.target.value)}
+                                    placeholder="tu@email.com"
+                                    className="h-12 sm:h-14 pl-10 sm:pl-12 rounded-xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 font-bold italic focus:ring-primary/20 transition-all text-sm"
+                                    onKeyDown={async (e) => {
+                                        if (e.key === 'Enter' && dashboardEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dashboardEmail)) {
+                                            try {
+                                                const purpose = 'CLIENT_ACCESS';
+                                                const res = await requestOtp(dashboardEmail, businessId!, purpose);
+                                                if (res.requiresOtp) {
+                                                    setOtpPurpose(purpose);
+                                                    setIsOtpModalOpen(true);
+                                                }
+                                            } catch (err) {
+                                                toast.error("Error al solicitar el código. Por favor intenta de nuevo.");
+                                            }
+                                        }
+                                    }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2 pt-1 sm:pt-2">
+                            <Button
+                                disabled={!dashboardEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dashboardEmail)}
+                                onClick={async () => {
+                                    try {
+                                        const purpose = 'CLIENT_ACCESS';
+                                        const res = await requestOtp(dashboardEmail, businessId!, purpose);
+                                        if (res.requiresOtp) {
+                                            setOtpPurpose(purpose);
+                                            setIsOtpModalOpen(true);
+                                        }
+                                    } catch (err) {
+                                        toast.error("Error al solicitar el código. Por favor intenta de nuevo.");
+                                    }
+                                }}
+                                className="h-12 sm:h-14 rounded-xl font-black uppercase italic tracking-widest text-[10px] sm:text-[11px] shadow-xl shadow-primary/20"
+                            >
+                                Enviar Código <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-2" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                onClick={() => setIsRequestingDashboard(false)}
+                                className="h-10 rounded-xl font-black uppercase italic tracking-widest text-[9px] text-muted-foreground"
+                            >
+                                Cancelar
+                            </Button>
+                        </div>
+                    </div>
+                </AlertDialogContent>
+            </AlertDialog>
 
             <AlertDialog open={!!conflictError} onOpenChange={(open) => !open && setConflictError(null)}>
                 <AlertDialogContent className="max-h-[90vh] overflow-y-auto">
@@ -2314,14 +2997,13 @@ const BusinessBookingPage = () => {
                     <AlertDialogFooter>
                         <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={() => {
-                            const params = new URLSearchParams({
-                                email: conflictError?.clientEmail || '',
-                                ...(conflictError?.accessCode ? { code: conflictError.accessCode } : {}),
-                                ...(businessId ? { businessId } : {}),
-                            });
-                            navigate(`/my-bookings?${params.toString()}`);
+                            if (conflictError?.clientEmail) {
+                                setDashboardEmail(conflictError.clientEmail);
+                                setIsRequestingDashboard(true);
+                                setConflictError(null);
+                            }
                         }}>
-                            {t('booking.form.check_booking')}
+                            Ver mis citas
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -2425,13 +3107,22 @@ function hexToHSL(hex: string): string | null {
 function isColorDark(hex: string): boolean {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     if (!result) return false;
-    const r = parseInt(result[1], 16);
-    const g = parseInt(result[2], 16);
-    const b = parseInt(result[3], 16);
 
-    // Perceived brightness formula
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    return brightness < 128; // If less than 128, it IS dark
+    let r = parseInt(result[1], 16) / 255;
+    let g = parseInt(result[2], 16) / 255;
+    let b = parseInt(result[3], 16) / 255;
+
+    // W3C Relative Luminance Formula
+    // Apply gamma correction
+    r = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
+    g = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
+    b = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
+
+    // Calculate relative luminance
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+    // If luminance is less than 0.5, the color is dark
+    return luminance < 0.5;
 }
 
 const prioritizeAssets = (assets: CustomerAsset[]): CustomerAsset[] => {

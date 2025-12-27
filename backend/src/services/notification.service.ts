@@ -14,6 +14,7 @@ import {
   businessRegistrationReceiptTemplate,
   demoRequestReceiptTemplate,
   DemoRequestData,
+  BookingEmailData,
   otpTemplate,
 } from '../utils/email-templates';
 import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
@@ -57,7 +58,7 @@ export class NotificationService {
   }
 
   /** Envia notificaciones de nueva reserva al cliente y al negocio */
-  async sendBookingConfirmation(booking: Booking): Promise<void> {
+  async sendBookingConfirmation(booking: Booking, magicLinkToken?: string): Promise<void> {
     try {
       const business = booking.businessId
         ? await this.getBusinessInfo(booking.businessId)
@@ -72,6 +73,7 @@ export class NotificationService {
 
       if (booking.clientEmail) {
         const clientHtml = clientBookingConfirmationTemplate({
+          businessId: booking.businessId,
           businessName,
           clientName: booking.clientName,
           serviceName: booking.serviceName || 'Servicio',
@@ -82,6 +84,8 @@ export class NotificationService {
           businessPhone: business?.phone,
           showReminder,
           language,
+          magicLinkToken,
+          clientEmail: booking.clientEmail,
         });
 
         await sendEmail({
@@ -176,7 +180,7 @@ export class NotificationService {
   }
 
   /** Envia recordatorio de cita (24 horas antes) */
-  async sendAppointmentReminder(booking: Booking): Promise<void> {
+  async sendAppointmentReminder(booking: Booking, magicLinkToken?: string): Promise<void> {
     try {
       if (!booking.clientEmail) {
         console.log('No se puede enviar recordatorio: email del cliente no disponible');
@@ -198,6 +202,7 @@ export class NotificationService {
       const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale);
 
       const html = appointmentReminderTemplate({
+        businessId: booking.businessId,
         businessName,
         clientName: booking.clientName,
         serviceName: booking.serviceName || 'Servicio',
@@ -207,6 +212,8 @@ export class NotificationService {
         businessEmail: business?.email,
         businessPhone: business?.phone,
         language,
+        magicLinkToken,
+        clientEmail: booking.clientEmail,
       });
 
       await sendEmail({

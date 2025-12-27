@@ -132,12 +132,17 @@ export const updateBusinessSettings = async (
   return data;
 };
 
+export interface Slot {
+  time: string;
+  isAvailable: boolean;
+}
+
 export const getBusinessSlots = async (
   businessId: string,
   date: string,
   serviceId: string,
-): Promise<string[]> => {
-  const { data } = await apiClient.get<string[]>(`/businesses/${businessId}/slots`, {
+): Promise<Slot[]> => {
+  const { data } = await apiClient.get<Slot[]>(`/businesses/${businessId}/slots`, {
     params: { date, service: serviceId },
   });
   return data;

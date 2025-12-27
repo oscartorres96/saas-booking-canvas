@@ -1,9 +1,8 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import AdminDashboard from '../pages/admin/AdminDashboard';
 import BusinessDashboard from '../pages/business/BusinessDashboard';
 import BusinessBookingPage from '../pages/business/BusinessBookingPage';
 import Landing from '../pages/Landing';
-import MyBookings from '../pages/MyBookings';
 import Login from '../pages/Login';
 import NotFound from '../pages/NotFound';
 import PrivateRoute from '../auth/PrivateRoute';
@@ -13,6 +12,16 @@ import PaymentSuccess from '../pages/PaymentSuccess';
 import PaymentCancel from '../pages/PaymentCancel';
 import GetStarted from '../pages/GetStarted';
 import ActivateAccount from '../pages/ActivateAccount';
+
+const MyBookingsRedirect = () => {
+  const [searchParams] = useSearchParams();
+  const businessId = searchParams.get('businessId');
+  const email = searchParams.get('email');
+  if (businessId) {
+    return <Navigate to={`/business/${businessId}/booking?view=dashboard${email ? `&email=${email}` : ''}`} replace />;
+  }
+  return <Navigate to="/" replace />;
+};
 
 const AppRouter = () => (
   <BrowserRouter
@@ -26,7 +35,7 @@ const AppRouter = () => (
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Login />} />
       <Route path="/activate/:token" element={<ActivateAccount />} />
-      <Route path="/my-bookings" element={<MyBookings />} />
+      <Route path="/my-bookings" element={<MyBookingsRedirect />} />
       <Route path="/manual" element={<UserManual />} />
       <Route path="/payment/success" element={<PaymentSuccess />} />
       <Route path="/payment/cancel" element={<PaymentCancel />} />

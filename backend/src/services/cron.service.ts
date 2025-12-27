@@ -4,12 +4,14 @@ import { Model } from 'mongoose';
 import * as cron from 'node-cron';
 import { Booking, BookingDocument, BookingStatus } from '../bookings/schemas/booking.schema';
 import { NotificationService } from './notification.service';
+import { OtpService } from '../bookings/otp/otp.service';
 
 @Injectable()
 export class CronService implements OnModuleInit {
   constructor(
     @InjectModel(Booking.name) private readonly bookingModel: Model<BookingDocument>,
     private readonly notificationService: NotificationService,
+    private readonly otpService: OtpService,
   ) { }
 
   onModuleInit() {
@@ -57,7 +59,8 @@ export class CronService implements OnModuleInit {
 
       for (const booking of upcomingBookings) {
         if (booking.clientEmail) {
-          await this.notificationService.sendAppointmentReminder(booking);
+          const magicLinkToken = await this.otpService.generateMagicLinkToken(booking.clientEmail);
+          await this.notificationService.sendAppointmentReminder(booking as Booking, magicLinkToken);
           console.log(`[cron] Recordatorio enviado a ${booking.clientEmail}`);
         }
       }

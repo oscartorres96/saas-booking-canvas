@@ -63,8 +63,9 @@ export const generateSlots = (
     date: Date,
     serviceDurationMinutes: number,
     businessHours: BusinessHour[],
-    existingBookings: ExistingBooking[]
-): string[] => {
+    existingBookings: ExistingBooking[],
+    maxCapacity: number = 1
+): { time: string, isAvailable: boolean }[] => {
     // Use Spanish locale to match stored day names (e.g., "Lunes", "Martes")
     const dayName = format(date, 'EEEE', { locale: es }).toLowerCase();
     console.log(`[generateSlots] Detecting day for date ${date}: "${dayName}"`);
@@ -94,7 +95,7 @@ export const generateSlots = (
         intervals = [{ startTime: '09:00', endTime: '18:00' }];
     }
 
-    const slots: string[] = [];
+    const slots: { time: string, isAvailable: boolean }[] = [];
     const dateString = format(date, 'yyyy-MM-dd');
 
     intervals.forEach((interval) => {
@@ -102,8 +103,11 @@ export const generateSlots = (
         const end = parse(`${dateString} ${interval.endTime}`, 'yyyy-MM-dd HH:mm', new Date());
 
         while (isBefore(current, end)) {
+            const currentSlotTime = format(current, 'HH:mm');
+
             // Filter out slots in the past
             if (isBefore(current, new Date())) {
+                slots.push({ time: currentSlotTime, isAvailable: false });
                 current = addMinutes(current, serviceDurationMinutes);
                 continue;
             }
@@ -111,22 +115,19 @@ export const generateSlots = (
             const slotEnd = addMinutes(current, serviceDurationMinutes);
 
             if (isBefore(slotEnd, end) || slotEnd.getTime() === end.getTime()) {
-                // Check collision
-                const isBusy = existingBookings.some((booking) => {
+                // Check collision based on capacity
+                const overlappingBookings = existingBookings.filter((booking) => {
                     const bookingStart = new Date(booking.scheduledAt);
-                    // Default duration if not stored? Assume 30 min or passed in?
-                    // The payload usually has duration. If not, we might assume collision logic.
-                    // Ideally booking has duration. If not, let's assume it blocks the slot.
-                    // But wait, existingBookings passed here should have duration.
-                    const bookingEnd = addMinutes(bookingStart, booking.durationMinutes || serviceDurationMinutes); // Fallback
+                    const bookingEnd = addMinutes(bookingStart, booking.durationMinutes || serviceDurationMinutes);
 
                     // Overlap logic: (StartA < EndB) and (EndA > StartB)
                     return current < bookingEnd && slotEnd > bookingStart;
                 });
 
-                if (!isBusy) {
-                    slots.push(format(current, 'HH:mm'));
-                }
+                slots.push({
+                    time: currentSlotTime,
+                    isAvailable: overlappingBookings.length < maxCapacity
+                });
             }
             current = addMinutes(current, serviceDurationMinutes);
         }

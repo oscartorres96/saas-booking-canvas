@@ -19,6 +19,9 @@ export class ResourceHold {
 
     @Prop()
     bookingId?: string;
+
+    @Prop()
+    sessionId?: string;
 }
 
 export const ResourceHoldSchema = SchemaFactory.createForClass(ResourceHold);

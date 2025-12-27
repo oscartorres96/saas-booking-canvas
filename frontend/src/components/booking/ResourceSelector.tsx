@@ -10,21 +10,32 @@ import { ResourceIcon } from "./ResourceIconRegistry";
 interface ResourceSelectorProps {
     businessId: string;
     scheduledAt: string;
+    selectedId?: string | null;
+    sessionId?: string;
     onResourceSelected: (resourceId: string) => void;
     primaryColor?: string;
 }
 
-export const ResourceSelector = ({ businessId, scheduledAt, onResourceSelected, primaryColor }: ResourceSelectorProps) => {
+export const ResourceSelector = ({ businessId, scheduledAt, selectedId: propellerId, sessionId, onResourceSelected, primaryColor }: ResourceSelectorProps) => {
     const [availability, setAvailability] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [localSelectedId, setLocalSelectedId] = useState<string | null>(null);
     const [isHolding, setIsHolding] = useState(false);
+
+    // Use prop value if provided, otherwise local state
+    const selectedId = propellerId !== undefined ? propellerId : localSelectedId;
 
     const loadAvailability = async () => {
         try {
             setLoading(true);
-            const data = await getResourceAvailability(businessId, scheduledAt);
+            const data = await getResourceAvailability(businessId, scheduledAt, sessionId);
             setAvailability(data);
+
+            // Auto-select if backend says user already has a hold
+            if (data.userHoldResourceId && !selectedId) {
+                setLocalSelectedId(data.userHoldResourceId);
+                onResourceSelected(data.userHoldResourceId);
+            }
         } catch (error) {
             console.error("Error loading availability:", error);
         } finally {
@@ -41,8 +52,8 @@ export const ResourceSelector = ({ businessId, scheduledAt, onResourceSelected, 
 
         try {
             setIsHolding(true);
-            await createResourceHold(businessId, resourceId, scheduledAt);
-            setSelectedId(resourceId);
+            await createResourceHold(businessId, resourceId, scheduledAt, sessionId);
+            setLocalSelectedId(resourceId);
             onResourceSelected(resourceId);
         } catch (error) {
             console.error("Error creating hold:", error);

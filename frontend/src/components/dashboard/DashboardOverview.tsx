@@ -467,6 +467,11 @@ export const DashboardOverview = ({
                                                                             activity.status === 'cancelled' ? 'canceló' : 'reservó'}
                                                                 </span>
                                                                 <span className="font-medium text-primary block sm:inline">{service?.name || 'Servicio'}</span>
+                                                                {activity.resourceId && (
+                                                                    <span className="ml-1 text-[10px] font-black italic text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                                                                        {business?.resourceConfig?.resources?.find((r: any) => r.id === activity.resourceId)?.label || activity.resourceId}
+                                                                    </span>
+                                                                )}
                                                             </p>
                                                             <span className="text-[10px] md:text-xs text-muted-foreground whitespace-nowrap">
                                                                 {getActivityTime(activity)}

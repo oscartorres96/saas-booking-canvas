@@ -653,7 +653,7 @@ export class StripeService {
 
             // Send confirmation notification
             try {
-                await this.notificationService.sendBookingConfirmation(booking as any);
+                await this.bookingsService.sendConfirmationEmail(booking as any);
             } catch (error) {
                 this.logger.error(`Error sending booking confirmation email: ${error instanceof Error ? error.message : 'Unknown error'}`);
             }

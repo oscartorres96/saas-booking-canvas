@@ -10,18 +10,20 @@ export class ResourceMapController {
     async getAvailability(
         @Param('businessId') businessId: string,
         @Query('scheduledAt') scheduledAt: string,
+        @Query('sessionId') sessionId?: string,
     ) {
-        return this.resourceMapService.getAvailability(businessId, new Date(scheduledAt));
+        return this.resourceMapService.getAvailability(businessId, new Date(scheduledAt), sessionId);
     }
 
     @Post('hold')
     async createHold(
-        @Body() body: { businessId: string; resourceId: string; scheduledAt: string },
+        @Body() body: { businessId: string; resourceId: string; scheduledAt: string; sessionId?: string },
     ) {
         return this.resourceMapService.createHold(
             body.businessId,
             body.resourceId,
             new Date(body.scheduledAt),
+            body.sessionId,
         );
     }
 

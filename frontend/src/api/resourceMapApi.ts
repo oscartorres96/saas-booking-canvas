@@ -16,15 +16,17 @@ export interface ResourceAvailability {
     }>;
   };
   occupiedResourceIds: string[];
+  userHoldResourceId?: string | null;
 }
 
 export const getResourceAvailability = async (
   businessId: string,
-  scheduledAt: string
+  scheduledAt: string,
+  sessionId?: string
 ): Promise<ResourceAvailability> => {
   const { data } = await apiClient.get<ResourceAvailability>(
     `/resource-map/${businessId}/availability`,
-    { params: { scheduledAt } }
+    { params: { scheduledAt, sessionId } }
   );
   return data;
 };
@@ -32,12 +34,14 @@ export const getResourceAvailability = async (
 export const createResourceHold = async (
   businessId: string,
   resourceId: string,
-  scheduledAt: string
+  scheduledAt: string,
+  sessionId?: string
 ): Promise<any> => {
   const { data } = await apiClient.post('/resource-map/hold', {
     businessId,
     resourceId,
     scheduledAt,
+    sessionId,
   });
   return data;
 };

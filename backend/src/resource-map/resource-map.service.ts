@@ -13,7 +13,7 @@ export class ResourceMapService {
         @InjectModel(Business.name) private businessModel: Model<BusinessDocument>,
     ) { }
 
-    async getAvailability(businessId: string, scheduledAt: Date) {
+    async getAvailability(businessId: string, scheduledAt: Date, sessionId?: string) {
         const business = await this.businessModel.findById(businessId).lean();
         if (!business || !business.resourceConfig?.enabled) {
             return null;
@@ -42,20 +42,32 @@ export class ResourceMapService {
 
         const occupiedResourceIds = [
             ...bookings.map(b => b.resourceId),
-            ...holds.map(h => h.resourceId),
+            ...holds.filter(h => h.sessionId !== sessionId).map(h => h.resourceId),
         ];
+
+        const userHoldResourceId = sessionId ? holds.find(h => h.sessionId === sessionId)?.resourceId : null;
 
         return {
             resourceConfig: business.resourceConfig,
             occupiedResourceIds,
+            userHoldResourceId,
         };
     }
 
-    async createHold(businessId: string, resourceId: string, scheduledAt: Date) {
+    async createHold(businessId: string, resourceId: string, scheduledAt: Date, sessionId?: string) {
         // Check if already occupied
-        const availability = await this.getAvailability(businessId, scheduledAt);
+        const availability = await this.getAvailability(businessId, scheduledAt, sessionId);
         if (availability && availability.occupiedResourceIds.includes(resourceId)) {
             throw new BadRequestException('Resource already occupied or held');
+        }
+
+        // If user already had another hold for the same time, delete it
+        if (sessionId) {
+            await this.resourceHoldModel.deleteMany({
+                businessId,
+                scheduledAt: { $gte: new Date(scheduledAt.getTime() - 1000), $lt: new Date(scheduledAt.getTime() + 1000) },
+                sessionId,
+            });
         }
 
         const expiresAt = new Date();
@@ -66,6 +78,7 @@ export class ResourceMapService {
             resourceId,
             scheduledAt,
             expiresAt,
+            sessionId,
         });
 
         return hold.save();

@@ -23,7 +23,8 @@
         "minutes": "minutes",
         "optional": "(Optional)",
         "coming_soon": "This feature will be available soon.",
-        "back_to_home": "Back to home"
+        "back_to_home": "Back to home",
+        "retry": "Retry"
     },
     "auth": {
         "logout": "Log out",
@@ -449,6 +450,11 @@
                 "most_sold_package": "Best selling package",
                 "best_customer": "Star customer",
                 "no_data": "Not enough data yet"
+            },
+            "assets": {
+                "consumed_title": "Package Consumed",
+                "consumed_desc": "Your package has finished! Renew it to continue enjoying the service.",
+                "renew_button": "Renew Package"
             }
         },
         "copyInvitation": "Copy Invitation",
@@ -520,6 +526,7 @@
             "status": {
                 "confirmed": "Confirmed",
                 "pending": "Pending",
+                "pending_payment": "Pending Payment",
                 "completed": "Completed",
                 "cancelled": "Cancelled"
             },

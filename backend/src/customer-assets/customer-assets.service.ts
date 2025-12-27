@@ -86,6 +86,21 @@ export class CustomerAssetsService {
         return assets;
     }
 
+    async findRecentlyConsumedAssets(businessId: string, clientEmail: string, days = 30) {
+        const identifierMatch: any[] = [{ clientEmail }];
+        const sinceDate = new Date();
+        sinceDate.setDate(sinceDate.getDate() - days);
+
+        const query: any = {
+            businessId,
+            $or: identifierMatch,
+            status: AssetStatus.Consumed,
+            updatedAt: { $gte: sinceDate }
+        };
+
+        return this.assetModel.find(query).populate('productId').sort({ updatedAt: -1 }).limit(5).lean();
+    }
+
     /**
      * Consumes one use from the asset.
      * Uses findOneAndUpdate for atomic decrement to prevent race conditions.

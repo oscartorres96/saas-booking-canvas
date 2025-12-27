@@ -20,6 +20,7 @@ import { TestEmailController } from './test-email.controller';
       { name: Booking.name, schema: BookingSchema },
     ]),
     forwardRef(() => import('../stripe/stripe.module').then(m => m.StripeModule)),
+    forwardRef(() => import('../bookings/bookings.module').then(m => m.BookingsModule)),
   ],
   controllers: [ServicesController, TestEmailController],
   providers: [ServicesService, JwtAuthGuard, NotificationService, CronService],

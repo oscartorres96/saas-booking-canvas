@@ -24,7 +24,8 @@
     "hours": "horas",
     "optional": "(Opcional)",
     "coming_soon": "Esta funcionalidad estará disponible próximamente.",
-    "back_to_home": "Volver al inicio"
+    "back_to_home": "Volver al inicio",
+    "retry": "Reintentar"
   },
   "auth": {
     "logout": "Cerrar sesión",
@@ -466,6 +467,11 @@
         "most_sold_package": "Paquete más vendido",
         "best_customer": "Cliente estrella",
         "no_data": "Aún no hay suficientes datos"
+      },
+      "assets": {
+        "consumed_title": "Paquete Consumido",
+        "consumed_desc": "¡Tu paquete ha terminado! Renuévalo para seguir disfrutando del servicio.",
+        "renew_button": "Renovar Paquete"
       }
     },
     "copyInvitation": "Copiar Invitación",
@@ -538,6 +544,7 @@
       "status": {
         "confirmed": "Confirmada",
         "pending": "Pendiente",
+        "pending_payment": "Pendiente Pago",
         "completed": "Completada",
         "cancelled": "Cancelada"
       },

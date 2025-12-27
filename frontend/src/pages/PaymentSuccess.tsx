@@ -187,6 +187,10 @@ export default function PaymentSuccess() {
         if (bookingInfo?.clientEmail) params.set('email', bookingInfo.clientEmail);
         if (bookingInfo?.accessCode) params.set('code', bookingInfo.accessCode);
 
+        // Pass along the token if it exists in the URL
+        const tokenFromUrl = searchParams.get('token');
+        if (tokenFromUrl) params.set('token', tokenFromUrl);
+
         // Fallback for email from bookingDataRaw if it was a product-with-booking
         if (!params.get('email') && bookingDataRaw) {
             try {
@@ -195,7 +199,13 @@ export default function PaymentSuccess() {
             } catch (e) { /* ignore */ }
         }
 
-        navigate(`/my-bookings?${params.toString()}`);
+        if (businessId) {
+            params.set('view', 'dashboard');
+            navigate(`/business/${businessId}/booking?${params.toString()}`);
+        } else {
+            // Fallback to home if no businessId, but usually we have it
+            navigate(`/?${params.toString()}`);
+        }
     };
 
     return (

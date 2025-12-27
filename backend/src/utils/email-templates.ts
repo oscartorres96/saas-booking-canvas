@@ -282,7 +282,8 @@ const baseStyles = `
   }
 `;
 
-interface BookingEmailData {
+export interface BookingEmailData {
+  businessId?: string;
   businessName: string;
   clientName: string;
   serviceName: string;
@@ -295,6 +296,7 @@ interface BookingEmailData {
   clientPhone?: string;
   showReminder?: boolean;
   language?: string;
+  magicLinkToken?: string;
 }
 
 const translations = {
@@ -465,15 +467,21 @@ export const clientBookingConfirmationTemplate = (data: BookingEmailData): strin
         ` : ''}
       </div>
 
-      ${data.accessCode ? `
+      ${data.magicLinkToken ? `
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/business/${data.businessId}/booking?view=dashboard&email=${encodeURIComponent(data.clientEmail || '')}&token=${data.magicLinkToken}" class="button" style="color: #ffffff; margin: 0;">
+          ${t.myBookings}
+        </a>
+        <p style="margin-top: 16px; font-size: 14px; color: #6b7280;">
+          ${t.saveCode} <strong>${data.accessCode}</strong>
+        </p>
+      </div>
+      ` : data.accessCode ? `
       <div class="access-code">
         <div class="access-code-label">${t.accessCode}</div>
         <div class="access-code-value">${data.accessCode}</div>
         <p style="margin-top: 12px; font-size: 14px; color: inherit; opacity: 0.8;">
           ${t.saveCode}
-        </p>
-        <p style="margin-top: 10px; font-size: 14px; color: inherit; opacity: 0.8;">
-          ${t.consultBookings} <a href="${process.env.PUBLIC_BOOKINGS_URL || ''}?email=${encodeURIComponent(data.clientEmail || '')}&code=${encodeURIComponent(data.accessCode || '')}" style="color: #4338ca; font-weight: 600; text-decoration: none;">${t.myBookings}</a> ${t.usingEmailCode}
         </p>
       </div>
       ` : ''}
@@ -679,15 +687,21 @@ export const appointmentReminderTemplate = (data: BookingEmailData): string => {
         ` : ''}
       </div>
 
-      ${data.accessCode ? `
+      ${data.magicLinkToken ? `
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/business/${data.businessId}/booking?view=dashboard&email=${encodeURIComponent(data.clientEmail || '')}&token=${data.magicLinkToken}" class="button" style="color: #ffffff; margin: 0;">
+          ${t.myBookings}
+        </a>
+        <p style="margin-top: 16px; font-size: 14px; color: #6b7280;">
+          ${t.useCode} <strong>${data.accessCode}</strong>
+        </p>
+      </div>
+      ` : data.accessCode ? `
       <div class="access-code">
         <div class="access-code-label">${t.accessCode}</div>
         <div class="access-code-value">${data.accessCode}</div>
         <p style="margin-top: 12px; font-size: 14px; color: inherit; opacity: 0.8;">
           ${t.useCode}
-        </p>
-        <p style="margin-top: 10px; font-size: 14px; color: inherit; opacity: 0.8;">
-          ${t.consultBookings} <a href="${process.env.PUBLIC_BOOKINGS_URL || ''}?email=${encodeURIComponent(data.clientEmail || '')}&code=${encodeURIComponent(data.accessCode || '')}" style="color: #4338ca; font-weight: 600; text-decoration: none;">${t.myBookings}</a> ${t.usingEmailCode}
         </p>
       </div>
       ` : ''}

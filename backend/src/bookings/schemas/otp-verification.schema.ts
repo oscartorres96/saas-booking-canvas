@@ -1,3 +1,4 @@
+
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
@@ -19,7 +20,7 @@ export class OtpVerification {
 
     @Prop({
         required: true,
-        enum: ['ASSET_USAGE', 'ONLINE_PAYMENT'],
+        enum: ['ASSET_USAGE', 'ONLINE_PAYMENT', 'CLIENT_ACCESS'],
         default: 'ASSET_USAGE'
     })
     purpose!: string;

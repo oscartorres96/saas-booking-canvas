@@ -345,10 +345,20 @@ export class BusinessesService {
     const allServices = await this.servicesService.findAll({ role: 'public', userId: 'system' }, businessId);
     const serviceDurationMap = new Map(allServices.map(s => [s._id.toString(), s.durationMinutes]));
 
+    // Calculate max capacity for this slot
+    let maxCapacity = 1;
+    if (business.resourceConfig?.enabled) {
+      // If resource management is enabled, capacity is determined by number of active resources
+      maxCapacity = business.resourceConfig.resources?.filter(r => r.isActive).length || 1;
+    } else if (business.bookingCapacityConfig?.mode === 'MULTIPLE') {
+      // If simple capacity mode is enabled
+      maxCapacity = business.bookingCapacityConfig.maxBookingsPerSlot || 1;
+    }
+
     console.log('===== SLOT GENERATION DEBUG =====');
     console.log('Date:', date);
     console.log('Service Duration:', service.durationMinutes);
-    console.log('Business Hours:', JSON.stringify(business.settings?.businessHours, null, 2));
+    console.log('Max Capacity:', maxCapacity);
     console.log('Existing Bookings Count:', bookings.length);
 
     const slots = generateSlots(
@@ -357,8 +367,9 @@ export class BusinessesService {
       business.settings?.businessHours || [],
       bookings.map(b => ({
         scheduledAt: b.scheduledAt,
-        durationMinutes: serviceDurationMap.get(b.serviceId) || service.durationMinutes // Fallback to current service duration if not found
-      }))
+        durationMinutes: serviceDurationMap.get(b.serviceId) || service.durationMinutes
+      })),
+      maxCapacity
     );
 
     console.log('Generated Slots:', slots);
