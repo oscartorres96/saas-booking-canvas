@@ -2262,7 +2262,7 @@ const BusinessBookingPage = () => {
 
     return (
         <div
-            className="min-h-screen transition-colors duration-300 max-w-[100vw] overflow-x-hidden"
+            className="booking-root min-h-screen transition-colors duration-300 max-w-full overflow-x-hidden"
             style={{
                 ...(theme === 'custom' && business.settings?.secondaryColor ? {
                     backgroundColor: business.settings.secondaryColor + '10'
@@ -2271,7 +2271,7 @@ const BusinessBookingPage = () => {
             }}
         >
             <div
-                className="border-b shadow-sm transition-colors duration-300"
+                className="border-b shadow-sm transition-colors duration-300 overflow-x-hidden max-w-full"
                 style={theme === 'custom' && business.settings?.primaryColor ? {
                     backgroundColor: business.settings.primaryColor,
                     color: isColorDark(business.settings.primaryColor) ? '#ffffff' : '#000000',
