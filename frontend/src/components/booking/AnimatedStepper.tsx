@@ -125,13 +125,9 @@ export default function AnimatedStepper({
             {/* Header */}
             <div
                 className={cn(
-                    "flex w-full items-center mb-6 sm:mb-12 md:mb-16 px-4 sm:px-6 relative overflow-x-auto pb-10 sm:pb-14 md:pb-16 no-scrollbar snap-x justify-start sm:justify-center min-w-0 max-w-full",
+                    "flex w-full items-center mb-6 sm:mb-12 md:mb-16 px-4 sm:px-6 relative overflow-hidden pb-10 sm:pb-14 md:pb-16 justify-center min-w-0 max-w-full",
                     stepContainerClassName
                 )}
-                style={{
-                    msOverflowStyle: 'none',
-                    scrollbarWidth: 'none',
-                }}
             >
                 {steps.map((step, index) => {
                     const stepNumber = step.id;

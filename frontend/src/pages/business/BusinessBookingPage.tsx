@@ -2271,7 +2271,7 @@ const BusinessBookingPage = () => {
             }}
         >
             <div
-                className="border-b shadow-sm transition-colors duration-300 overflow-x-hidden max-w-full"
+                className="w-full border-b shadow-sm transition-colors duration-300 overflow-x-hidden"
                 style={theme === 'custom' && business.settings?.primaryColor ? {
                     backgroundColor: business.settings.primaryColor,
                     color: isColorDark(business.settings.primaryColor) ? '#ffffff' : '#000000',
@@ -2754,21 +2754,23 @@ const BusinessBookingPage = () => {
                                 </div>
                             </motion.div>
                         ) : !bookingSuccess ? (
-                            <AnimatedStepper
-                                currentStep={step}
-                                onStepChange={(s) => setStep(s)}
-                                disableStepIndicators={true}
-                                steps={bookingSteps.map((type, idx) => ({
-                                    id: idx + 1,
-                                    ...stepInfo[type]
-                                }))}
-                            >
-                                {bookingSteps.map((type, idx) => (
-                                    <AnimatedStep key={`${type}-${idx}`}>
-                                        {renderStepContent(type)}
-                                    </AnimatedStep>
-                                ))}
-                            </AnimatedStepper>
+                            <div className="stepper-wrapper">
+                                <AnimatedStepper
+                                    currentStep={step}
+                                    onStepChange={(s) => setStep(s)}
+                                    disableStepIndicators={true}
+                                    steps={bookingSteps.map((type, idx) => ({
+                                        id: idx + 1,
+                                        ...stepInfo[type]
+                                    }))}
+                                >
+                                    {bookingSteps.map((type, idx) => (
+                                        <AnimatedStep key={`${type}-${idx}`}>
+                                            {renderStepContent(type)}
+                                        </AnimatedStep>
+                                    ))}
+                                </AnimatedStepper>
+                            </div>
                         ) : (
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}

@@ -115,6 +115,15 @@
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stepper-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
   }
 
   h1,

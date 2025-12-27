@@ -117,7 +117,7 @@ export const ResourceSelector = ({ businessId, scheduledAt, selectedId: propelle
             </div>
 
             {/* Premium Grid Container with Horizontal Scroll Support */}
-            <div className="relative w-full overflow-x-auto pb-4 -mx-2 px-2 sm:mx-0 sm:px-0 scrollbar-hide">
+            <div className="relative w-full overflow-x-auto pb-4 scrollbar-hide">
                 <div className="min-w-max mx-auto">
                     {/* Decorative background elements */}
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.02] via-transparent to-primary/[0.02] rounded-[2rem] pointer-events-none" />
