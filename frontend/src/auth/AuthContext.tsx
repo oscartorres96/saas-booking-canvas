@@ -9,6 +9,7 @@ interface AuthUser {
   name?: string;
   role?: string;
   businessId?: string;
+  phone?: string;
   isOnboardingCompleted?: boolean;
   trialExpired?: boolean;
   trialEndsAt?: Date;

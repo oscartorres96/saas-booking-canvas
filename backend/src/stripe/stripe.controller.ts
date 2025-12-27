@@ -14,12 +14,17 @@ import {
 import { StripeService } from './stripe.service';
 import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
 import { CreateDirectPurchaseDto } from './dto/create-direct-purchase.dto';
+import { CreateBookingCheckoutDto } from './dto/create-booking-checkout.dto';
+import { PayoutService } from './payout.service';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { Request } from 'express';
 
 @Controller('stripe')
 export class StripeController {
-    constructor(private readonly stripeService: StripeService) { }
+    constructor(
+        private readonly stripeService: StripeService,
+        private readonly payoutService: PayoutService,
+    ) { }
 
     /**
      * Create a Stripe Checkout Session
@@ -42,6 +47,42 @@ export class StripeController {
     @Post('direct-purchase/checkout')
     async createDirectPurchaseCheckout(@Body() dto: CreateDirectPurchaseDto) {
         const result = await this.stripeService.createDirectPurchaseCheckout(dto);
+        return {
+            success: true,
+            data: result,
+        };
+    }
+
+    /**
+     * Create a Stripe Checkout Session for a booking payment (public)
+     * POST /api/stripe/checkout/booking
+     */
+    @Post('checkout/booking')
+    async createBookingCheckout(@Body() dto: any) {
+        console.log('[DEBUG] Create Booking Checkout Body:', JSON.stringify(dto));
+        const result = await this.stripeService.createBookingCheckout(dto);
+        return {
+            success: true,
+            data: result,
+        };
+    }
+
+    /**
+     * Create a Stripe Checkout Session for a product purchase (Package/Pass)
+     * POST /api/stripe/checkout/product
+     */
+    @Post('checkout/product')
+    async createProductCheckout(@Body() body: {
+        productId: string;
+        businessId: string;
+        clientEmail: string;
+        clientPhone?: string;
+        clientName?: string;
+        successUrl?: string;
+        cancelUrl?: string;
+        bookingData?: any;
+    }) {
+        const result = await this.stripeService.createProductCheckout(body);
         return {
             success: true,
             data: result,
@@ -72,6 +113,46 @@ export class StripeController {
             return {
                 success: true,
                 message: 'Account created and email sent successfully',
+            };
+        } catch (error: any) {
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    }
+
+    /**
+     * Manual completion endpoint for product purchases (Packages/Passes)
+     * POST /api/stripe/product-purchase/complete
+     */
+    @Post('product-purchase/complete')
+    async completeProductPurchase(@Body() body: { sessionId: string }) {
+        try {
+            await this.stripeService.manualCompleteProductPurchase(body.sessionId);
+            return {
+                success: true,
+                message: 'Asset created and payment recorded',
+            };
+        } catch (error: any) {
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    }
+
+    /**
+     * Manual completion endpoint for booking purchases (Services)
+     * POST /api/stripe/booking-purchase/complete
+     */
+    @Post('booking-purchase/complete')
+    async completeBookingPurchase(@Body() body: { sessionId: string }) {
+        try {
+            await this.stripeService.manualCompleteBookingPurchase(body.sessionId);
+            return {
+                success: true,
+                message: 'Booking confirmed and payment recorded',
             };
         } catch (error: any) {
             return {
@@ -128,6 +209,34 @@ export class StripeController {
         return {
             success: true,
             data: payments,
+        };
+    }
+
+    /**
+     * Get pending payouts grouped by business (Admin only)
+     * GET /api/stripe/admin/payouts/pending
+     */
+    @Get('admin/payouts/pending')
+    @UseGuards(JwtAuthGuard) // Should be Admin guard if available
+    async getPendingPayouts() {
+        const result = await this.payoutService.getPendingPayoutsGroupedByBusiness();
+        return {
+            success: true,
+            data: result,
+        };
+    }
+
+    /**
+     * Mark payments as paid out after manual dispersion (Admin only)
+     * POST /api/stripe/admin/payouts/mark-paid-out
+     */
+    @Post('admin/payouts/mark-paid-out')
+    @UseGuards(JwtAuthGuard) // Should be Admin guard if available
+    async markPaymentsAsPaidOut(@Body() body: { paymentIds: string[] }) {
+        const result = await this.payoutService.markPaymentsAsPaidOut(body.paymentIds);
+        return {
+            success: true,
+            data: result,
         };
     }
 }

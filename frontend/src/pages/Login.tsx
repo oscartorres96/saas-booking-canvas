@@ -62,9 +62,13 @@ const Login = () => {
       }
 
       toast.success(t('login.form.welcome_toast'));
-      if (loggedUser?.role === "owner") {
+
+      const ALLOWED_ADMINS = ['oscartorres0396@gmail.com', 'owner@bookpro.com'];
+      const isPlatformAdmin = loggedUser?.role === "owner" && ALLOWED_ADMINS.includes(loggedUser.email || '');
+
+      if (isPlatformAdmin) {
         navigate("/admin");
-      } else if (loggedUser?.role === "business" && loggedUser.businessId) {
+      } else if ((loggedUser?.role === "owner" || loggedUser?.role === "business") && loggedUser?.businessId) {
         if (loggedUser.isOnboardingCompleted === false) {
           navigate("/onboarding");
         } else {
@@ -215,7 +219,7 @@ const Login = () => {
 
               <div className="text-center mt-4">
                 <Button variant="link" onClick={() => navigate('/')} className="text-sm text-muted-foreground">
-                  ← Volver al inicio
+                  ← {t('common.back_to_home')}
                 </Button>
               </div>
             </div>

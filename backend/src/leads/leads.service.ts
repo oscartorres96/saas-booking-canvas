@@ -87,7 +87,7 @@ export class LeadsService {
             email: lead.email,
             password_hash: hashedPassword,
             name: lead.name,
-            role: 'owner',
+            role: 'business',
             isActive: false,
             activationToken,
             activationTokenExpires: tokenExpires,

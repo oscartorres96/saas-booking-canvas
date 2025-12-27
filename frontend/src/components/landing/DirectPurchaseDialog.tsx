@@ -34,7 +34,7 @@ type PurchaseFormData = z.infer<typeof purchaseSchema>;
 interface DirectPurchaseDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    billingPeriod?: 'monthly' | 'annual' | 'trial';
+    billingPeriod?: 'monthly' | 'annual';
 }
 
 export function DirectPurchaseDialog({ open, onOpenChange, billingPeriod = 'monthly' }: DirectPurchaseDialogProps) {

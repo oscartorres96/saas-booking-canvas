@@ -15,13 +15,13 @@ export function PricingSection() {
     const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
     const [isAnnual, setIsAnnual] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [selectedBillingPeriod, setSelectedBillingPeriod] = useState<'monthly' | 'annual' | 'trial'>('monthly');
+    const [selectedBillingPeriod, setSelectedBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
 
     const monthlyPrice = 349;
     const annualPrice = monthlyPrice * 10; // 10 meses (2 meses gratis)
     const displayPrice = isAnnual ? annualPrice : monthlyPrice;
 
-    const handleGetStarted = async (planType: 'trial' | 'monthly' | 'annual' = isAnnual ? 'annual' : 'monthly') => {
+    const handleGetStarted = async (planType: 'monthly' | 'annual' = isAnnual ? 'annual' : 'monthly') => {
         // Get user ID from available properties
         const userId = user?.userId || (user as any)?._id || (user as any)?.id;
 
@@ -45,10 +45,7 @@ export function PricingSection() {
 
                 console.log("Checkout response:", response);
 
-                if (response.data && response.data.url) {
-                    window.location.href = response.data.url;
-                } else if (response.url) {
-                    // Fallback in case structure is different
+                if (response && response.url) {
                     window.location.href = response.url;
                 } else {
                     console.error("Invalid response structure:", response);
@@ -123,10 +120,9 @@ export function PricingSection() {
                 </div>
 
                 {/* Pricing Cards Grid */}
-                <div className="max-w-md mx-auto">
-
-                    {/* Regular Plan */}
-                    <Card className="relative border-2 border-primary shadow-xl hover:shadow-2xl transition-all duration-300">
+                <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                    {/* Regular Plan - Centered */}
+                    <Card className="relative border-2 border-primary shadow-xl hover:shadow-2xl transition-all duration-300 md:col-span-2 md:w-2/3 md:mx-auto">
                         {/* Badge */}
                         <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                             <Badge className="bg-primary text-primary-foreground px-4 py-1 text-sm font-semibold">
@@ -138,8 +134,8 @@ export function PricingSection() {
                             <CardTitle className="text-2xl font-bold">
                                 {isAnnual ? t('pricing.plan.name_annual') : t('pricing.plan.name')}
                             </CardTitle>
-                            <CardDescription className="mt-4">
-                                <div className="flex items-baseline justify-center gap-1">
+                            <CardDescription className="mt-4 space-y-2">
+                                <span className="flex items-baseline justify-center gap-1">
                                     <span className="text-5xl font-bold text-foreground">
                                         ${displayPrice.toLocaleString()}
                                     </span>
@@ -149,21 +145,21 @@ export function PricingSection() {
                                     <span className="text-muted-foreground">
                                         / {isAnnual ? t('pricing.plan.period_annual') : t('pricing.plan.period')}
                                     </span>
-                                </div>
+                                </span>
                                 {isAnnual && (
-                                    <p className="text-sm text-primary mt-2 font-medium">
+                                    <span className="block text-sm text-primary mt-2 font-medium">
                                         {t('pricing.plan.annual_savings')}
-                                    </p>
+                                    </span>
                                 )}
                             </CardDescription>
                         </CardHeader>
 
                         <CardContent className="pt-6">
                             <div className="space-y-4">
-                                <p className="font-semibold text-sm text-muted-foreground">
+                                <p className="font-semibold text-sm text-muted-foreground text-center">
                                     {t('pricing.plan.features.title')}
                                 </p>
-                                <ul className="space-y-3">
+                                <ul className="space-y-3 max-w-sm mx-auto">
                                     {features.map((feature, index) => (
                                         <li key={index} className="flex items-start gap-3">
                                             <Check className="h-5 w-5 text-primary mt-0.5 shrink-0" />
@@ -177,7 +173,7 @@ export function PricingSection() {
                         <CardFooter className="pt-6">
                             <Button
                                 onClick={() => handleGetStarted()}
-                                className="w-full text-lg py-6 font-semibold"
+                                className="w-full text-lg py-6 font-semibold max-w-md mx-auto block"
                                 size="lg"
                                 disabled={loading}
                             >

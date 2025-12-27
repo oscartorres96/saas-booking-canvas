@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,9 +7,15 @@ import { XCircle, HelpCircle, Home, RotateCcw } from 'lucide-react';
 export default function PaymentCancel() {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const isBooking = searchParams.get('type') === 'booking';
 
     const handleRetry = () => {
-        navigate('/#pricing');
+        if (isBooking) {
+            navigate(-1); // Go back to booking form
+        } else {
+            navigate('/#pricing');
+        }
     };
 
     const handleGoHome = () => {

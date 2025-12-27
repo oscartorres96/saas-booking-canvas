@@ -9,10 +9,21 @@ export interface Booking {
     clientEmail?: string;
     clientPhone?: string;
     scheduledAt: string;
-    status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+    status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'pending_payment';
     notes?: string;
     accessCode?: string;
     serviceName?: string;
+    resourceId?: string;
+    assetId?: string;
+    paymentStatus?: 'none' | 'pending_verification' | 'paid' | 'rejected';
+    paymentMethod?: 'none' | 'bank_transfer' | 'stripe';
+    paymentDetails?: {
+        bankName?: string;
+        clabe?: string;
+        holderName?: string;
+        transferDate?: string;
+        receiptUrl?: string;
+    };
     createdAt?: string;
     updatedAt?: string;
 }
@@ -54,4 +65,24 @@ export const updateBooking = async (bookingId: string, bookingData: Partial<Book
 
 export const deleteBooking = async (bookingId: string): Promise<void> => {
     await apiClient.delete(`/bookings/${bookingId}`);
+};
+
+export const confirmTransfer = async (bookingId: string, details: any): Promise<Booking> => {
+    const { data } = await apiClient.post<Booking>(`/bookings/${bookingId}/confirm-transfer`, details);
+    return data;
+};
+
+export const verifyPayment = async (bookingId: string): Promise<Booking> => {
+    const { data } = await apiClient.post<Booking>(`/bookings/${bookingId}/verify-payment`);
+    return data;
+};
+
+export const rejectPayment = async (bookingId: string): Promise<Booking> => {
+    const { data } = await apiClient.post<Booking>(`/bookings/${bookingId}/reject-payment`);
+    return data;
+};
+
+export const resendConfirmation = async (bookingId: string): Promise<{ success: boolean }> => {
+    const { data } = await apiClient.post<{ success: boolean }>(`/bookings/${bookingId}/resend-confirmation`);
+    return data;
 };

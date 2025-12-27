@@ -242,6 +242,16 @@ export class BusinessesService {
     }
     this.assertAccess(authUser, business);
 
+    // MIGRATION: Fix invalid paymentPolicy values BEFORE validation
+    if (business.paymentConfig?.paymentPolicy) {
+      const policy = business.paymentConfig.paymentPolicy as any;
+      if (policy === 'PACKAGES' || !['RESERVE_ONLY', 'PAY_BEFORE_BOOKING', 'PACKAGE_OR_PAY'].includes(policy)) {
+        console.log(`[MIGRATION] Fixing invalid paymentPolicy "${policy}" -> "PACKAGE_OR_PAY"`);
+        business.paymentConfig.paymentPolicy = 'PACKAGE_OR_PAY';
+        business.markModified('paymentConfig');
+      }
+    }
+
     // Update root level fields if present in settings payload
     if (settings.businessName) business.businessName = settings.businessName;
     if (settings.logoUrl) business.logoUrl = settings.logoUrl;
@@ -274,6 +284,20 @@ export class BusinessesService {
     }
 
     business.settings = mergedSettings;
+
+    if (settings.bookingConfig) {
+      business.bookingConfig = {
+        ...business.bookingConfig,
+        ...settings.bookingConfig,
+      };
+    }
+
+    if (settings.taxConfig) {
+      business.taxConfig = {
+        ...business.taxConfig,
+        ...settings.taxConfig,
+      };
+    }
 
     return business.save();
   }
@@ -321,10 +345,20 @@ export class BusinessesService {
     const allServices = await this.servicesService.findAll({ role: 'public', userId: 'system' }, businessId);
     const serviceDurationMap = new Map(allServices.map(s => [s._id.toString(), s.durationMinutes]));
 
+    // Calculate max capacity for this slot
+    let maxCapacity = 1;
+    if (business.resourceConfig?.enabled) {
+      // If resource management is enabled, capacity is determined by number of active resources
+      maxCapacity = business.resourceConfig.resources?.filter(r => r.isActive).length || 1;
+    } else if (business.bookingCapacityConfig?.mode === 'MULTIPLE') {
+      // If simple capacity mode is enabled
+      maxCapacity = business.bookingCapacityConfig.maxBookingsPerSlot || 1;
+    }
+
     console.log('===== SLOT GENERATION DEBUG =====');
     console.log('Date:', date);
     console.log('Service Duration:', service.durationMinutes);
-    console.log('Business Hours:', JSON.stringify(business.settings?.businessHours, null, 2));
+    console.log('Max Capacity:', maxCapacity);
     console.log('Existing Bookings Count:', bookings.length);
 
     const slots = generateSlots(
@@ -333,8 +367,9 @@ export class BusinessesService {
       business.settings?.businessHours || [],
       bookings.map(b => ({
         scheduledAt: b.scheduledAt,
-        durationMinutes: serviceDurationMap.get(b.serviceId) || service.durationMinutes // Fallback to current service duration if not found
-      }))
+        durationMinutes: serviceDurationMap.get(b.serviceId) || service.durationMinutes
+      })),
+      maxCapacity
     );
 
     console.log('Generated Slots:', slots);
@@ -359,6 +394,39 @@ export class BusinessesService {
       }
     }
 
+    return business.save();
+  }
+
+  async updatePaymentConfig(id: string, config: any, authUser: AuthUser) {
+    const business = await this.businessModel.findById(id);
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
+    this.assertAccess(authUser, business);
+
+    // Update root level fields if present in config
+    if (config.stripeConnectAccountId !== undefined) {
+      business.stripeConnectAccountId = config.stripeConnectAccountId;
+    }
+
+    // Automatic Decision Logic:
+    // If Stripe Connect Account ID exists -> DIRECT_TO_BUSINESS
+    // Else -> BOOKPRO_COLLECTS
+    if (business.stripeConnectAccountId && business.stripeConnectAccountId.trim() !== '') {
+      business.paymentMode = 'DIRECT_TO_BUSINESS';
+    } else {
+      business.paymentMode = 'BOOKPRO_COLLECTS';
+    }
+
+    // Note: We intentionally ignore config.paymentMode as it is now system-determined.
+
+    // Filter out root fields from nested paymentConfig update
+    const { paymentMode, stripeConnectAccountId, ...paymentConfig } = config;
+
+    business.paymentConfig = {
+      ...business.paymentConfig,
+      ...paymentConfig,
+    };
     return business.save();
   }
 }

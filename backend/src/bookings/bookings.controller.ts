@@ -36,6 +36,26 @@ class CreateBookingDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  resourceId?: string;
+
+  @IsOptional()
+  @IsString()
+  assetId?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentMethod?: string;
+
+  @IsOptional()
+  @IsString()
+  otpToken?: string;
 }
 
 class UpdateBookingDto {
@@ -74,6 +94,22 @@ class UpdateBookingDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  resourceId?: string;
+
+  @IsOptional()
+  @IsString()
+  assetId?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentMethod?: string;
 }
 
 class LookupBookingDto {
@@ -117,6 +153,7 @@ export class BookingsController {
 
   @Post()
   create(@Body() body: CreateBookingDto, @Req() req: any) {
+    console.log('[DEBUG] Create Booking Body:', JSON.stringify(body));
     return this.bookingsService.create({
       ...body,
       scheduledAt: new Date(body.scheduledAt),
@@ -146,5 +183,28 @@ export class BookingsController {
   @Post('cancel-public')
   cancelPublic(@Body() body: CancelBookingDto) {
     return this.bookingsService.cancelPublic(body.bookingId, body.clientEmail, body.accessCode);
+  }
+
+  @Post(':id/confirm-transfer')
+  confirmTransfer(@Param('id') id: string, @Body() body: any) {
+    return this.bookingsService.confirmPaymentTransfer(id, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/verify-payment')
+  verifyPayment(@Param('id') id: string, @Req() req: any) {
+    return this.bookingsService.verifyPaymentTransfer(id, req.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/reject-payment')
+  rejectPayment(@Param('id') id: string, @Req() req: any) {
+    return this.bookingsService.rejectPaymentTransfer(id, req.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/resend-confirmation')
+  resendConfirmation(@Param('id') id: string, @Req() req: any) {
+    return this.bookingsService.resendConfirmation(id, req.user);
   }
 }

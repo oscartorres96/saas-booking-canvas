@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuard
 import { IsBoolean, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { ServicesService } from './services.service';
+import { StripeSyncService } from '../stripe/stripe-sync.service';
 
 class CreateServiceDto {
   @IsString()
@@ -26,6 +27,18 @@ class CreateServiceDto {
   @IsOptional()
   @IsBoolean()
   isOnline?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requirePayment?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requireResource?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requireProduct?: boolean;
 
   @IsOptional()
   @IsString()
@@ -60,13 +73,28 @@ class UpdateServiceDto {
   isOnline?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  requirePayment?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requireResource?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  requireProduct?: boolean;
+
+  @IsOptional()
   @IsString()
   businessId?: string;
 }
 
 @Controller('services')
 export class ServicesController {
-  constructor(private readonly servicesService: ServicesService) {}
+  constructor(
+    private readonly servicesService: ServicesService,
+    private readonly stripeSyncService: StripeSyncService,
+  ) { }
 
   @Get()
   findAll(@Req() req: any, @Query('businessId') businessId?: string) {
@@ -94,5 +122,12 @@ export class ServicesController {
   @Delete(':id')
   remove(@Param('id') id: string, @Req() req: any) {
     return this.servicesService.remove(id, req.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/stripe/retry')
+  async retryStripeSync(@Param('id') id: string) {
+    await this.stripeSyncService.syncService(id);
+    return { success: true };
   }
 }

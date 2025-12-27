@@ -43,8 +43,8 @@ export function ExpirationBanner() {
             try {
                 // Redirect to Billing Portal for past_due subscriptions
                 const response = await createPortalSession(user.businessId);
-                if (response.success && response.data.url) {
-                    window.location.href = response.data.url;
+                if (response && response.url) {
+                    window.location.href = response.url;
                     return;
                 }
             } catch (error) {

@@ -40,7 +40,13 @@ import {
 import { toast } from 'sonner';
 import apiClient from '@/api/axiosConfig';
 
-// ... (imports)
+import {
+    DashboardSection,
+    SectionHeader,
+    ConfigPanel,
+    AdminLabel,
+    InnerCard
+} from "@/components/dashboard/DashboardBase";
 
 interface Subscription {
     _id: string;
@@ -221,103 +227,87 @@ export function Billing({ businessId }: BillingProps) {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             {/* Subscription Overview */}
-            <Card className="border-none shadow-md overflow-hidden">
-                <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-background p-6">
-                    <CardHeader className="p-0 pb-4">
-                        <div className="flex items-start justify-between">
-                            <div>
-                                <CardTitle className="text-2xl mb-2">{t('billing.overview.title')}</CardTitle>
-                                <CardDescription>{t('billing.overview.subtitle')}</CardDescription>
-                            </div>
-                            {getStatusBadge(subscription.status)}
-                        </div>
-                    </CardHeader>
+            <DashboardSection>
+                <SectionHeader
+                    title={t('billing.overview.title')}
+                    description={t('billing.overview.subtitle')}
+                    icon={CreditCard}
+                    rightElement={getStatusBadge(subscription.status)}
+                />
+                <CardContent className="p-6 md:p-8 space-y-8">
 
-                    <CardContent className="p-0 space-y-6">
-                        {/* Plan Details Grid */}
-                        <div className="grid md:grid-cols-3 gap-4">
-                            <div className="bg-background/50 dark:bg-card rounded-lg p-4 border border-border/50 shadow-sm">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 rounded-lg bg-primary/10">
-                                        <DollarSign className="w-4 h-4 text-primary" />
-                                    </div>
-                                    <span className="text-sm text-muted-foreground">{t('billing.overview.plan')}</span>
-                                </div>
-                                <p className="text-xl font-bold">{getPlanName(subscription.priceId)}</p>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    {getPlanPrice(subscription.priceId)} / {getPlanCycle(subscription.priceId)}
-                                </p>
-                            </div>
+                    {/* Plan Details Grid */}
+                    <div className="grid md:grid-cols-3 gap-6">
+                        <InnerCard>
+                            <AdminLabel icon={DollarSign}>{t('billing.overview.plan')}</AdminLabel>
+                            <p className="text-xl font-bold tracking-tight">{getPlanName(subscription.priceId)}</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                {getPlanPrice(subscription.priceId)} / {getPlanCycle(subscription.priceId)}
+                            </p>
+                        </InnerCard>
 
-                            <div className="bg-background/50 dark:bg-card rounded-lg p-4 border border-border/50 shadow-sm">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 rounded-lg bg-blue-500/10">
-                                        <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                    </div>
-                                    <span className="text-sm text-muted-foreground">{t('billing.overview.renewal_date')}</span>
-                                </div>
-                                <p className="text-xl font-bold">{formatDate(subscription.currentPeriodEnd)}</p>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    {subscription.status === 'active' ? t('billing.overview.auto_renews') : t('billing.overview.canceled_at_period_end')}
-                                </p>
-                            </div>
+                        <InnerCard>
+                            <AdminLabel icon={Calendar}>{t('billing.overview.renewal_date')}</AdminLabel>
+                            <p className="text-xl font-bold tracking-tight">{formatDate(subscription.currentPeriodEnd)}</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                                {subscription.status === 'active' ? t('billing.overview.auto_renews') : t('billing.overview.canceled_at_period_end')}
+                            </p>
+                        </InnerCard>
 
-                            <div className="bg-background/50 dark:bg-card rounded-lg p-4 border border-border/50 shadow-sm">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 rounded-lg bg-green-500/10">
-                                        <CreditCard className="w-4 h-4 text-green-600 dark:text-green-400" />
-                                    </div>
-                                    <span className="text-sm text-muted-foreground">{t('billing.overview.payment_method')}</span>
-                                </div>
-                                <p className="text-xl font-bold">{t('billing.payment_method.card')}</p>
-                                <Button
-                                    variant="link"
-                                    size="sm"
-                                    className="p-0 h-auto text-xs mt-1"
-                                    onClick={handleUpdatePaymentMethod}
-                                >
-                                    {t('billing.actions.update_payment')}
-                                </Button>
-                            </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex flex-wrap gap-3 pt-4 border-t">
+                        <InnerCard>
+                            <AdminLabel icon={CreditCard}>{t('billing.overview.payment_method')}</AdminLabel>
+                            <p className="text-xl font-bold tracking-tight">{t('billing.payment_method.card')}</p>
                             <Button
-                                variant="outline"
-                                onClick={() => setIsChangePlanDialogOpen(true)}
-                            >
-                                <RefreshCw className="w-4 h-4 mr-2" />
-                                {t('billing.actions.change_plan')}
-                            </Button>
-                            <Button
-                                variant="outline"
+                                variant="link"
+                                size="sm"
+                                className="p-0 h-auto text-xs mt-1 text-primary hover:text-primary/80"
                                 onClick={handleUpdatePaymentMethod}
                             >
-                                <CreditCard className="w-4 h-4 mr-2" />
                                 {t('billing.actions.update_payment')}
                             </Button>
-                            {subscription.status === 'active' && (
-                                <Button
-                                    variant="destructive"
-                                    onClick={() => setIsCancelDialogOpen(true)}
-                                >
-                                    {t('billing.actions.cancel_subscription')}
-                                </Button>
-                            )}
-                        </div>
-                    </CardContent>
-                </div>
-            </Card>
+                        </InnerCard>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-3 pt-6 border-t">
+                        <Button
+                            variant="outline"
+                            className="rounded-xl px-6"
+                            onClick={() => setIsChangePlanDialogOpen(true)}
+                        >
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            {t('billing.actions.change_plan')}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="rounded-xl px-6"
+                            onClick={handleUpdatePaymentMethod}
+                        >
+                            <CreditCard className="w-4 h-4 mr-2" />
+                            {t('billing.actions.update_payment')}
+                        </Button>
+                        {subscription.status === 'active' && (
+                            <Button
+                                variant="destructive"
+                                className="rounded-xl px-6"
+                                onClick={() => setIsCancelDialogOpen(true)}
+                            >
+                                {t('billing.actions.cancel_subscription')}
+                            </Button>
+                        )}
+                    </div>
+                </CardContent>
+            </DashboardSection>
 
             {/* Payment History */}
-            <Card className="border-none shadow-md">
-                <CardHeader>
-                    <CardTitle>{t('billing.history.title')}</CardTitle>
-                    <CardDescription>{t('billing.history.subtitle')}</CardDescription>
-                </CardHeader>
+            <DashboardSection>
+                <SectionHeader
+                    title={t('billing.history.title')}
+                    description={t('billing.history.subtitle')}
+                    icon={RefreshCw}
+                />
                 <CardContent>
                     {payments.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground">
@@ -370,7 +360,7 @@ export function Billing({ businessId }: BillingProps) {
                         </div>
                     )}
                 </CardContent>
-            </Card>
+            </DashboardSection>
 
             {/* Cancel Subscription Dialog */}
             <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>

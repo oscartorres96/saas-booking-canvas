@@ -282,7 +282,8 @@ const baseStyles = `
   }
 `;
 
-interface BookingEmailData {
+export interface BookingEmailData {
+  businessId?: string;
   businessName: string;
   clientName: string;
   serviceName: string;
@@ -295,6 +296,7 @@ interface BookingEmailData {
   clientPhone?: string;
   showReminder?: boolean;
   language?: string;
+  magicLinkToken?: string;
 }
 
 const translations = {
@@ -346,7 +348,13 @@ const translations = {
     requestReceivedSubject: "Hemos recibido tu solicitud",
     requestReceivedHeader: "Solicitud Recibida",
     requestReceivedBody: "Hemos recibido tu solicitud de registro de negocio. Nuestro equipo revisará la información y te contactará pronto.",
-    demoRequestReceivedBody: "Gracias por solicitar una demo. Nos pondremos en contacto contigo a la brevedad."
+    demoRequestReceivedBody: "Gracias por solicitar una demo. Nos pondremos en contacto contigo a la brevedad.",
+    otpSubject: "Confirma tu email - BookPro",
+    otpHeader: "Verifica tu identidad",
+    otpBody: "Se ha solicitado un código de verificación para usar tus créditos o realizar un pago en",
+    otpLabel: "Tu código es",
+    otpExpiry: "Este código expirará en 10 minutos.",
+    otpSecurity: "Si no solicitaste este código, puedes ignorar este mensaje."
   },
   en: {
     bookingConfirmed: "Booking Confirmed",
@@ -396,7 +404,13 @@ const translations = {
     requestReceivedSubject: "We received your request",
     requestReceivedHeader: "Request Received",
     requestReceivedBody: "We have received your business registration request. Our team will review the information and contact you soon.",
-    demoRequestReceivedBody: "Thanks for requesting a demo. We will contact you soon."
+    demoRequestReceivedBody: "Thanks for requesting a demo. We will contact you soon.",
+    otpSubject: "Confirm your email - BookPro",
+    otpHeader: "Verify your identity",
+    otpBody: "A verification code has been requested to use your credits or make a payment at",
+    otpLabel: "Your code is",
+    otpExpiry: "This code will expire in 10 minutes.",
+    otpSecurity: "If you did not request this code, you can ignore this message."
   }
 };
 
@@ -453,15 +467,21 @@ export const clientBookingConfirmationTemplate = (data: BookingEmailData): strin
         ` : ''}
       </div>
 
-      ${data.accessCode ? `
+      ${data.magicLinkToken ? `
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/business/${data.businessId}/booking?view=dashboard&email=${encodeURIComponent(data.clientEmail || '')}&token=${data.magicLinkToken}" class="button" style="color: #ffffff; margin: 0;">
+          ${t.myBookings}
+        </a>
+        <p style="margin-top: 16px; font-size: 14px; color: #6b7280;">
+          ${t.saveCode} <strong>${data.accessCode}</strong>
+        </p>
+      </div>
+      ` : data.accessCode ? `
       <div class="access-code">
         <div class="access-code-label">${t.accessCode}</div>
         <div class="access-code-value">${data.accessCode}</div>
         <p style="margin-top: 12px; font-size: 14px; color: inherit; opacity: 0.8;">
           ${t.saveCode}
-        </p>
-        <p style="margin-top: 10px; font-size: 14px; color: inherit; opacity: 0.8;">
-          ${t.consultBookings} <a href="${process.env.PUBLIC_BOOKINGS_URL || ''}?email=${encodeURIComponent(data.clientEmail || '')}&code=${encodeURIComponent(data.accessCode || '')}" style="color: #4338ca; font-weight: 600; text-decoration: none;">${t.myBookings}</a> ${t.usingEmailCode}
         </p>
       </div>
       ` : ''}
@@ -667,15 +687,21 @@ export const appointmentReminderTemplate = (data: BookingEmailData): string => {
         ` : ''}
       </div>
 
-      ${data.accessCode ? `
+      ${data.magicLinkToken ? `
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/business/${data.businessId}/booking?view=dashboard&email=${encodeURIComponent(data.clientEmail || '')}&token=${data.magicLinkToken}" class="button" style="color: #ffffff; margin: 0;">
+          ${t.myBookings}
+        </a>
+        <p style="margin-top: 16px; font-size: 14px; color: #6b7280;">
+          ${t.useCode} <strong>${data.accessCode}</strong>
+        </p>
+      </div>
+      ` : data.accessCode ? `
       <div class="access-code">
         <div class="access-code-label">${t.accessCode}</div>
         <div class="access-code-value">${data.accessCode}</div>
         <p style="margin-top: 12px; font-size: 14px; color: inherit; opacity: 0.8;">
           ${t.useCode}
-        </p>
-        <p style="margin-top: 10px; font-size: 14px; color: inherit; opacity: 0.8;">
-          ${t.consultBookings} <a href="${process.env.PUBLIC_BOOKINGS_URL || ''}?email=${encodeURIComponent(data.clientEmail || '')}&code=${encodeURIComponent(data.accessCode || '')}" style="color: #4338ca; font-weight: 600; text-decoration: none;">${t.myBookings}</a> ${t.usingEmailCode}
         </p>
       </div>
       ` : ''}
@@ -1014,6 +1040,50 @@ export const demoRequestReceiptTemplate = (data: DemoRequestData): string => {
     </div>
     <div class="email-footer">
       <p>BookPro Team</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+};
+export const otpTemplate = (data: { businessName: string; code: string; language?: string }): string => {
+  const lang = (data.language || 'es') as keyof typeof translations;
+  const t = translations[lang];
+
+  return `
+<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <style>${baseStyles}</style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>${t.otpHeader}</h1>
+    </div>
+    <div class="email-body">
+      <p>${t.otpBody} <strong>${data.businessName}</strong>.</p>
+      
+      <div class="access-code">
+        <div class="access-code-label">${t.otpLabel}</div>
+        <div class="access-code-value" style="letter-spacing: 4px;">${data.code}</div>
+      </div>
+
+      <p style="text-align: center; font-size: 14px; color: #6b7280;">
+        ${t.otpExpiry}
+      </p>
+
+      <div class="alert alert-info" style="margin-top: 32px;">
+        ${t.otpSecurity}
+      </div>
+    </div>
+    <div class="email-footer">
+      <p>${data.businessName}</p>
+      <p style="font-size: 10px; opacity: 0.3; margin-top: 20px;">ID: ${Date.now().toString(36).toUpperCase()}</p>
     </div>
   </div>
 </body>

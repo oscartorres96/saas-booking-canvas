@@ -64,6 +64,7 @@ export class Business {
       instagram: String,
       twitter: String,
       website: String,
+      currency: { type: String, default: 'MXN' },
       businessHours: [{
         day: String,
         startTime: String,
@@ -86,6 +87,7 @@ export class Business {
     instagram?: string;
     twitter?: string;
     website?: string;
+    currency?: string;
     businessHours?: {
       day: string;
       startTime?: string;
@@ -94,7 +96,138 @@ export class Business {
       intervals?: { startTime: string; endTime: string; }[];
     }[];
   };
+
+  @Prop({
+    type: {
+      allowMultipleBookingsPerDay: { type: Boolean, default: false },
+      cancellationWindowHours: { type: Number, default: 0 },
+      confirmationType: { type: String, default: 'automatic', enum: ['automatic', 'manual'] },
+      services: {
+        enabled: { type: Boolean, default: true },
+        paymentTiming: { type: String, default: 'NONE', enum: ['NONE', 'BEFORE_BOOKING'] }
+      },
+      packages: {
+        enabled: { type: Boolean, default: false },
+        paymentTiming: { type: String, default: 'BEFORE_BOOKING' }
+      }
+    }
+  })
+  bookingConfig?: {
+    allowMultipleBookingsPerDay: boolean;
+    cancellationWindowHours: number;
+    confirmationType: 'automatic' | 'manual';
+    services: {
+      enabled: boolean;
+      paymentTiming: 'NONE' | 'BEFORE_BOOKING';
+    };
+    packages: {
+      enabled: boolean;
+      paymentTiming: 'BEFORE_BOOKING';
+    };
+  };
+
+  @Prop({
+    type: {
+      mode: { type: String, enum: ['SINGLE', 'MULTIPLE'], default: 'SINGLE' },
+      maxBookingsPerSlot: { type: Number, default: null },
+    }
+  })
+  bookingCapacityConfig?: {
+    mode: 'SINGLE' | 'MULTIPLE';
+    maxBookingsPerSlot: number | null;
+  };
+
+  @Prop({
+    type: {
+      enabled: { type: Boolean, default: false },
+      taxName: { type: String, default: 'IVA' },
+      taxRate: { type: Number, default: 0.16 },
+      taxIdLabel: { type: String, default: 'RFC' },
+      invoicingEnabled: { type: Boolean, default: false },
+    }
+  })
+  taxConfig?: {
+    enabled: boolean;
+    taxName?: string;
+    taxRate?: number;
+    taxIdLabel?: string;
+    invoicingEnabled?: boolean;
+  };
+  @Prop({
+    type: {
+      paymentPolicy: {
+        type: String,
+        enum: ['RESERVE_ONLY', 'PAY_BEFORE_BOOKING', 'PACKAGE_OR_PAY'],
+        default: 'RESERVE_ONLY'
+      },
+      method: { type: String, default: 'none' },
+      allowTransfer: { type: Boolean, default: false },
+      allowCash: { type: Boolean, default: false },
+      bank: String,
+      clabe: String,
+      holderName: String,
+      instructions: String,
+    },
+  })
+  paymentConfig?: {
+    paymentPolicy: 'RESERVE_ONLY' | 'PAY_BEFORE_BOOKING' | 'PACKAGE_OR_PAY';
+    method: 'none' | 'bank_transfer';
+    allowTransfer: boolean;
+    allowCash: boolean;
+    bank?: string;
+    clabe?: string;
+    holderName?: string;
+    instructions?: string;
+  };
+
+  @Prop({
+    type: String,
+    enum: ['BOOKPRO_COLLECTS', 'DIRECT_TO_BUSINESS'],
+    default: 'BOOKPRO_COLLECTS',
+  })
+  paymentMode?: 'BOOKPRO_COLLECTS' | 'DIRECT_TO_BUSINESS';
+
+  @Prop({ trim: true })
+  stripeConnectAccountId?: string;
+
+  @Prop({
+    type: {
+      enabled: { type: Boolean, default: false },
+      resourceType: String,
+      resourceLabel: String,
+      layoutType: { type: String, default: 'default' },
+      rows: { type: Number, default: 5 },
+      cols: { type: Number, default: 5 },
+      resources: [{
+        id: String,
+        label: String,
+        isActive: { type: Boolean, default: true },
+        position: {
+          row: Number,
+          col: Number
+        }
+      }]
+    }
+  })
+  resourceConfig?: {
+    enabled: boolean;
+    resourceType?: string;
+    resourceLabel?: string;
+    layoutType?: string;
+    rows?: number;
+    cols?: number;
+    resources?: {
+      id: string;
+      label: string;
+      isActive: boolean;
+      position: {
+        row: number;
+        col: number;
+      };
+    }[];
+  };
 }
+
 
 export const BusinessSchema = SchemaFactory.createForClass(Business);
 
@@ -119,5 +252,22 @@ BusinessSchema.pre('save', function (next) {
   if (!this.slug && this.name) {
     this.slug = slugify(this.name);
   }
+
+  // Migration: Fix invalid paymentPolicy values
+  if (this.paymentConfig?.paymentPolicy) {
+    const policy = this.paymentConfig.paymentPolicy as any;
+    // Migrate old 'PACKAGES' value to 'PACKAGE_OR_PAY'
+    if (policy === 'PACKAGES') {
+      console.log('[MIGRATION] Converting invalid paymentPolicy "PACKAGES" to "PACKAGE_OR_PAY"');
+      this.paymentConfig.paymentPolicy = 'PACKAGE_OR_PAY';
+    }
+    // Ensure only valid values
+    const validPolicies = ['RESERVE_ONLY', 'PAY_BEFORE_BOOKING', 'PACKAGE_OR_PAY'];
+    if (!validPolicies.includes(this.paymentConfig.paymentPolicy)) {
+      console.log(`[MIGRATION] Invalid paymentPolicy "${this.paymentConfig.paymentPolicy}", defaulting to "RESERVE_ONLY"`);
+      this.paymentConfig.paymentPolicy = 'RESERVE_ONLY';
+    }
+  }
+
   next();
 });

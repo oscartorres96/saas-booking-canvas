@@ -21,8 +21,15 @@
     "closed": "Cerrado",
     "to": "a",
     "minutes": "minutos",
+    "hours": "horas",
     "optional": "(Opcional)",
-    "coming_soon": "Esta funcionalidad estará disponible próximamente."
+    "coming_soon": "Esta funcionalidad estará disponible próximamente.",
+    "back_to_home": "Volver al inicio",
+    "retry": "Reintentar"
+  },
+  "auth": {
+    "logout": "Cerrar sesión",
+    "logout_success": "Sesión cerrada exitosamente"
   },
   "home": {
     "header": {
@@ -291,7 +298,7 @@
         "confirmed_desc": "Tu reserva ha sido creada exitosamente. Redirigiendo a tus reservas...",
         "error_title": "Error al crear reserva",
         "error_desc": "Hubo un problema al procesar tu reserva. Por favor intenta de nuevo.",
-        "booking_conflict_error": "Ya tienes una cita programada para este día con este negocio."
+        "booking_conflict_error": "Ya tienes una reserva para este día. El negocio no permite múltiples reservas diarias para el mismo cliente."
       }
     },
     "calendar": {
@@ -340,6 +347,59 @@
         "sat": "Sábado",
         "sun": "Domingo"
       }
+    },
+    "payment": {
+      "title": "Pago por transferencia",
+      "bank": "Banco",
+      "clabe": "CLABE",
+      "holder": "Titular",
+      "concept": "Concepto sugerido",
+      "instructions": "Instrucciones adicionales",
+      "btn_done": "Ya realicé la transferencia",
+      "btn_processing": "Procesando...",
+      "disclaimer": "El pago se realiza directamente con el negocio. BookPro no procesa pagos.",
+      "stripe_error_title": "Error al iniciar pago",
+      "stripe_error_desc": "No pudimos conectar con Stripe. Por favor contacta al negocio."
+    },
+    "products": {
+      "section_title": "Pases y Paquetes",
+      "section_subtitle": "Ahorra comprando paquetes de sesiones o pases únicos para tus clases favoritas",
+      "badge_popular": "MÁS VENDIDO",
+      "price_currency": "MXN",
+      "feature_sessions": "{{count}} sesiones incluidas",
+      "feature_unlimited": "Sesiones Ilimitadas",
+      "feature_single_use": "1 uso individual",
+      "feature_validity": "Válido por {{days}} días",
+      "feature_no_hidden": "Sin cargos ocultos",
+      "btn_buy": "Comprar Ahora",
+      "dialog_title": "Completar Compra",
+      "dialog_description": "Introduce tus datos para comprar",
+      "name_label": "Nombre Completo",
+      "name_placeholder": "Tu nombre",
+      "email_label": "Correo Electrónico",
+      "email_placeholder": "ejemplo@correo.com",
+      "email_hint": "* Se usará este correo para identificar tus clases al momento de reservar.",
+      "btn_proceed": "Proceder al Pago",
+      "btn_loading": "Cargando..."
+    },
+    "assets": {
+      "detected_title": "¡Vemos que tienes un paquete activo!",
+      "detected_subtitle": "Selecciona el paquete que deseas usar para esta reserva:",
+      "uses_remaining": "{{count}} usos",
+      "unlimited_uses": "Usos Ilimitados",
+      "expires_on": "Vence el {{date}}",
+      "pay_individual": "Pagar de forma individual",
+      "required_title": "Este servicio requiere un pase o paquete activo",
+      "required_message": "No hemos encontrado un paquete activo bajo este correo. Por favor, adquiere uno debajo o usa otro correo electrónico para continuar.",
+      "no_assets_title": "No tienes un pase activo para este servicio",
+      "no_assets_message": "Puedes comprar uno para continuar.",
+      "package_expired": "Tu paquete ha vencido",
+      "package_no_uses": "Tu paquete no tiene usos disponibles",
+      "confirmation_asset_used": "Se ha descontado 1 uso de tu paquete"
+    },
+    "service_type": {
+      "direct_booking": "Este servicio se reserva directamente",
+      "requires_package": "Este servicio requiere un pase o paquete activo"
     }
   },
   "days": {
@@ -355,12 +415,72 @@
     "welcome": "Bienvenido",
     "subtitle": "Panel de gestión de tu negocio",
     "viewBookingPage": "Ver página de reservas",
+    "stripe": {
+      "status": {
+        "pending": "Preparando...",
+        "syncing": "Sincronizando...",
+        "synced": "Listo para vender",
+        "error": "Error de pagos"
+      },
+      "retry": "Reintentar sincronización",
+      "retry_initiated": "Reintento de sincronización iniciado",
+      "retry_error": "Error al iniciar el reintento",
+      "error_tooltip": "Hubo un problema al sincronizar con Stripe. Reintenta manualmente o espera al sistema."
+    },
+    "v2": {
+      "kpis": {
+        "bookings_today": "Reservas de hoy",
+        "customers_week": "Clientes únicos (semana)",
+        "pending": "Pendientes de confirmar",
+        "packages": "Paquetes activos"
+      },
+      "activity": {
+        "title": "Actividad Reciente",
+        "description": "Lo que está pasando ahora mismo",
+        "used_package": "Usó paquete",
+        "recurring": "Recurrente",
+        "empty": "No hay actividad reciente",
+        "view_all": "Ver todo el historial"
+      },
+      "attention": {
+        "title": "Requiere atención"
+      },
+      "customers": {
+        "title": "Clientes Relevantes"
+      },
+      "revenue": {
+        "title": "Ingresos",
+        "label": "Ingreso obtenido",
+        "services": "Servicios",
+        "packages": "Paquetes",
+        "manual": "Manual (Caja)",
+        "periods": {
+          "today": "Hoy",
+          "week": "Semana",
+          "month": "Mes",
+          "year": "Año"
+        }
+      },
+      "insights": {
+        "title": "Insights Clave",
+        "most_sold_service": "Servicio más vendido",
+        "most_sold_package": "Paquete más vendido",
+        "best_customer": "Cliente estrella",
+        "no_data": "Aún no hay suficientes datos"
+      },
+      "assets": {
+        "consumed_title": "Paquete Consumido",
+        "consumed_desc": "¡Tu paquete ha terminado! Renuévalo para seguir disfrutando del servicio.",
+        "renew_button": "Renovar Paquete"
+      }
+    },
     "copyInvitation": "Copiar Invitación",
     "invitationCopied": "Invitación copiada al portapapeles",
     "invitationMessage": "¡Hola! 👋\n\nTe invito a reservar tu cita en *{{businessName}}* de forma rápida y sencilla. 📅✨\n\nHaz clic aquí para ver nuestros servicios y horarios disponibles: 👇\n{{url}}\n\n¡Te esperamos!",
     "serviceLinkMessage": "¡Hola! 👋\n\nReserva tu cita para *{{serviceName}}* aquí: 👇\n{{url}}",
     "tabs": {
       "dashboard": "Dashboard",
+      "catalog": "Mi Oferta",
       "settings": "Configuración",
       "billing": "Facturación"
     },
@@ -389,6 +509,9 @@
       "mode_label": "Modalidad",
       "mode_offline": "Solo presencial",
       "mode_online": "Servicio en línea",
+      "require_payment_label": "Cobrar al Reservar",
+      "require_payment_yes": "Sí, cobrar anticipado",
+      "require_payment_no": "No cobrar al agendar",
       "empty": "No hay servicios creados. Crea tu primer servicio.",
       "status_header": "Estado",
       "actions_header": "Acciones",
@@ -397,6 +520,12 @@
       "edit_description": "Modifica los datos del servicio.",
       "delete_title": "Eliminar servicio",
       "delete_description": "Esta acción no se puede deshacer. ¿Deseas eliminar \"{{name}}\"?",
+      "form": {
+        "name": "Nombre del Servicio",
+        "description": "Descripción",
+        "duration": "Duración (minutos)",
+        "price": "Precio"
+      },
       "toasts": {
         "created": "Servicio creado exitosamente",
         "updated": "Servicio actualizado",
@@ -415,6 +544,7 @@
       "status": {
         "confirmed": "Confirmada",
         "pending": "Pendiente",
+        "pending_payment": "Pendiente Pago",
         "completed": "Completada",
         "cancelled": "Cancelada"
       },
@@ -429,7 +559,16 @@
         "view_details": "Ver detalles",
         "confirm": "Confirmar",
         "complete": "Marcar como Completada",
-        "cancel": "Cancelar"
+        "cancel": "Cancelar",
+        "verify_payment": "Verificar Pago",
+        "reject_payment": "Rechazar Pago",
+        "confirm_receipt": "Confirmar Recibo de Pago"
+      },
+      "payment_status": {
+        "none": "Sin Pago",
+        "pending_verification": "Por Verificar",
+        "paid": "Pagado",
+        "rejected": "Rechazado"
       },
       "details": {
         "title": "Detalles de la Cita",
@@ -447,7 +586,14 @@
         "time": "Hora",
         "created_at": "Reserva Creada",
         "updated_at": "Última Actualización",
-        "notes": "Notas Adicionales"
+        "notes": "Notas Adicionales",
+        "payment_info": "Información de Pago",
+        "payment_status": "Estatus de Pago",
+        "payment_method": "Método de Pago",
+        "bank_transfer": "Transferencia Bancaria",
+        "holder": "Titular",
+        "clabe": "CLABE",
+        "transfer_date": "Fecha de Transferencia"
       },
       "cancel_confirm": {
         "title": "Confirmar Cancelación",
@@ -457,17 +603,39 @@
       },
       "toasts": {
         "status_updated": "Cita marcada como {{status}}",
-        "error_update": "Error al actualizar el estado de la cita"
+        "payment_verified": "Pago verificado correctamente",
+        "payment_rejected": "Pago rechazado",
+        "error_update": "Error al actualizar el estado de la cita",
+        "error_verify": "Error al verificar pago",
+        "error_reject": "Error al rechazar pago"
       }
     },
     "qr": {
-      "dialog_title": "Compartir Perfil",
-      "title": "Código QR para Reservas",
-      "description": "Comparte este código en tus historias o imprímelo para que tus clientes puedan escanear y reservar fácilmente.",
+      "dialog_title": "Consigue Más Clientes",
+      "title": "Haz que reservar sea más fácil",
+      "subtitle": "Crea códigos QR inteligentes que conectan directamente con tus servicios y convierten visitantes en clientes.",
+      "type_label": "¿Qué quieres compartir?",
+      "type_general": "QR General",
+      "type_general_desc": "Lleva a tu página de reservas completa",
+      "type_service": "QR por Servicio",
+      "type_service_desc": "Promociona un servicio específico",
+      "type_package": "QR por Paquete",
+      "type_package_desc": "Impulsa la venta de paquetes",
+      "select_service": "Selecciona el servicio",
+      "select_package": "Selecciona el paquete",
+      "context_label": "¿Dónde lo vas a usar?",
+      "context_instagram": "Instagram / Redes Sociales",
+      "context_flyer": "Flyer Impreso",
+      "context_card": "Tarjeta de Presentación",
+      "context_reception": "Recepción / Mostrador",
+      "context_tip_instagram": "Ideal para historias y posts",
+      "context_tip_flyer": "Optimizado para impresión",
+      "context_tip_card": "Tamaño perfecto para tarjetas",
+      "context_tip_reception": "Visible para clientes en el local",
       "download": "Descargar QR",
-      "copy_link": "Copiar Link para Bio",
-      "tip": "💡 Tip para Instagram: Agrega este link en tu bio.",
-      "toast_download": "Código QR descargado",
+      "copy_link": "Copiar Enlace",
+      "final_tip": "Coloca este código donde tus clientes puedan verlo fácilmente. Cada escaneo es una oportunidad de venta.",
+      "toast_download": "QR descargado exitosamente",
       "toast_error": "Error al generar el código QR",
       "toast_copy": "Enlace copiado al portapapeles"
     }
@@ -484,6 +652,28 @@
     "language_desc": "Idioma para tu página de reservas pública y correos a clientes. (El idioma del dashboard se puede cambiar usando el selector en la parte superior derecha)",
     "select_language_placeholder": "Selecciona idioma",
     "title": "Configuración del Negocio",
+    "booking": {
+      "title": "Políticas de Reserva",
+      "allow_multiple": "Permitir múltiples clases hoy",
+      "allow_multiple_desc": "Si se apaga, el cliente solo puede reservar UNA VEZ por día. Actívalo para permitir que un cliente tome varias clases el mismo día.",
+      "cancellation_window": "Ventana de cancelación (horas)",
+      "cancellation_window_desc": "Horas mínimas antes de la cita para cancelar con reembolso automático (si aplica).",
+      "capacity": {
+        "title": "Capacidad de Reservas por Horario",
+        "description": "Define cuántas reservas pueden existir al mismo tiempo en un horario",
+        "mode_label": "¿Cuántas reservas permites por horario?",
+        "single_radio": "Solo una reserva por horario",
+        "single_desc": "Recomendado para consultas 1-a-1 (dentista, nutriólogo, consultas privadas)",
+        "multiple_radio": "Varias reservas en el mismo horario",
+        "multiple_desc": "Ideal para clases grupales, sesiones paralelas o eventos (spinning, yoga, talleres)",
+        "max_label": "Número máximo de reservas por horario",
+        "max_placeholder": "Ej: 10",
+        "max_helper": "Ejemplo: 10 personas en una clase de spinning, 20 en una sesión de yoga",
+        "validation_min": "Debes permitir al menos 2 reservas simultáneas",
+        "tooltip_single": "Cada horario solo puede tener 1 cliente",
+        "tooltip_multiple": "Múltiples clientes pueden reservar el mismo horario"
+      }
+    },
     "save": "Guardar Cambios",
     "saved": "Configuración guardada",
     "error": "Error al guardar",
@@ -543,6 +733,75 @@
       "instagram_placeholder": "https://instagram.com/tu-perfil",
       "twitter_placeholder": "https://twitter.com/tu-cuenta",
       "website_placeholder": "https://tu-sitio.com"
+    },
+    "payments": {
+      "title": "Configuración de Pagos",
+      "description": "Define cómo y cuándo cobran tus servicios.",
+      "policy_title": "¿Cómo quieres cobrar tus servicios?",
+      "policy_desc": "Esta decisión define cómo y cuándo tus clientes pagan al reservar.",
+      "policies": {
+        "reserve_only": {
+          "title": "Solo Reservar",
+          "desc": "El cliente puede agendar sin pagar. Ideal si cobras en el establecimiento."
+        },
+        "pay_before_booking": {
+          "title": "Pago por Sesión",
+          "desc": "El cliente debe pagar cada sesión individualmente al momento de reservar."
+        },
+        "package_or_pay": {
+          "title": "Paquete o Pago",
+          "desc": "Dinámico: Si tiene paquete se descuenta uso, si no, se le cobra la sesión."
+        }
+      },
+      "methods_title": "Métodos de Pago Aceptados",
+      "methods_desc": "Los métodos manuales requieren validación fuera de BookPro.",
+      "methods": {
+        "stripe": "Tarjeta crédito/débito, Apple Pay, Google Pay",
+        "stripe_badge": "Recomendado",
+        "transfer": "Transferencia Bancaria (Manual)",
+        "transfer_desc": "Pago manual fuera de plataforma",
+        "cash": "Efectivo",
+        "cash_desc": "Pago en el establecimiento",
+        "none": "Ninguno (Solo reserva)",
+        "bank_transfer": "Transferencia Bancaria"
+      },
+      "bank": "Banco",
+      "clabe": "CLABE",
+      "holder": "Nombre del titular",
+      "instructions": "Instrucciones opcionales",
+      "disclaimer": "BookPro no procesa estos pagos. La verificación y cobro de los mismos queda bajo responsabilidad del negocio.",
+      "online_title": "Infraestructura de Pagos (Stripe)",
+      "online_desc": "Stripe es la forma estándar de cobrar en BookPro. Permite pagos automáticos y confirmación inmediata.",
+      "online_status": "Estado de conexión:",
+      "status": {
+        "active": "Activo",
+        "pending": "Pendiente",
+        "action_required": "Requiere Acción"
+      },
+      "powered_by": "Powered by Stripe",
+      "model_locked_title": "Modelo de pago asignado",
+      "model_locked": "El modelo de pago está vinculado a tu cuenta. Para realizar cambios, contacta a soporte técnico.",
+      "models": {
+        "intermediated": "Modelo Intermediado",
+        "intermediated_tagline": "BookPro gestiona los cobros",
+        "intermediated_desc": "Mientras completas tu registro fiscal, BookPro procesa los pagos por ti y te transfiere los fondos conforme a los tiempos establecidos.",
+        "connect": "Stripe Connect",
+        "connect_tagline": "Cobros directos a tu cuenta",
+        "connect_desc": "Tus pagos llegan directamente a tu cuenta Stripe vinculada."
+      },
+      "features": {
+        "intermediated_1": "No requiere cuenta empresarial",
+        "intermediated_2": "BookPro procesa los pagos por ti",
+        "intermediated_3": "Solicita dispersión cuando desees",
+        "intermediated_4": "Configuración rápida y sencilla",
+        "connect_1": "Pagos directos a tu cuenta Stripe",
+        "connect_2": "Control total sobre tus fondos",
+        "connect_3": "Requiere cuenta empresarial activa",
+        "connect_4": "Vinculación asistida por BookPro"
+      },
+      "connect_id": "Stripe Account ID",
+      "connect_id_hint": "Proporcionado por el equipo de BookPro tras la vinculación.",
+      "legal_notice": "BookPro actúa como intermediario tecnológico y custodio temporal del pago cuando aplica. Los fondos son transferidos al negocio conforme a los tiempos establecidos."
     }
   },
   "onboarding": {
@@ -693,380 +952,140 @@
     "header": {
       "title": "Manual de Usuario",
       "back": "Volver",
-      "version": "Versión 1.0"
+      "version": "v2.0"
     },
-    "toc": {
-      "title": "Índice",
-      "introduction": "Introducción",
-      "getting_started": "Primeros Pasos",
-      "dashboard": "Panel de Control",
-      "services": "Gestión de Servicios",
-      "bookings": "Gestión de Reservas",
-      "settings": "Configuración",
-      "sharing": "Compartir Página",
-      "qr": "Código QR",
-      "clients": "Guía para Clientes",
-      "faq": "Preguntas Frecuentes"
+    "intro": {
+      "title": "Bienvenido a BookPro",
+      "subtitle": "Tu aliado estratégico para la gestión de reservas, clientes y crecimiento.",
+      "description": "BookPro es una plataforma integral diseñada para negocios que viven de su tiempo y necesitan optimizar cada minuto. Ya sea que dirijas un consultorio, un estudio de yoga, una barbería o un centro de enseñanza, BookPro automatiza todo el proceso de reservas: desde que un cliente te descubre hasta que completa su pago y confirma su cita. Esto te permite enfocarte en lo que realmente importa: entregar un servicio excepcional y hacer crecer tu negocio.",
+      "ideal_for": "¿Para quién es BookPro?",
+      "problems_solved": "Problemas que resolvemos"
     },
-    "introduction": {
-      "title": "Introducción",
-      "subtitle": "Guía completa para administradores de negocios",
-      "welcome_title": "Bienvenido a BookPro",
-      "welcome_desc": "Una plataforma completa para gestionar las citas y reservas de tu negocio de manera profesional y eficiente.",
-      "what_can_do": "¿Qué puedes hacer con este sistema?",
-      "features": {
-        "manage_services": "Gestionar servicios y sus precios",
-        "receive_bookings": "Recibir y administrar reservas en línea",
-        "customize_page": "Personalizar tu página de reservas con tu marca",
-        "configure_hours": "Configurar horarios de atención",
-        "send_confirmations": "Enviar confirmaciones automáticas por email",
-        "manage_status": "Gestionar el estado de las citas"
-      }
-    },
-    "getting_started": {
-      "title": "Primeros Pasos",
-      "access_title": "1. Acceso al Sistema",
-      "access_steps": {
-        "step1": "Abre tu navegador web y ve a la URL del sistema",
-        "step2": "Haz clic en \"Iniciar Sesión\"",
-        "step3": "Ingresa tu correo electrónico y contraseña",
-        "step4": "Haz clic en \"Iniciar Sesión\""
+    "sections": {
+      "getting_started": {
+        "title": "Primeros pasos",
+        "desc": "Comienza tu experiencia BookPro de forma rápida y sin complicaciones. En esta sección aprenderás a configurar tu cuenta inicial y acceder a las herramientas principales.",
+        "steps": [
+          "Registro del negocio: Crea tu cuenta en menos de 3 minutos. Solo necesitas proporcionar tu nombre, correo y datos básicos de tu negocio. BookPro generará automáticamente tu espacio de trabajo personalizado.",
+          "Acceso al panel: Una vez registrado, accederás a tu panel de administración (Dashboard), el centro de mando desde donde gestionarás reservas, clientes, servicios e ingresos. Todo en una sola pantalla, sin complicaciones.",
+          "Vista general del Dashboard: En la pantalla principal verás un resumen visual de tus próximas citas, ingresos del día, servicios activos y estado de tu negocio. Aquí puedes tomar decisiones rápidas, identificar citas pendientes y conocer la salud financiera de tu operación en tiempo real."
+        ]
       },
-      "tip_password": "Si olvidaste tu contraseña, haz clic en \"¿Olvidaste tu contraseña?\" para recuperarla.",
-      "onboarding_title": "2. Proceso de Onboarding (Primera vez)",
-      "onboarding_desc": "El sistema te guiará a través de 4 pasos sencillos",
-      "steps": {
-        "step1": {
-          "title": "Paso 1: Información del Negocio",
-          "items": {
-            "name": "Ingresa el nombre de tu negocio",
-            "description": "Agrega una descripción (opcional)",
-            "language": "Selecciona el idioma de tu panel"
-          }
-        },
-        "step2": {
-          "title": "Paso 2: Servicios",
-          "items": {
-            "add": "Agrega tus primeros servicios",
-            "define": "Define nombre, precio y duración"
-          }
-        },
-        "step3": {
-          "title": "Paso 3: Horarios de Atención",
-          "items": {
-            "configure": "Configura días y horarios",
-            "intervals": "Agrega múltiples intervalos por día",
-            "closed": "Marca días cerrados"
-          }
-        },
-        "step4": {
-          "title": "Paso 4: Personalización",
-          "items": {
-            "logo": "Sube el logo de tu negocio",
-            "colors": "Selecciona colores de marca",
-            "social": "Agrega redes sociales"
-          }
-        }
-      }
-    },
-    "dashboard": {
-      "title": "Panel de Control",
-      "subtitle": "El panel de control es tu centro de operaciones.",
-      "sections": {
-        "dashboard": {
-          "title": "Dashboard",
-          "items": {
-            "summary": "Resumen de citas próximas",
-            "services": "Servicios activos",
-            "actions": "Acciones rápidas"
-          }
-        },
-        "header": {
-          "title": "Barra Superior",
-          "items": {
-            "view_page": "Ver página de reservas",
-            "copy": "Copiar invitación",
-            "selectors": "Selector de idioma y tema"
-          }
-        }
-      }
-    },
-    "services": {
-      "title": "Gestión de Servicios",
-      "create_title": "Crear un Nuevo Servicio",
-      "create_steps": {
-        "step1": "En el Dashboard, haz clic en \"+ Nuevo Servicio\"",
-        "step2": "Completa el formulario:",
-        "step2_items": {
-          "name": "Nombre del servicio (ej: \"Corte de cabello\")",
-          "description": "Descripción (opcional)",
-          "price": "Precio (ej: 250)",
-          "duration": "Duración en minutos (ej: 30)"
-        },
-        "step3": "Haz clic en \"Crear Servicio\""
+      "config": {
+        "title": "Configuración Inicial",
+        "desc": "Personaliza tu negocio para que BookPro refleje tu identidad profesional. Esta configuración inicial es clave para proyectar confianza y facilitar la reserva a tus clientes.",
+        "items": [
+          "Información General: Define el nombre comercial de tu negocio, sube tu logo (aparecerá en correos y en la página de reservas), y escribe una descripción atractiva que explique qué ofreces. Esta información es lo primero que ven tus clientes cuando visitan tu página de reservas, así que hazla clara y profesional.",
+          "Horarios de Atención: Configura los días y horarios en que aceptas citas. Puedes definir diferentes horarios para cada día de la semana, agregar múltiples intervalos (por ejemplo: mañana y tarde), incluir bloques de descanso, y marcar días festivos o cerrados. BookPro mostrará únicamente los espacios disponibles según tus horarios reales.",
+          "Moneda y Región: Selecciona tu moneda local (MXN, USD, EUR, etc.) y el idioma de comunicación con tus clientes. Esto afecta cómo se presentan los precios, las notificaciones por correo, y el formato de fechas en tu página pública de reservas. Puedes cambiar el idioma del panel administrativo desde el selector en la esquina superior derecha.",
+          "Políticas de Reserva: En la pestaña de 'Políticas', puedes decidir si permites que un mismo cliente reserve varias veces el mismo día. También puedes configurar la 'Ventana de Cancelación', que define cuántas horas antes de la cita un cliente puede cancelar su reserva de forma autónoma."
+        ]
       },
-      "edit_title": "Editar un Servicio",
-      "edit_steps": {
-        "step1": "Haz clic en el menú de tres puntos (⋮)",
-        "step2": "Selecciona \"Editar\"",
-        "step3": "Modifica los campos necesarios",
-        "step4": "Haz clic en \"Guardar Cambios\""
+      "services": {
+        "title": "Gestión de Servicios y Paquetes (Catálogo)",
+        "desc": "Tu catálogo es el corazón de BookPro: aquí defines QUÉ ofreces, CUÁNTO cuesta, y CÓMO se cobra. Esta sección te permite crear servicios individuales (como una consulta o corte de cabello) y paquetes multi-sesión (como un plan de 10 clases).",
+        "features": [
+          "Crear servicios con duración, precio y descripción personalizados. Define si requieren pago previo o si se pagan en el establecimiento. Puedes activar o desactivar servicios según temporada.",
+          "Configurar paquetes de sesiones recurrentes: Ofrece descuentos por volumen (Ej. 'Pack de 10 clases por $1,000', ideal para estudios de fitness). Los clientes compran créditos y BookPro los descuenta automáticamente al confirmar cada cita.",
+          "Asignar recursos específicos: Si ofreces servicios que requieren salas, equipos, bicicletas, o instructores específicos, puedes gestionar su disponibilidad. BookPro evita doble reserva del mismo recurso.",
+          "Definir políticas de pago: Para cada servicio puedes elegir si se cobra al reservar (reduce cancelaciones en un 80%), si solo se reserva sin cobro (ideal si cobras en efectivo), o si se requiere compra de paquete (modelo de membresías).",
+          "Copiar enlaces directos de reserva por servicio: Cada servicio tiene un enlace único que puedes compartir en redes sociales, WhatsApp, o imprimir en flyers. Esto facilita la conversión, porque lleva directo al servicio sin necesidad de que el cliente navegue."
+        ]
       },
-      "delete_title": "Eliminar un Servicio",
-      "delete_steps": {
-        "step1": "Haz clic en el menú de tres puntos (⋮)",
-        "step2": "Selecciona \"Eliminar\"",
-        "step3": "Confirma la eliminación"
+      "bookings": {
+        "title": "Gestión de Reservas",
+        "desc": "Aquí administras todas las citas de tus clientes: desde las pendientes de confirmación hasta las completadas. Tienes visibilidad total sobre quién reservó, cuándo, qué servicio eligió, y el estado del pago.",
+        "types": [
+          "Reservas creadas por el cliente desde la página pública: Llegan automáticamente a tu panel. Puedes configurar si se confirman instantáneamente o si requieren tu aprobación manual (útil si necesitas validar disponibilidad real).",
+          "Reservas internas creadas por ti: Desde tu panel puedes agendar citas para clientes que llaman por teléfono o llegan sin reserva previa. Puedes marcarlas como pagadas, pendientes, o gratuitas.",
+          "Confirmación automática o manual: Según tu configuración, las reservas se confirman solas (ideal para negocios 100% automatizados) o requieren tu aprobación (útil si necesitas revisar cada caso).",
+          "Gestión de cancelaciones: Define ventanas de cancelación (Ej. 'permitir cancelar hasta 24 horas antes'). BookPro notifica al cliente y libera el espacio automáticamente. Si se cobró por adelantado, puedes definir si el reembolso es automático o manual.",
+          "Verificación de pagos manuales: Si aceptas transferencia bancaria o efectivo, BookPro permite que el cliente suba comprobante. Tú revisas y validas manualmente desde el panel antes de confirmar la cita.",
+          "Control de duplicados: El sistema evita por defecto que un cliente reserve dos veces el mismo día para evitar errores. Puedes desactivar esta restricción en Configuración > Políticas si tu negocio permite múltiples sesiones diarias."
+        ]
       },
-      "delete_warning": "No puedes eliminar servicios con reservas activas"
-    },
-    "bookings": {
-      "title": "Gestión de Reservas",
-      "view_title": "Ver Detalles de una Reserva",
-      "view_desc": "Tienes dos formas de ver los detalles:",
-      "view_options": {
-        "option1": "Haz clic directamente en la fila de la reserva",
-        "option2": "Menú de tres puntos (⋮) → \"Ver detalles\""
+      "public_page": {
+        "title": "Página Pública y Crecimiento",
+        "desc": "Tu página de reservas es tu vendedor 24/7. Funciona sin necesidad de que estés presente: los clientes entran, seleccionan el servicio, eligen fecha y hora, pagan (si aplica), y reciben confirmación automática. Ahora potenciada con herramientas de marketing inteligente.",
+        "steps": [
+          "El cliente accede desde tu enlace único (Ej. bookpro.app/tu-negocio) o escanea uno de tus códigos QR inteligentes. Ve tu logo, descripción, y catálogo de servicios actualizado.",
+          "Selecciona el servicio que necesita y el sistema muestra automáticamente los horarios disponibles según tus configuraciones, evitando fechas bloqueadas o fuera de horario.",
+          "Completa sus datos (nombre, correo, teléfono), elige método de pago, y confirma. Recibe un correo instantáneo con código de acceso para consultar o cancelar su reserva después.",
+          "Potencia tu alcance compartiendo tu link en la bio de Instagram, botones de WhatsApp o campañas de Google. Cada reserva digital es un dato que se guarda para tu crecimiento."
+        ]
       },
-      "modal_shows": "El modal muestra:",
-      "modal_items": {
-        "client": "Información del cliente",
-        "service": "Servicio reservado",
-        "datetime": "Fecha y hora",
-        "notes": "Notas adicionales",
-        "status": "Estado de la reserva"
+      "qr_marketing": {
+        "title": "Estrategia de Captación QR",
+        "desc": "Convierte el mundo físico en reservas digitales. Tus nuevos códigos QR inteligentes están diseñados para diferentes escenarios de uso y maximizar la conversión.",
+        "features": [
+          "QR General: El punto de entrada ideal para tu local. Úsalo en la fachada o recepción para que los clientes exploren todo tu catálogo de servicios.",
+          "QR por Servicio: Ataca necesidades específicas. Si lanzas una promoción, genera un QR que lleve directo a ese servicio. Elimina fricción y aumenta la conversión.",
+          "QR por Paquete: Impulsa la fidelización. Crea códigos específicos para tus pases de sesiones y promociónalos dentro de tu establecimiento para incentivar compras por volumen.",
+          "Formatos Contextuales: Optimizamos el diseño según el canal. Elige 'Instagram' para historias, 'Flyer' para impresión de alta calidad, o 'Recepción' para visibilidad clara en mostrador.",
+          "Descarga en Alta Resolución: Todos los códigos se generan en formato PNG profesional listos para ser enviados a imprenta o compartidos en tus redes sociales digitales.",
+          "Tips de Ubicación: Coloca tus QRs a la altura de los ojos y asegúrate de que tengan buena iluminación. Cada escaneo es un cliente potencial entrando a tu negocio."
+        ]
       },
-      "states_title": "Estados de Reservas",
-      "states": {
-        "pending": {
-          "name": "Pendiente",
-          "desc": "Nueva reserva sin confirmar",
-          "color": "Amarillo"
-        },
-        "confirmed": {
-          "name": "Confirmada",
-          "desc": "Cita confirmada por ti",
-          "color": "Verde"
-        },
-        "completed": {
-          "name": "Completada",
-          "desc": "Servicio finalizado",
-          "color": "Azul"
-        },
-        "cancelled": {
-          "name": "Cancelada",
-          "desc": "Reserva cancelada",
-          "color": "Rojo"
-        }
+      "payments": {
+        "title": "Pagos, Paquetes y Membresías",
+        "desc": "BookPro te permite cobrar de múltiples formas: pagos individuales por cita, paquetes de sesiones pre-pagadas, y membresías recurrentes. Esto te da flexibilidad para adaptarte a diferentes tipos de negocio y mejorar tu flujo de efectivo.",
+        "items": [
+          "Pagos individuales por servicio: Cobra al momento de la reserva con tarjeta (a través de Stripe), o acepta transferencia/efectivo con validación manual. Reduces cancelaciones al asegurar compromiso financiero.",
+          "Paquetes de sesiones (Pack de clases): Ideal para estudios de yoga, gimnasios, terapias. Por ejemplo: 'Pack de 10 clases por $1,500'. El cliente compra el paquete una sola vez y BookPro descuenta automáticamente una sesión al confirmar cada cita. Puedes definir si el paquete expira o es ilimitado en el tiempo.",
+          "Membresías con cobro recurrente: Ofrece planes mensuales (Ej. 'Acceso ilimitado a clases por $999/mes'). BookPro maneja la renovación automática vía Stripe, evitando que tengas que perseguir pagos mes a mes.",
+          "Configuración de Stripe Connect (Pagos directos): Si tienes cuenta empresarial, BookPro te ayuda a vincularla. Los pagos llegan directamente a TU cuenta Stripe en lugar de pasar por BookPro. Esto te da control total y reduce comisiones. Si aún no tienes cuenta empresarial, BookPro puede intermediar los pagos temporalmente mientras completas tu registro fiscal.",
+          "Métodos de pago manuales: Activa transferencia bancaria y/o efectivo. Define tus datos bancarios (CLABE, titular, banco) para que los clientes sepan dónde transferir. Valida comprobantes manualmente antes de confirmar la cita."
+        ]
       },
-      "change_title": "Cambiar Estado de Reserva",
-      "confirm_booking": {
-        "title": "Confirmar una Cita",
-        "desc": "Haz clic en \"Confirmar\" para cambiar de Pendiente → Confirmada. El cliente recibirá una confirmación por email."
+      "compliance": {
+        "title": "Cumplimiento Fiscal y Legal",
+        "desc": "Si tu negocio está registrado ante tu autoridad fiscal (Hacienda, SAT, etc.), BookPro te permite activar funciones fiscales para emitir facturas, aplicar impuestos, y cumplir con regulaciones locales.",
+        "features": [
+          "Activación de impuestos (IVA, VAT, Sales Tax): Configura el porcentaje de impuesto que aplicas en tu país. BookPro lo incluye automáticamente en el resumen de cada reserva y lo muestra desglosado (subtotal + impuesto = total).",
+          "Identificadores fiscales del negocio: Captura tu RFC (México), Tax ID (USA), o equivalente. Esto aparece en los recibos y facturas que BookPro genera, dándote validez legal y profesionalismo.",
+          "Datos fiscales del cliente (Facturación): Si tu cliente requiere factura, BookPro captura su RFC o razón social al momento de reservar. Puedes exportar esta información para generar facturas en tu sistema contable o enviarlas directamente desde BookPro (función en desarrollo).",
+          "Políticas de cancelación legal: Define si permites cancelaciones, hasta cuándo, y si hay reembolso. Esto aparece claramente en la página de reservas y protege tu negocio de disputas legales."
+        ]
       },
-      "complete_booking": {
-        "title": "Completar una Cita",
-        "desc": "Haz clic en \"Completar\" cuando el servicio termine para marcar como finalizada."
+      "clients": {
+        "title": "Gestión de Clientes (CRM)",
+        "desc": "BookPro construye automáticamente una base de datos de tus clientes cada vez que alguien reserva contigo. Desde tu panel, puedes consultar el historial completo de cada cliente, agregar notas privadas, y rastrear el consumo de paquetes.",
+        "features": [
+          "Historial completo de citas: Ve todas las reservas pasadas, futuras y canceladas de cada cliente. Identifica patrones de asistencia, servicios preferidos, y frecuencia de visita.",
+          "Notas internas privadas: Agrega comentarios sobre preferencias, alergias, historial médico (si aplica), o cualquier detalle importante. Solo tú puedes verlas, nunca el cliente.",
+          "Control de sesiones restantes en paquetes: Verifica cuántas clases o sesiones le quedan a cada cliente de sus paquetes activos. BookPro muestra claramente qué paquetes están por expirar o agotarse.",
+          "Búsqueda rápida: Filtra por nombre, correo, teléfono, o fecha de última visita. Útil para hacer seguimiento, enviar promociones dirigidas, o resolver dudas rápidamente.",
+          "Exportación de datos (próximamente): Podrás exportar tu base de clientes a Excel o CSV para análisis externo, campañas de email marketing, o respaldos."
+        ]
       },
-      "cancel_booking": {
-        "title": "Cancelar una Cita",
-        "steps": {
-          "step1": "Haz clic en \"Cancelar\"",
-          "step2": "Aparecerá un diálogo de confirmación",
-          "step3": "Revisa los datos de la cita",
-          "step4": "Confirma con \"Sí, cancelar cita\""
-        },
-        "info": "La cancelación enviará una notificación al cliente automáticamente"
-      }
-    },
-    "settings": {
-      "title": "Configuración del Negocio",
-      "subtitle": "Accede haciendo clic en la pestaña \"Settings\"",
-      "general": {
-        "title": "General",
-        "basic_info": "Información Básica",
-        "business_name": "Nombre del negocio: El nombre que verán tus clientes",
-        "description": "Descripción: Describe brevemente tu negocio (máx. 500 caracteres)",
-        "duration": "Duración predeterminada: Para nuevos servicios",
-        "language_title": "Idioma del Panel",
-        "language_desc": "Selecciona entre Español o English. Esto solo afecta tu panel de administración."
-      },
-      "branding": {
-        "title": "Branding (Personalización)",
-        "comm_language": "Idioma de Comunicación",
-        "comm_language_info": "Este idioma afecta los correos y la bandera del selector de teléfono en la página de reservas",
-        "logo": {
-          "title": "Logo del Negocio",
-          "step1": "Haz clic en \"Choose File\" o arrastra tu logo",
-          "step2": "El logo debe ser cuadrado preferentemente (300x300px)",
-          "step3": "El sistema subirá el archivo automáticamente"
-        },
-        "colors": {
-          "title": "Colores Personalizados",
-          "primary": "Color Primario: Se usa en el encabezado de la página de reservas",
-          "secondary": "Color Secundario: Se usa de fondo con opacidad"
-        },
-        "social": {
-          "title": "Redes Sociales",
-          "desc": "Agrega los enlaces completos de tus redes:",
-          "facebook": "Facebook:",
-          "instagram": "Instagram:",
-          "twitter": "Twitter/X:",
-          "website": "Sitio Web:"
-        }
-      },
-      "hours": {
-        "title": "Hours (Horarios de Atención)",
-        "subtitle": "Configura tus horarios de atención por día:",
-        "example_title": "Ejemplo de Configuración:"
-      },
-      "save_warning": "Después de hacer cambios en Settings, haz clic en \"Save Changes\""
-    },
-    "sharing": {
-      "title": "Compartir Página de Reservas",
-      "options_title": "Opciones para Compartir",
-      "option1": {
-        "title": "Opción 1: Copiar Enlace Directo",
-        "steps": {
-          "step1": "Haz clic en \"Copy Invitation\" en la barra superior",
-          "step2": "Se copiará automáticamente el enlace",
-          "step3": "Pégalo donde quieras compartirlo"
-        }
-      },
-      "option2": {
-        "title": "Opción 2: Ver y Compartir Página",
-        "steps": {
-          "step1": "Haz clic en \"View booking page\"",
-          "step2": "Se abrirá tu página pública de reservas",
-          "step3": "Copia la URL del navegador"
-        }
-      },
-      "where_title": "Dónde Compartir",
-      "platforms": {
-        "whatsapp": {
-          "name": "WhatsApp",
-          "desc": "En tu estado o directamente"
-        },
-        "facebook": {
-          "name": "Facebook",
-          "desc": "En tu página de negocio"
-        },
-        "instagram": {
-          "name": "Instagram",
-          "desc": "En tu bio (no permite en posts)"
-        },
-        "email": {
-          "name": "Email",
-          "desc": "En tu firma de correo"
-        },
-        "website": {
-          "name": "Sitio Web",
-          "desc": "Como botón \"Reservar Ahora\""
-        },
-        "cards": {
-          "name": "Tarjetas",
-          "desc": "Como código QR"
-        }
-      }
-    },
-    "qr": {
-      "title": "Código QR para Reservas",
-      "subtitle": "Facilita el acceso a tus clientes",
-      "desc": "El sistema genera automáticamente un código QR único para tu negocio.",
-      "uses": {
-        "print": "Material impreso (tarjetas, flyers, recepción)",
-        "digital": "Redes sociales y mensajería",
-        "access": "Tus clientes lo escanean y van directo a tu página de reservas"
-      },
-      "how_to": {
-        "title": "¿Cómo obtenerlo?",
-        "steps": {
-          "step1": "En el Dashboard, busca el botón \"Código QR\" (icono de QR)",
-          "step2": "Haz clic para abrir la ventana del código",
-          "step3": "Usa el botón \"Descargar QR\" para guardar la imagen"
-        }
-      }
-    },
-    "clients": {
-      "title": "Guía para Clientes",
-      "subtitle": "Cómo tus clientes harán una reserva",
-      "steps": {
-        "step1": {
-          "title": "Acceder al Enlace",
-          "desc": "El cliente hace clic en el enlace que compartiste"
-        },
-        "step2": {
-          "title": "Seleccionar Servicio",
-          "desc": "Ve todos los servicios con nombre, descripción, duración y precio. Hace clic en el deseado."
-        },
-        "step3": {
-          "title": "Seleccionar Fecha y Hora",
-          "desc": "Elige del calendario (días cerrados deshabilitados) y selecciona hora de los horarios disponibles."
-        },
-        "step4": {
-          "title": "Datos del Cliente",
-          "desc": "Completa: Nombre, Email, Teléfono y Notas opcionales"
-        },
-        "step5": {
-          "title": "Confirmar Reserva",
-          "desc": "Hace clic en \"Confirmar Reserva\" y recibe confirmación en pantalla y por email con código de acceso"
-        }
+      "best_practices": {
+        "title": "Buenas Prácticas y Consejos Estratégicos",
+        "desc": "Saca el máximo provecho de BookPro aplicando técnicas probadas que aumentan tus ingresos, reducen cancelaciones, y mejoran la experiencia del cliente.",
+        "tips": [
+          "Activa cobros anticipados siempre que sea posible: Estudios demuestran que cobrar al reservar reduce cancelaciones en un 80%. Si tu negocio sufre de 'no-shows', esta es la solución inmediata.",
+          "Configura bloques de limpieza/desinfección entre citas: Agrega 10-15 minutos de margen entre servicios para evitar retrasos acumulados. Esto mejora tu puntualidad y la satisfacción del cliente.",
+          "Revisa y actualiza tus horarios semanalmente: Bloquea con anticipación días festivos, vacaciones, o eventos especiales. Evita reservas en fechas que no podrás atender.",
+          "Ofrece paquetes con descuento: Los clientes perciben mayor valor en 'Pack de 10 sesiones + 2 gratis' que en 12 sesiones sueltas al mismo precio. Mejora tu flujo de efectivo recibiendo pago por volumen.",
+          "Comparte tu código QR en lugares estratégicos: Colócalo en tu recepción, en tarjetas de presentación, en posts de Instagram, y en flyers. Facilita que nuevos clientes reserven sin fricciones.",
+          "Monitorea tus métricas semanalmente: BookPro te muestra ingresos, tasa de ocupación, y servicios más vendidos. Usa esta información para identificar qué funciona y qué necesita ajuste."
+        ]
       }
     },
     "faq": {
       "title": "Preguntas Frecuentes",
       "items": {
-        "q1": {
-          "q": "¿Cómo cambio mi contraseña?",
-          "a": "Por ahora, contacta al administrador del sistema. En futuras versiones habrá una opción en el perfil."
-        },
-        "q2": {
-          "q": "¿Puedo tener diferentes precios para el mismo servicio?",
-          "a": "Crea servicios separados (ej: \"Corte Niño\" y \"Corte Adulto\") con diferentes precios."
-        },
-        "q3": {
-          "q": "¿Qué pasa si dos clientes reservan al mismo tiempo?",
-          "a": "El sistema bloquea automáticamente los horarios ocupados. Solo uno podrá reservar."
-        },
-        "q4": {
-          "q": "¿Puedo eliminar una reserva completamente?",
-          "a": "Sí, en el menú de acciones. Pero es mejor cancelarla para mantener el historial."
-        },
-        "q5": {
-          "q": "¿Los clientes reciben correos automáticamente?",
-          "a": "Sí, reciben confirmación al crear la reserva, notificación si cancelas la cita, y recordatorio 24 horas antes (si está configurado)."
-        },
-        "q6": {
-          "q": "¿Puedo bloquear ciertos días como festivos?",
-          "a": "Sí, en la configuración de horarios, desmarca el checkbox de ese día específico."
-        },
-        "q7": {
-          "q": "¿Mi logo se ve borroso?",
-          "a": "Asegúrate de subir una imagen de al menos 300x300 píxeles en formato PNG o JPG."
-        },
-        "q8": {
-          "q": "¿Puedo cambiar los colores después?",
-          "a": "Sí, en cualquier momento desde Settings → Branding."
-        }
+        "q1": "¿Qué pasa si un cliente pierde su correo de confirmación?",
+        "a1": "No hay problema. Desde tu panel, ve a los detalles de la reserva y haz clic en 'Reenviar confirmación'. El cliente recibirá un nuevo correo con su código de acceso y todos los detalles de su cita.",
+        "q2": "¿Puedo ofrecer servicios gratuitos o sin costo?",
+        "a2": "Sí, completamente. Al crear o editar un servicio, simplemente pon el precio en $0. BookPro omitirá automáticamente la pantalla de pago y confirmará la reserva de inmediato. Útil para consultas de valoración gratuitas, eventos especiales, o servicios de cortesía.",
+        "q3": "¿Por qué mi cliente recibe un error al intentar reservar?",
+        "a3": "Si el mensaje dice que 'ya tiene una cita para ese día', es porque tienes activa la protección de doble reserva. Si quieres que tus clientes puedan tomar varias clases el mismo día, ve a Configuración > Políticas y activa 'Permitir múltiples clases hoy'."
       }
     },
-    "checklist": {
-      "title": "Checklist de Inicio Rápido",
-      "subtitle": "Para empezar a recibir reservas hoy",
-      "items": {
-        "item1": "Completar Onboarding",
-        "item2": "Agregar al menos 1 servicio",
-        "item3": "Configurar horarios de atención",
-        "item4": "Subir logo (recomendado)",
-        "item5": "Personalizar colores",
-        "item6": "Probar haciendo una reserva de prueba",
-        "item7": "Compartir enlace en redes sociales",
-        "item8": "¡Recibir tu primera reserva real! 🎉"
-      }
-    },
-    "footer": {
-      "congrats": "¡Felicidades! Ya estás listo para gestionar las reservas de tu negocio de manera profesional.",
-      "updated": "Última actualización: Diciembre 2026 • Versión 1.0"
+    "support": {
+      "title": "Soporte",
+      "chat": "Chat en vivo disponible en tu panel.",
+      "email": "soporte@bookpro.com"
     }
   },
   "pricing": {
@@ -1076,19 +1095,6 @@
       "monthly": "Mensual",
       "annual": "Anual",
       "save_badge": "Ahorra 2 meses"
-    },
-    "trial": {
-      "badge": "Prueba",
-      "name": "Paquete de Prueba",
-      "price": "$1",
-      "period": "único",
-      "subtitle": "Prueba todas las funciones por 7 días",
-      "includes": "Incluye:",
-      "feature1": "Acceso completo por 7 días",
-      "feature2": "Todas las funcionalidades",
-      "feature3": "Sin compromiso",
-      "feature4": "Soporte básico",
-      "cta": "Probar ahora"
     },
     "plan": {
       "name": "BookPro – Plan Mensual",
@@ -1144,6 +1150,7 @@
       "step3": "Personaliza tu página de reservas",
       "step4": "¡Comienza a recibir clientes!",
       "cta": "Ir al Panel de Control",
+      "book_now": "Reservar",
       "session_id": "ID de Sesión"
     },
     "cancel": {

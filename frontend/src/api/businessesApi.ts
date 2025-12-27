@@ -18,6 +18,35 @@ export interface Business {
   onboardingStep?: number;
   isOnboardingCompleted?: boolean;
   metadata?: Record<string, unknown>;
+  paymentConfig?: {
+    paymentPolicy: 'RESERVE_ONLY' | 'PAY_BEFORE_BOOKING' | 'PACKAGE_OR_PAY';
+    method: 'none' | 'bank_transfer';
+    allowTransfer: boolean;
+    allowCash: boolean;
+    bank?: string;
+    clabe?: string;
+    holderName?: string;
+    instructions?: string;
+  };
+  paymentMode?: 'BOOKPRO_COLLECTS' | 'DIRECT_TO_BUSINESS';
+  stripeConnectAccountId?: string;
+  resourceConfig?: {
+    enabled: boolean;
+    resourceType?: string;
+    resourceLabel?: string;
+    layoutType?: string;
+    rows?: number;
+    cols?: number;
+    resources?: Array<{
+      id: string;
+      label: string;
+      isActive: boolean;
+      position: {
+        row: number;
+        col: number;
+      };
+    }>;
+  };
   settings?: {
     primaryColor?: string;
     secondaryColor?: string;
@@ -28,6 +57,7 @@ export interface Business {
     instagram?: string;
     twitter?: string;
     website?: string;
+    currency?: string;
     businessHours?: Array<{
       day: string;
       isOpen: boolean;
@@ -35,6 +65,26 @@ export interface Business {
       endTime?: string;
       intervals?: Array<{ startTime: string; endTime: string }>;
     }>;
+  };
+  bookingConfig?: {
+    allowMultipleBookingsPerDay: boolean;
+    cancellationWindowHours: number;
+    confirmationType: 'automatic' | 'manual';
+    services: {
+      enabled: boolean;
+      paymentTiming: 'NONE' | 'BEFORE_BOOKING';
+    };
+    packages: {
+      enabled: boolean;
+      paymentTiming: 'BEFORE_BOOKING';
+    };
+  };
+  taxConfig?: {
+    enabled: boolean;
+    taxName?: string;
+    taxRate?: number;
+    taxIdLabel?: string;
+    invoicingEnabled?: boolean;
   };
 }
 
@@ -82,12 +132,17 @@ export const updateBusinessSettings = async (
   return data;
 };
 
+export interface Slot {
+  time: string;
+  isAvailable: boolean;
+}
+
 export const getBusinessSlots = async (
   businessId: string,
   date: string,
   serviceId: string,
-): Promise<string[]> => {
-  const { data } = await apiClient.get<string[]>(`/businesses/${businessId}/slots`, {
+): Promise<Slot[]> => {
+  const { data } = await apiClient.get<Slot[]>(`/businesses/${businessId}/slots`, {
     params: { date, service: serviceId },
   });
   return data;
@@ -99,5 +154,21 @@ export const updateOnboarding = async (
   isCompleted: boolean
 ): Promise<Business> => {
   const { data } = await apiClient.put<Business>(`/businesses/${businessId}/onboarding`, { step, isCompleted });
+  return data;
+};
+
+export const updatePaymentConfig = async (
+  businessId: string,
+  config: any
+): Promise<Business> => {
+  const { data } = await apiClient.put<Business>(`/businesses/${businessId}/payment-config`, config);
+  return data;
+};
+
+export const updateBusinessResourceConfig = async (
+  businessId: string,
+  config: any
+): Promise<any> => {
+  const { data } = await apiClient.put(`/resource-map/${businessId}/config`, config);
   return data;
 };

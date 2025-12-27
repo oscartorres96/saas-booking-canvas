@@ -3,9 +3,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { startOfDay, endOfDay } from 'date-fns';
 import { UserRole } from '../users/schemas/user.schema';
-import { Booking, BookingDocument, BookingStatus } from './schemas/booking.schema';
+import { Booking, BookingDocument, BookingStatus, PaymentStatus } from './schemas/booking.schema';
 import { NotificationService } from '../services/notification.service';
 import { Service, ServiceDocument } from '../services/schemas/service.schema';
+import { CustomerAssetsService } from '../customer-assets/customer-assets.service';
+import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
+import { OtpService } from './otp/otp.service';
 
 export interface CreateBookingPayload {
   clientName: string;
@@ -19,6 +22,11 @@ export interface CreateBookingPayload {
   notes?: string;
   userId?: string;
   accessCode?: string;
+  resourceId?: string;
+  assetId?: string;
+  paymentStatus?: string;
+  paymentMethod?: string;
+  otpToken?: string;
 }
 
 export type UpdateBookingPayload = Partial<CreateBookingPayload>;
@@ -36,7 +44,10 @@ export class BookingsService {
   constructor(
     @InjectModel(Booking.name) private readonly bookingModel: Model<BookingDocument>,
     @InjectModel(Service.name) private readonly serviceModel: Model<ServiceDocument>,
-    private readonly notificationService: NotificationService
+    @InjectModel(Business.name) private readonly businessModel: Model<BusinessDocument>,
+    private readonly notificationService: NotificationService,
+    private readonly customerAssetsService: CustomerAssetsService,
+    private readonly otpService: OtpService,
   ) { }
 
   private buildFilter(authUser: AuthUser) {
@@ -79,34 +90,42 @@ export class BookingsService {
       payload.accessCode = generateAccessCode();
     }
 
-    // Evitar doble reserva el mismo dia para el mismo cliente
-    const sameDayFilter: any = {
-      businessId: payload.businessId,
-      scheduledAt: {
-        $gte: startOfDay(payload.scheduledAt),
-        $lte: endOfDay(payload.scheduledAt),
-      },
-      status: { $ne: BookingStatus.Cancelled },
-    };
-    const identityFilters = [];
-    if (payload.clientEmail) identityFilters.push({ clientEmail: payload.clientEmail });
-    if (payload.userId) identityFilters.push({ userId: payload.userId });
-    if (payload.clientPhone) identityFilters.push({ clientPhone: payload.clientPhone });
+    // Get business settings
+    const business = await this.businessModel.findById(payload.businessId).lean();
+    if (!business) {
+      throw new NotFoundException('Business not found');
+    }
 
-    if (identityFilters.length > 0) {
-      const existingBooking = await this.bookingModel.findOne({
-        ...sameDayFilter,
-        $or: identityFilters,
-      }).lean();
+    // Business Rule: Double booking prevention (configurable)
+    if (!business.bookingConfig?.allowMultipleBookingsPerDay) {
+      const sameDayFilter: any = {
+        businessId: payload.businessId,
+        scheduledAt: {
+          $gte: startOfDay(payload.scheduledAt),
+          $lte: endOfDay(payload.scheduledAt),
+        },
+        status: { $ne: BookingStatus.Cancelled },
+      };
+      const identityFilters = [];
+      if (payload.clientEmail) identityFilters.push({ clientEmail: payload.clientEmail });
+      if (payload.userId) identityFilters.push({ userId: payload.userId });
+      if (payload.clientPhone) identityFilters.push({ clientPhone: payload.clientPhone });
 
-      if (existingBooking) {
-        throw new ConflictException({
-          message: 'Ya tienes una cita para ese dia. Consulta o cancela tu reserva existente.',
-          code: 'BOOKING_ALREADY_EXISTS',
-          bookingId: existingBooking._id?.toString?.(),
-          accessCode: existingBooking.accessCode,
-          businessId: existingBooking.businessId,
-        });
+      if (identityFilters.length > 0) {
+        const existingBooking = await this.bookingModel.findOne({
+          ...sameDayFilter,
+          $or: identityFilters,
+        }).lean();
+
+        if (existingBooking) {
+          throw new ConflictException({
+            message: 'Ya tienes una reserva para este día. El negocio no permite múltiples reservas por día para el mismo cliente.',
+            code: 'BOOKING_ALREADY_EXISTS',
+            bookingId: existingBooking._id?.toString?.(),
+            accessCode: existingBooking.accessCode,
+            businessId: existingBooking.businessId,
+          });
+        }
       }
     }
 
@@ -115,20 +134,152 @@ export class BookingsService {
     if (!service) {
       throw new NotFoundException('Service not found');
     }
-    if (service.businessId && payload.businessId && service.businessId !== payload.businessId) {
+    if (service.businessId && payload.businessId && service.businessId.toString() !== payload.businessId.toString()) {
       throw new ForbiddenException('Service does not belong to this business');
     }
     if (service.active === false) {
       throw new ForbiddenException('Service is inactive');
     }
 
+    // Business Rule: Ensure product/package is provided if service requires it
+    if (service.requireProduct && !payload.assetId) {
+      throw new ForbiddenException('Este servicio requiere la compra previa de un pase o paquete.');
+    }
+
+    // Business Rule: Payment Policy Enforcement for public bookings
+    const policy = business.paymentConfig?.paymentPolicy || 'RESERVE_ONLY';
+    const isPublic = !authUser || authUser.role === 'public';
+
+    if (isPublic) {
+      if ((policy === 'PAY_BEFORE_BOOKING' || policy === 'PACKAGE_OR_PAY') &&
+        !payload.assetId &&
+        payload.paymentStatus !== PaymentStatus.Paid &&
+        payload.status !== BookingStatus.PendingPayment && // Permitir si es para pago posterior
+        service.price > 0) {
+        throw new ForbiddenException('Este negocio requiere el pago previo o el uso de un paquete para confirmar la reserva.');
+      }
+    }
+
+    // ✅ Validación de capacidad por slot mejorada
+    // Buscamos todas las reservas del mismo día para verificar solapamientos
+    const dayStart = startOfDay(new Date(payload.scheduledAt));
+    const dayEnd = endOfDay(new Date(payload.scheduledAt));
+
+    const dayBookings = await this.bookingModel.find({
+      businessId: payload.businessId,
+      scheduledAt: { $gte: dayStart, $lte: dayEnd },
+      status: { $ne: BookingStatus.Cancelled },
+    }).lean();
+
+    // RULE: If there's already a PENDING_PAYMENT booking for this EXACT user/slot/service, just REUSE it
+    const myPendingBooking = dayBookings.find(b =>
+      b.status === BookingStatus.PendingPayment &&
+      b.serviceId?.toString() === payload.serviceId &&
+      new Date(b.scheduledAt).getTime() === new Date(payload.scheduledAt).getTime() &&
+      (b.clientEmail === payload.clientEmail || (payload.userId && b.userId?.toString() === payload.userId))
+    );
+
+    if (myPendingBooking) {
+      console.log(`[DEBUG] Reusing existing pending_payment booking: ${(myPendingBooking as any)._id}`);
+      return myPendingBooking as any;
+    }
+
+    // Obtenemos duraciones de todos los servicios para calcular solapamientos correctamente
+    const allServices = await this.serviceModel.find({ businessId: payload.businessId }).lean();
+    const serviceDurationMap = new Map(allServices.map(s => [s._id.toString(), s.durationMinutes]));
+
+    const requestedDuration = service.durationMinutes || 30;
+    const requestedStart = new Date(payload.scheduledAt);
+    const requestedEnd = new Date(requestedStart.getTime() + requestedDuration * 60000);
+
+    // Contar cuántas reservas se solapan con el horario solicitado
+    const overlappingBookings = dayBookings.filter(b => {
+      const bStart = new Date(b.scheduledAt);
+      const bDuration = serviceDurationMap.get(b.serviceId?.toString()) || requestedDuration;
+      const bEnd = new Date(bStart.getTime() + bDuration * 60000);
+
+      // Overlap logic: (StartA < EndB) and (EndA > StartB)
+      return requestedStart < bEnd && requestedEnd > bStart;
+    });
+
+    // Determinar capacidad máxima
+    let maxCapacity = 1;
+    if (business.resourceConfig?.enabled) {
+      maxCapacity = business.resourceConfig.resources?.filter(r => r.isActive).length || 1;
+    } else if (business.bookingCapacityConfig?.mode === 'MULTIPLE') {
+      maxCapacity = business.bookingCapacityConfig.maxBookingsPerSlot || 1;
+    }
+
+    // Aplicar reglas de capacidad
+    if (overlappingBookings.length >= maxCapacity) {
+      throw new ConflictException({
+        message: 'Este horario ya no está disponible por falta de capacidad. Por favor elige otro.',
+        code: 'SLOT_UNAVAILABLE',
+        details: {
+          current: overlappingBookings.length,
+          max: maxCapacity
+        }
+      });
+    }
+
+    // Handle Asset Consumption
+    if (payload.assetId) {
+      if (!payload.clientEmail) {
+        throw new ForbiddenException('Email required for asset usage verification');
+      }
+
+      const isVerified = await this.otpService.isTokenValid(
+        payload.clientEmail,
+        payload.otpToken || '',
+        'ASSET_USAGE'
+      );
+
+      if (!isVerified) {
+        throw new ForbiddenException({
+          message: 'Se requiere verificación por correo para usar tus créditos.',
+          code: 'OTP_REQUIRED',
+          requiresOtp: true,
+          reason: 'ASSET_USAGE'
+        });
+      }
+
+      await this.customerAssetsService.consumeUse(payload.assetId, {
+        email: payload.clientEmail,
+        phone: payload.clientPhone,
+        referenceDate: payload.scheduledAt,
+      });
+      payload.paymentStatus = PaymentStatus.Paid;
+      payload.status = BookingStatus.Confirmed;
+      payload.paymentMethod = 'package';
+    }
+
     const booking = new this.bookingModel(payload);
     const savedBooking = await booking.save();
 
-    // Enviar notificaciones por email
-    await this.notificationService.sendBookingConfirmation(savedBooking);
+    // Enviar notificaciones por email (Skip if pending payment)
+    console.log('[DEBUG] savedBooking status:', savedBooking.status);
+    console.log('[DEBUG] BookingStatus.PendingPayment:', BookingStatus.PendingPayment);
+    console.log('[DEBUG] Should skip email?', savedBooking.status === BookingStatus.PendingPayment);
+
+    // Strict check for the status
+    if (savedBooking.status !== BookingStatus.PendingPayment && (savedBooking.status as string) !== 'pending_payment') {
+      await this.sendConfirmationEmail(savedBooking);
+    }
 
     return savedBooking;
+  }
+
+  /** Genera token de acceso magico y envia email de confirmacion */
+  async sendConfirmationEmail(booking: Booking): Promise<void> {
+    try {
+      let magicLinkToken: string | undefined;
+      if (booking.clientEmail) {
+        magicLinkToken = await this.otpService.generateMagicLinkToken(booking.clientEmail);
+      }
+      await this.notificationService.sendBookingConfirmation(booking, magicLinkToken);
+    } catch (error) {
+      console.error('Error al enviar email de confirmacion:', error);
+    }
   }
 
   async findAll(authUser: AuthUser): Promise<Booking[]> {
@@ -142,8 +293,8 @@ export class BookingsService {
     }
     const filter = this.buildFilter(authUser);
     if (
-      (filter.businessId && booking.businessId !== filter.businessId) ||
-      (filter.userId && booking.userId !== filter.userId)
+      (filter.businessId && booking.businessId?.toString() !== filter.businessId.toString()) ||
+      (filter.userId && booking.userId?.toString() !== filter.userId.toString())
     ) {
       throw new ForbiddenException('Not allowed');
     }
@@ -173,6 +324,23 @@ export class BookingsService {
       existing.status !== BookingStatus.Completed
     ) {
       await this.notificationService.sendBookingCompletedNotification(updated as Booking);
+    } else if (
+      payload.status === BookingStatus.Cancelled &&
+      existing.assetId
+    ) {
+      // Refund criteria: Based on business configuration (cancellationWindowHours)
+      const business = await this.businessModel.findById(existing.businessId).lean();
+      const windowHours = business?.bookingConfig?.cancellationWindowHours || 0;
+
+      const now = new Date();
+      const deadline = new Date(existing.scheduledAt.getTime() - windowHours * 60 * 60 * 1000);
+
+      if (now <= deadline) {
+        await this.customerAssetsService.refundUse(existing.assetId);
+      } else {
+        // Log or handle case where cancellation is too late for refund
+        console.log(`[REFUND] Cancellation too late for booking ${id}. Deadline was ${deadline}`);
+      }
     }
 
     return updated;
@@ -181,7 +349,6 @@ export class BookingsService {
   async findByEmailAndCode(clientEmail: string, accessCode: string, businessId?: string) {
     const filter: any = {
       clientEmail,
-      accessCode,
     };
     if (businessId) filter.businessId = businessId;
     return this.bookingModel.find(filter).lean();
@@ -199,6 +366,20 @@ export class BookingsService {
     }
 
     booking.status = BookingStatus.Cancelled;
+
+    // Refund Logic for Customer Assets
+    if (booking.assetId) {
+      const business = await this.businessModel.findById(booking.businessId).lean();
+      const windowHours = business?.bookingConfig?.cancellationWindowHours || 0;
+
+      const now = new Date();
+      const deadline = new Date(booking.scheduledAt.getTime() - windowHours * 60 * 60 * 1000);
+
+      if (now <= deadline) {
+        await this.customerAssetsService.refundUse(booking.assetId);
+      }
+    }
+
     const cancelledBooking = await booking.save();
 
     // Enviar notificación de cancelación
@@ -220,6 +401,104 @@ export class BookingsService {
       scheduledAt: { $gte: start, $lte: end },
       status: { $ne: BookingStatus.Cancelled },
     }).lean();
+  }
+
+  async confirmPaymentTransfer(id: string, paymentDetails: { bank?: string; clabe?: string; holderName?: string }) {
+    const booking = await this.bookingModel.findById(id);
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    booking.paymentStatus = PaymentStatus.PendingVerification;
+    booking.status = BookingStatus.PendingPayment;
+    booking.paymentDetails = {
+      ...paymentDetails,
+      transferDate: new Date(),
+    };
+    booking.paymentMethod = 'bank_transfer';
+
+    return booking.save();
+  }
+
+  async verifyPaymentTransfer(id: string, authUser: AuthUser) {
+    const booking = await this.bookingModel.findById(id);
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const filter = this.buildFilter(authUser);
+    if (filter.businessId && booking.businessId?.toString() !== filter.businessId.toString()) {
+      throw new ForbiddenException('Not allowed');
+    }
+
+    booking.paymentStatus = PaymentStatus.Paid;
+    booking.status = BookingStatus.Confirmed;
+
+    const saved = await booking.save();
+
+    // Optionally notify customer
+    await this.sendConfirmationEmail(saved as Booking);
+
+    return saved;
+  }
+
+  async rejectPaymentTransfer(id: string, authUser: AuthUser) {
+    const booking = await this.bookingModel.findById(id);
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const filter = this.buildFilter(authUser);
+    if (filter.businessId && booking.businessId?.toString() !== filter.businessId.toString()) {
+      throw new ForbiddenException('Not allowed');
+    }
+
+    booking.paymentStatus = PaymentStatus.Rejected;
+    // We could keep it as PendingPayment or change it
+    return booking.save();
+  }
+
+  async resendConfirmation(id: string, authUser: AuthUser) {
+    const booking = await this.bookingModel.findById(id);
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const filter = this.buildFilter(authUser);
+    if (filter.businessId && booking.businessId?.toString() !== filter.businessId.toString()) {
+      throw new ForbiddenException('Not allowed');
+    }
+
+    await this.sendConfirmationEmail(booking as Booking);
+    return { success: true };
+  }
+  async getClientDashboardData(email: string, businessId: string) {
+    const now = new Date();
+
+    // 1. Get client name from most recent booking
+    const recentBooking = await this.bookingModel.findOne({ clientEmail: email, businessId }).sort({ createdAt: -1 }).lean();
+    const clientName = recentBooking?.clientName || email.split('@')[0];
+
+    // 2. Get bookings
+    const allBookings = await this.bookingModel.find({
+      clientEmail: email,
+      businessId,
+    }).sort({ scheduledAt: -1 }).lean();
+
+    const upcoming = allBookings.filter(b =>
+      new Date(b.scheduledAt) >= startOfDay(now) &&
+      [BookingStatus.Pending, BookingStatus.Confirmed, BookingStatus.PendingPayment].includes(b.status as BookingStatus)
+    ).reverse(); // Sort upcoming by closest first
+
+    const past = allBookings.filter(b =>
+      new Date(b.scheduledAt) < startOfDay(now) ||
+      b.status === BookingStatus.Cancelled ||
+      b.status === BookingStatus.Completed
+    );
+
+    // 3. Get active assets (packages/credits)
+    const assets = await this.customerAssetsService.findActiveAssets(businessId, email);
+    const consumedAssets = await this.customerAssetsService.findRecentlyConsumedAssets(businessId, email);
+
+    return {
+      clientName,
+      bookings: upcoming,
+      pastBookings: past,
+      assets,
+      consumedAssets
+    };
   }
 }
 

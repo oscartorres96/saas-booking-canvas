@@ -8,6 +8,14 @@ export enum BookingStatus {
   Confirmed = 'confirmed',
   Completed = 'completed',
   Cancelled = 'cancelled',
+  PendingPayment = 'pending_payment',
+}
+
+export enum PaymentStatus {
+  None = 'none',
+  PendingVerification = 'pending_verification',
+  Paid = 'paid',
+  Rejected = 'rejected',
 }
 
 @Schema({ timestamps: true })
@@ -44,6 +52,32 @@ export class Booking {
 
   @Prop()
   accessCode?: string;
+  @Prop({ enum: PaymentStatus, default: PaymentStatus.None })
+  paymentStatus!: PaymentStatus;
+
+  @Prop()
+  paymentMethod?: string;
+
+  @Prop({ type: Object })
+  paymentDetails?: {
+    bank?: string;
+    clabe?: string;
+    holderName?: string;
+    transferDate?: Date;
+  };
+
+  @Prop()
+  resourceId?: string;
+
+  @Prop()
+  assetId?: string;
+
+  @Prop()
+  stripeSessionId?: string;
+
+  @Prop()
+  stripePaymentIntentId?: string;
 }
+
 
 export const BookingSchema = SchemaFactory.createForClass(Booking);

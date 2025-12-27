@@ -14,6 +14,8 @@ import {
   businessRegistrationReceiptTemplate,
   demoRequestReceiptTemplate,
   DemoRequestData,
+  BookingEmailData,
+  otpTemplate,
 } from '../utils/email-templates';
 import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
 import { Booking } from '../bookings/schemas/booking.schema';
@@ -56,7 +58,7 @@ export class NotificationService {
   }
 
   /** Envia notificaciones de nueva reserva al cliente y al negocio */
-  async sendBookingConfirmation(booking: Booking): Promise<void> {
+  async sendBookingConfirmation(booking: Booking, magicLinkToken?: string): Promise<void> {
     try {
       const business = booking.businessId
         ? await this.getBusinessInfo(booking.businessId)
@@ -71,6 +73,7 @@ export class NotificationService {
 
       if (booking.clientEmail) {
         const clientHtml = clientBookingConfirmationTemplate({
+          businessId: booking.businessId,
           businessName,
           clientName: booking.clientName,
           serviceName: booking.serviceName || 'Servicio',
@@ -81,6 +84,8 @@ export class NotificationService {
           businessPhone: business?.phone,
           showReminder,
           language,
+          magicLinkToken,
+          clientEmail: booking.clientEmail,
         });
 
         await sendEmail({
@@ -175,7 +180,7 @@ export class NotificationService {
   }
 
   /** Envia recordatorio de cita (24 horas antes) */
-  async sendAppointmentReminder(booking: Booking): Promise<void> {
+  async sendAppointmentReminder(booking: Booking, magicLinkToken?: string): Promise<void> {
     try {
       if (!booking.clientEmail) {
         console.log('No se puede enviar recordatorio: email del cliente no disponible');
@@ -197,6 +202,7 @@ export class NotificationService {
       const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale);
 
       const html = appointmentReminderTemplate({
+        businessId: booking.businessId,
         businessName,
         clientName: booking.clientName,
         serviceName: booking.serviceName || 'Servicio',
@@ -206,6 +212,8 @@ export class NotificationService {
         businessEmail: business?.email,
         businessPhone: business?.phone,
         language,
+        magicLinkToken,
+        clientEmail: booking.clientEmail,
       });
 
       await sendEmail({
@@ -441,6 +449,34 @@ export class NotificationService {
     } catch (error) {
       console.error('Error sending account activation email:', error);
       throw error;
+    }
+  }
+
+  /** Envia mensaje OTP para verificacion de email */
+  async sendOtpEmail(email: string, code: string, businessId: string): Promise<void> {
+    try {
+      const business = await this.getBusinessInfo(businessId);
+      const businessName = business?.name || business?.businessName || 'BookPro';
+      const language = business?.language || 'es';
+      const lang = language.startsWith('es') ? 'es' : 'en';
+
+      const html = otpTemplate({
+        businessName,
+        code,
+        language: lang,
+      });
+
+      const subject = lang === 'es'
+        ? `${code} es tu código de verificación - ${businessName}`
+        : `${code} is your verification code - ${businessName}`;
+
+      await sendEmail({
+        to: email,
+        subject,
+        html,
+      });
+    } catch (error) {
+      console.error('Error sending OTP email:', error);
     }
   }
 }
