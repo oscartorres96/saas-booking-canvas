@@ -1497,11 +1497,11 @@ const BusinessBookingPage = () => {
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="px-3 md:px-8 pb-10">
+                        <CardContent className="px-2 sm:px-4 md:px-8 pb-10">
                             <div className="grid lg:grid-cols-[1fr_400px] gap-8">
                                 {/* Left: Form Fields */}
                                 <div className="space-y-6">
-                                    <div className="bg-slate-50 dark:bg-slate-900 rounded-[2.5rem] p-6 md:p-10 border border-slate-200 dark:border-slate-800 shadow-inner">
+                                    <div className="bg-slate-50 dark:bg-slate-900 rounded-[1.5rem] sm:rounded-[2.5rem] p-4 sm:p-8 md:p-10 border border-slate-200 dark:border-slate-800 shadow-inner">
                                         <div className="grid md:grid-cols-2 gap-6">
                                             <FormField
                                                 control={form.control}
@@ -1710,7 +1710,7 @@ const BusinessBookingPage = () => {
 
                                 {/* Right: Summary */}
                                 <div className="space-y-6">
-                                    <div className="bg-slate-900 dark:bg-slate-950 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
+                                    <div className="bg-slate-900 dark:bg-slate-950 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] p-5 sm:p-8 text-white shadow-2xl relative overflow-hidden group">
                                         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/30 transition-colors duration-500"></div>
 
                                         <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-6 flex items-center gap-2">
@@ -1771,7 +1771,7 @@ const BusinessBookingPage = () => {
             case 'PAYMENT':
                 return (
                     <Card className="shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
-                        <CardHeader className="pb-2 sm:pb-4 px-3 sm:px-6">
+                        <CardHeader className="pb-2 sm:pb-4 px-4 sm:px-6">
                             <div className="flex flex-col gap-2 sm:gap-4 md:gap-6 mb-2 sm:mb-4">
                                 <div className="space-y-1 sm:space-y-2">
                                     <div className="flex items-center gap-1.5 sm:gap-2">
@@ -1785,7 +1785,7 @@ const BusinessBookingPage = () => {
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="px-2 sm:px-3 md:px-8 pb-6 sm:pb-10">
+                        <CardContent className="px-4 sm:px-6 md:px-8 pb-6 sm:pb-10">
                             <div className="grid lg:grid-cols-[1fr_400px] gap-4 sm:gap-6 md:gap-8">
                                 <div className="space-y-4 sm:space-y-6">
                                     <div className="grid gap-3 sm:gap-4">
@@ -1800,7 +1800,7 @@ const BusinessBookingPage = () => {
                                                     form.setValue('paymentOption', 'STRIPE');
                                                 }}
                                                 className={cn(
-                                                    "p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl md:rounded-[2rem] border-2 transition-all duration-300 flex items-center justify-between group",
+                                                    "p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl md:rounded-[2rem] border-2 transition-all duration-300 flex items-center justify-between group min-w-0",
                                                     paymentMethod === 'STRIPE'
                                                         ? "bg-primary border-primary text-white shadow-lg sm:shadow-xl shadow-primary/20"
                                                         : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-primary/50"
@@ -1904,28 +1904,28 @@ const BusinessBookingPage = () => {
                                                     form.setValue('assetId', undefined);
                                                 }}
                                                 className={cn(
-                                                    "p-6 rounded-[2rem] border-2 transition-all duration-300 flex items-center justify-between group",
+                                                    "p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl md:rounded-[2rem] border-2 transition-all duration-300 flex items-center justify-between group min-w-0",
                                                     paymentMethod === 'IN_PERSON'
                                                         ? "bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-900/20"
                                                         : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-900/50"
                                                 )}
                                             >
-                                                <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                                                     <div className={cn(
-                                                        "h-12 w-12 rounded-2xl flex items-center justify-center transition-colors",
+                                                        "h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl flex items-center justify-center transition-colors shrink-0",
                                                         paymentMethod === 'IN_PERSON' ? "bg-white/20" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                                                     )}>
-                                                        <Receipt className="w-6 h-6" />
+                                                        <Receipt className="w-5 h-5 sm:w-6 sm:h-6" />
                                                     </div>
-                                                    <div className="text-left">
-                                                        <p className="text-base font-black uppercase italic tracking-tighter">Pago en Establecimiento</p>
+                                                    <div className="text-left min-w-0">
+                                                        <p className="text-sm sm:text-base font-black uppercase italic tracking-tighter truncate">Pago en Establecimiento</p>
                                                         <p className={cn(
-                                                            "text-[10px] font-bold uppercase tracking-widest",
+                                                            "text-[9px] sm:text-[10px] font-bold uppercase tracking-wider sm:tracking-widest truncate",
                                                             paymentMethod === 'IN_PERSON' ? "text-white/60" : "text-muted-foreground"
                                                         )}>Reserva ahora, paga al llegar</p>
                                                     </div>
                                                 </div>
-                                                {paymentMethod === 'IN_PERSON' && <CheckCircle2 className="w-6 h-6" />}
+                                                {paymentMethod === 'IN_PERSON' && <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />}
                                             </motion.button>
                                         )}
                                     </div>
@@ -1943,7 +1943,7 @@ const BusinessBookingPage = () => {
                                             type="button"
                                             onClick={() => handleNext()}
                                             disabled={!paymentMethod}
-                                            className="h-12 sm:h-14 md:h-16 px-8 sm:px-10 md:px-12 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-tighter text-base sm:text-lg md:text-xl shadow-lg sm:shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all order-1 sm:order-2"
+                                            className="h-12 sm:h-14 md:h-16 px-6 sm:px-10 md:px-12 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-tighter text-base sm:text-lg md:text-xl shadow-lg sm:shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all order-1 sm:order-2"
                                         >
                                             Continuar <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
                                         </Button>
@@ -2026,8 +2026,8 @@ const BusinessBookingPage = () => {
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="px-2 sm:px-3 md:px-8 pb-6 sm:pb-10">
-                            <div className="grid lg:grid-cols-[minmax(0,1fr)_400px] gap-4 sm:gap-6 md:gap-8">
+                        <CardContent className="px-3 sm:px-6 md:px-8 pb-6 sm:pb-10">
+                            <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-4 sm:gap-6 md:gap-8">
                                 {/* Left: Review & Payment Selection */}
                                 <div className="space-y-3 sm:space-y-6 md:space-y-8">
                                     {/* Item summary for mobile (cleaner) */}
@@ -2046,11 +2046,11 @@ const BusinessBookingPage = () => {
                                     <div className="bg-slate-50 dark:bg-slate-900 rounded-[1.5rem] sm:rounded-[2.5rem] p-4 sm:p-6 md:p-8 border border-slate-200 dark:border-slate-800 space-y-4 sm:space-y-6 md:space-y-8">
                                         <div>
                                             <h3 className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-muted-foreground mb-3 sm:mb-6 pl-1">Resumen de Pago</h3>
-                                            <div className="p-3 sm:p-6 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-                                                <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                                                    <div className="h-8 w-8 sm:h-12 sm:w-12 rounded-lg sm:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                                                        {paymentMethod === 'STRIPE' ? <CreditCard className="w-4 h-4 sm:w-6 sm:h-6" /> :
-                                                            paymentMethod === 'ASSET' ? <Ticket className="w-4 h-4 sm:w-6 sm:h-6" /> : <Receipt className="w-4 h-4 sm:w-6 sm:h-6" />}
+                                            <div className="p-3 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+                                                <div className="flex items-center gap-3 sm:gap-4 min-w-[200px]">
+                                                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                                        {paymentMethod === 'STRIPE' ? <CreditCard className="w-5 h-5 sm:w-6 sm:h-6" /> :
+                                                            paymentMethod === 'ASSET' ? <Ticket className="w-5 h-5 sm:w-6 sm:h-6" /> : <Receipt className="w-5 h-5 sm:w-6 sm:h-6" />}
                                                     </div>
                                                     <div className="min-w-0">
                                                         <p className="text-xs sm:text-base font-black uppercase italic tracking-tighter truncate">
@@ -2070,29 +2070,29 @@ const BusinessBookingPage = () => {
                                                             </div>
                                                         )}
                                                         {paymentMethod === 'ASSET' && selectedAsset && (
-                                                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                                                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3 animate-in fade-in slide-in-from-top-2 duration-500 w-full">
                                                                 <div className="grid grid-cols-2 gap-4">
                                                                     <div className="space-y-1">
                                                                         <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60">Balance Actual</p>
-                                                                        <p className="text-xs font-black italic">{selectedAsset.isUnlimited ? '∞' : selectedAsset.remainingUses} créditos</p>
+                                                                        <p className="text-[11px] font-black italic">{selectedAsset.isUnlimited ? '∞' : selectedAsset.remainingUses} créds</p>
                                                                     </div>
                                                                     <div className="space-y-1 text-right">
                                                                         <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60">Esta Reserva</p>
-                                                                        <p className="text-xs font-black italic text-amber-500">-1 crédito</p>
+                                                                        <p className="text-[11px] font-black italic text-amber-500">-1 créd</p>
                                                                     </div>
                                                                 </div>
-                                                                <div className="bg-primary/5 rounded-xl p-3 flex items-center justify-between border border-primary/10">
-                                                                    <div className="flex items-center gap-1.5">
-                                                                        <Ticket className="w-3 h-3 text-primary/60" />
-                                                                        <span className="text-[9px] font-black uppercase tracking-widest text-primary/80">Balance Final</span>
+                                                                <div className="bg-primary/5 rounded-xl p-2 sm:p-3 flex items-center justify-between border border-primary/10">
+                                                                    <div className="flex items-center gap-1">
+                                                                        <Ticket className="w-3 h-3 text-primary/60 hidden sm:block" />
+                                                                        <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-primary/80">Final</span>
                                                                     </div>
-                                                                    <span className="text-sm font-black italic text-primary">{selectedAsset.isUnlimited ? '∞' : (selectedAsset.remainingUses! - 1)}</span>
+                                                                    <span className="text-xs sm:text-sm font-black italic text-primary">{selectedAsset.isUnlimited ? '∞' : (selectedAsset.remainingUses! - 1)}</span>
                                                                 </div>
                                                                 {selectedAsset.expiresAt && (
                                                                     <div className="flex items-center gap-1.5 pt-1 px-1">
                                                                         <Clock className="w-3 h-3 text-muted-foreground/60" />
                                                                         <p className="text-[9px] text-muted-foreground font-medium italic">
-                                                                            Vence el {format(new Date(selectedAsset.expiresAt), "d 'de' MMM, yyyy", { locale: es })}
+                                                                            Vence {format(new Date(selectedAsset.expiresAt), "d MMM", { locale: es })}
                                                                         </p>
                                                                     </div>
                                                                 )}
@@ -2102,12 +2102,12 @@ const BusinessBookingPage = () => {
                                                 </div>
                                                 <Button
                                                     type="button"
-                                                    variant="ghost"
+                                                    variant="secondary"
                                                     size="sm"
-                                                    className="text-primary font-black uppercase italic text-[8px] sm:text-[10px] px-1.5 sm:px-2 h-7 sm:h-8"
+                                                    className="w-full sm:w-auto mt-2 sm:mt-0 font-black uppercase italic text-[9px] sm:text-[10px] px-3 h-8 sm:h-9 shadow-sm"
                                                     onClick={() => goToStepType('PAYMENT')}
                                                 >
-                                                    Cambiar
+                                                    Cambiar Método
                                                 </Button>
                                             </div>
                                         </div>
@@ -2278,7 +2278,7 @@ const BusinessBookingPage = () => {
                     borderColor: 'transparent'
                 } : {}}
             >
-                <div className="max-w-5xl mx-auto px-1.5 sm:px-4 py-2 sm:py-6 flex items-center justify-between gap-1 sm:gap-2">
+                <div className="max-w-5xl mx-auto px-4 sm:px-6 py-2 sm:py-6 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-1">
                         {business.logoUrl ? (
                             <div className="h-9 w-9 sm:h-16 sm:w-16 rounded-lg sm:rounded-xl overflow-hidden flex items-center justify-center bg-muted shrink-0">
@@ -2395,7 +2395,7 @@ const BusinessBookingPage = () => {
                 </div>
             </div>
 
-            <div className="max-w-5xl mx-auto px-1.5 sm:px-4 py-4 sm:py-8 space-y-4 sm:space-y-8">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-8">
                 {/* Stepper */}
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)}>
