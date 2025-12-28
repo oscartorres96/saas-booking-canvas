@@ -56,6 +56,10 @@ class CreateBookingDto {
   @IsOptional()
   @IsString()
   otpToken?: string;
+
+  @IsOptional()
+  @IsString()
+  sessionId?: string;
 }
 
 class UpdateBookingDto {

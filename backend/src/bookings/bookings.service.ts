@@ -2,6 +2,7 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { startOfDay, endOfDay } from 'date-fns';
+import { ResourceHold, ResourceHoldDocument } from '../resource-map/schemas/resource-hold.schema';
 import { UserRole } from '../users/schemas/user.schema';
 import { Booking, BookingDocument, BookingStatus, PaymentStatus } from './schemas/booking.schema';
 import { NotificationService } from '../services/notification.service';
@@ -27,6 +28,7 @@ export interface CreateBookingPayload {
   paymentStatus?: string;
   paymentMethod?: string;
   otpToken?: string;
+  sessionId?: string;
 }
 
 export type UpdateBookingPayload = Partial<CreateBookingPayload>;
@@ -48,6 +50,7 @@ export class BookingsService {
     private readonly notificationService: NotificationService,
     private readonly customerAssetsService: CustomerAssetsService,
     private readonly otpService: OtpService,
+    @InjectModel(ResourceHold.name) private readonly resourceHoldModel: Model<ResourceHoldDocument>,
   ) { }
 
   private buildFilter(authUser: AuthUser) {
@@ -176,7 +179,8 @@ export class BookingsService {
       b.status === BookingStatus.PendingPayment &&
       b.serviceId?.toString() === payload.serviceId &&
       new Date(b.scheduledAt).getTime() === new Date(payload.scheduledAt).getTime() &&
-      (b.clientEmail === payload.clientEmail || (payload.userId && b.userId?.toString() === payload.userId))
+      (b.clientEmail === payload.clientEmail || (payload.userId && b.userId?.toString() === payload.userId)) &&
+      (!payload.resourceId || b.resourceId === payload.resourceId)
     );
 
     if (myPendingBooking) {
@@ -208,6 +212,21 @@ export class BookingsService {
       maxCapacity = business.resourceConfig.resources?.filter(r => r.isActive).length || 1;
     } else if (business.bookingCapacityConfig?.mode === 'MULTIPLE') {
       maxCapacity = business.bookingCapacityConfig.maxBookingsPerSlot || 1;
+    }
+
+    // Protection for specific resource double-booking
+    if (payload.resourceId) {
+      const isResourceTaken = overlappingBookings.some(b =>
+        b.resourceId === payload.resourceId &&
+        b.status !== BookingStatus.Cancelled
+      );
+      if (isResourceTaken) {
+        throw new ConflictException({
+          message: 'Este lugar ya ha sido reservado por alguien más para este horario. Por favor elige otro lugar.',
+          code: 'RESOURCE_TAKEN',
+          resourceId: payload.resourceId
+        });
+      }
     }
 
     // Aplicar reglas de capacidad
@@ -253,17 +272,28 @@ export class BookingsService {
       payload.paymentMethod = 'package';
     }
 
+    // Ensure serviceName is set
+    if (!payload.serviceName && service) {
+      payload.serviceName = service.name;
+    }
+
     const booking = new this.bookingModel(payload);
     const savedBooking = await booking.save();
 
+    // Clear resource hold if present
+    if (savedBooking.status === BookingStatus.Confirmed || savedBooking.paymentStatus === PaymentStatus.Paid) {
+      await this.clearHoldsForBooking(savedBooking, payload.sessionId);
+    }
+
     // Enviar notificaciones por email (Skip if pending payment)
-    console.log('[DEBUG] savedBooking status:', savedBooking.status);
-    console.log('[DEBUG] BookingStatus.PendingPayment:', BookingStatus.PendingPayment);
-    console.log('[DEBUG] Should skip email?', savedBooking.status === BookingStatus.PendingPayment);
+    console.log(`[DEBUG] Booking created: ${savedBooking._id}, status: ${savedBooking.status}`);
 
     // Strict check for the status
     if (savedBooking.status !== BookingStatus.PendingPayment && (savedBooking.status as string) !== 'pending_payment') {
+      console.log(`[DEBUG] Triggering confirmation email for booking: ${savedBooking._id}`);
       await this.sendConfirmationEmail(savedBooking);
+    } else {
+      console.log(`[DEBUG] Skipping email for booking ${savedBooking._id} because status is ${savedBooking.status}`);
     }
 
     return savedBooking;
@@ -271,6 +301,9 @@ export class BookingsService {
 
   /** Genera token de acceso magico y envia email de confirmacion */
   async sendConfirmationEmail(booking: Booking): Promise<void> {
+    // Also clear holds here as a backup for webhook-confirmed bookings
+    await this.clearHoldsForBooking(booking);
+
     try {
       let magicLinkToken: string | undefined;
       if (booking.clientEmail) {
@@ -279,6 +312,32 @@ export class BookingsService {
       await this.notificationService.sendBookingConfirmation(booking, magicLinkToken);
     } catch (error) {
       console.error('Error al enviar email de confirmacion:', error);
+    }
+  }
+
+  /** Clears any temporary holds for the resource in the booking's slot */
+  private async clearHoldsForBooking(booking: Booking, sessionId?: string): Promise<void> {
+    if (!booking.resourceId || !booking.businessId || !booking.scheduledAt) return;
+
+    const query: any = {
+      businessId: booking.businessId,
+      resourceId: booking.resourceId,
+      scheduledAt: {
+        $gte: new Date(new Date(booking.scheduledAt).getTime() - 1000),
+        $lt: new Date(new Date(booking.scheduledAt).getTime() + 1000)
+      }
+    };
+
+    // If sessionId is provided, we can be more specific, but generally if it's booked, 
+    // all holds for that spot/time should be gone.
+    if (sessionId) {
+      // If we have sessionId, we definitely want to clear that specific one plus any others
+      // but let's just clear ALL for this resource/slot since it's now officially taken.
+    }
+
+    const res = await this.resourceHoldModel.deleteMany(query);
+    if (res.deletedCount > 0) {
+      console.log(`[BookingsService] Cleared ${res.deletedCount} holds for confirmed booking ${(booking as any)._id}`);
     }
   }
 

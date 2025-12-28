@@ -400,6 +400,9 @@
     "service_type": {
       "direct_booking": "Este servicio se reserva directamente",
       "requires_package": "Este servicio requiere un pase o paquete activo"
+    },
+    "resource": {
+      "layout_label": "Distribución real de la sala"
     }
   },
   "days": {

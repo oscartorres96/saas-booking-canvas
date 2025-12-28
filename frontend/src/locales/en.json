@@ -385,6 +385,9 @@
         "service_type": {
             "direct_booking": "This service is booked directly",
             "requires_package": "This service requires an active pass or package"
+        },
+        "resource": {
+            "layout_label": "Real Layout of the Room"
         }
     },
     "days": {

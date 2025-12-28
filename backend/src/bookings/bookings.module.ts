@@ -11,6 +11,7 @@ import { CustomerAssetsModule } from '../customer-assets/customer-assets.module'
 import { OtpService } from './otp/otp.service';
 import { OtpController } from './otp/otp.controller';
 import { OtpVerification, OtpVerificationSchema } from './schemas/otp-verification.schema';
+import { ResourceHold, ResourceHoldSchema } from '../resource-map/schemas/resource-hold.schema';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { OtpVerification, OtpVerificationSchema } from './schemas/otp-verificati
       { name: Service.name, schema: ServiceSchema },
       { name: Business.name, schema: BusinessSchema },
       { name: OtpVerification.name, schema: OtpVerificationSchema },
+      { name: ResourceHold.name, schema: ResourceHoldSchema },
     ]),
     forwardRef(() => ServicesModule),
     CustomerAssetsModule,

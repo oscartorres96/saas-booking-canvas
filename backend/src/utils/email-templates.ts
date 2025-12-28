@@ -297,6 +297,7 @@ export interface BookingEmailData {
   showReminder?: boolean;
   language?: string;
   magicLinkToken?: string;
+  resourceLabel?: string;
 }
 
 const translations = {
@@ -459,6 +460,12 @@ export const clientBookingConfirmationTemplate = (data: BookingEmailData): strin
           <span class="detail-label">${t.business}</span>
           <span class="detail-value">${data.businessName}</span>
         </div>
+        ${data.resourceLabel ? `
+        <div class="detail-row">
+          <span class="detail-label">${data.resourceLabel.split(':')[0]}</span>
+          <span class="detail-value">${data.resourceLabel.split(':')[1] || data.resourceLabel}</span>
+        </div>
+        ` : ''}
         ${data.notes ? `
         <div class="detail-row detail-notes">
           <span class="detail-label">${t.notes}</span>
@@ -548,6 +555,12 @@ export const businessNewBookingTemplate = (data: BookingEmailData): string => {
           <span class="detail-label">${t.date}</span>
           <span class="detail-value">${data.scheduledAt}</span>
         </div>
+        ${data.resourceLabel ? `
+        <div class="detail-row">
+          <span class="detail-label">${data.resourceLabel.split(':')[0]}</span>
+          <span class="detail-value">${data.resourceLabel.split(':')[1] || data.resourceLabel}</span>
+        </div>
+        ` : ''}
         ${data.clientEmail ? `
         <div class="detail-row">
           <span class="detail-label">${t.email}</span>
@@ -617,6 +630,12 @@ export const clientCancellationTemplate = (data: BookingEmailData): string => {
           <span class="detail-label">${t.business}</span>
           <span class="detail-value">${data.businessName}</span>
         </div>
+        ${data.resourceLabel ? `
+        <div class="detail-row">
+          <span class="detail-label">${data.resourceLabel.split(':')[0]}</span>
+          <span class="detail-value">${data.resourceLabel.split(':')[1] || data.resourceLabel}</span>
+        </div>
+        ` : ''}
       </div>
 
       <div class="alert alert-warning">
@@ -679,6 +698,12 @@ export const appointmentReminderTemplate = (data: BookingEmailData): string => {
           <span class="detail-label">${t.business}</span>
           <span class="detail-value">${data.businessName}</span>
         </div>
+        ${data.resourceLabel ? `
+        <div class="detail-row">
+          <span class="detail-label">${data.resourceLabel.split(':')[0]}</span>
+          <span class="detail-value">${data.resourceLabel.split(':')[1] || data.resourceLabel}</span>
+        </div>
+        ` : ''}
         ${data.notes ? `
         <div class="detail-row">
           <span class="detail-label">${t.notes}</span>
@@ -841,6 +866,12 @@ export const clientBookingCompletedTemplate = (data: BookingEmailData): string =
           <span class="detail-label">${t.dateLabel}</span>
           <span class="detail-value">${data.scheduledAt}</span>
         </div>
+        ${data.resourceLabel ? `
+        <div class="detail-row">
+          <span class="detail-label">${data.resourceLabel.split(':')[0]}</span>
+          <span class="detail-value">${data.resourceLabel.split(':')[1] || data.resourceLabel}</span>
+        </div>
+        ` : ''}
       </div>
 
       <p style="margin-top: 24px;">

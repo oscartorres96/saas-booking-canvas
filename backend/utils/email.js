@@ -32,10 +32,14 @@ const sendEmail = async (to, subject, html, from) => {
   };
 
   try {
+    console.log(`[email] Attempting to send email to: ${to}, subject: ${subject}`);
     const info = await transporter.sendMail(mailOptions);
-    console.log(`[email] sent ${info.messageId} to ${mailOptions.to}`);
+    console.log('[email] Message sent: %s', info.messageId);
+    return info;
   } catch (error) {
-    console.error('[email] send failed:', error.message || error);
+    console.error('[email] send failed for:', to);
+    console.error('[email] error details:', error.message || error);
+    throw error;
   }
 };
 

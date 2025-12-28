@@ -43,7 +43,7 @@ export class ResourceMapService {
         const occupiedResourceIds = [
             ...bookings.map(b => b.resourceId),
             ...holds.filter(h => h.sessionId !== sessionId).map(h => h.resourceId),
-        ];
+        ].filter(Boolean) as string[];
 
         const userHoldResourceId = sessionId ? holds.find(h => h.sessionId === sessionId)?.resourceId : null;
 
@@ -82,6 +82,15 @@ export class ResourceMapService {
         });
 
         return hold.save();
+    }
+
+    async deleteHold(businessId: string, resourceId: string, scheduledAt: Date, sessionId: string) {
+        await this.resourceHoldModel.deleteMany({
+            businessId,
+            resourceId,
+            scheduledAt: { $gte: new Date(scheduledAt.getTime() - 1000), $lt: new Date(scheduledAt.getTime() + 1000) },
+            sessionId,
+        });
     }
 
     async updateConfig(businessId: string, config: any) {

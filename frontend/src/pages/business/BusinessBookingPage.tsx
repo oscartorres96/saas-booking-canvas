@@ -74,7 +74,9 @@ import {
     LogOut,
     History,
     CalendarCheck,
-    SearchX
+    SearchX,
+    MapPin,
+    Tag
 } from "lucide-react";
 import useAuth from "@/auth/useAuth";
 import { getBusinessById, type Business, type Slot } from "@/api/businessesApi";
@@ -807,6 +809,7 @@ const BusinessBookingPage = () => {
                 status: "pending" as const,
                 notes: values.notes,
                 otpToken: otpToken || undefined,
+                sessionId: bookingSessionId,
             };
 
             // Only include assetId if it's a valid customer asset (not a resource selection)
@@ -1006,6 +1009,12 @@ const BusinessBookingPage = () => {
             navigate({ search: newParams.toString() }, { replace: true });
         }
     }, [searchParams, services, products, navigate]);
+
+    const getResourceLabel = (resourceId?: string) => {
+        if (!resourceId || !business?.resourceConfig?.resources) return null;
+        const resource = business.resourceConfig.resources.find((r: any) => r.id === resourceId);
+        return resource?.label || resourceId;
+    };
 
     const isDateDisabled = (date: Date) => {
         // Disable past dates
@@ -2551,32 +2560,47 @@ const BusinessBookingPage = () => {
                                                                                         <div className="flex">
                                                                                             <div className="w-1.5 bg-primary"></div>
                                                                                             <div className="flex-1 p-3 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-                                                                                                <div className="flex gap-4 items-center">
-                                                                                                    <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-slate-50 dark:bg-slate-900 border flex flex-col items-center justify-center shrink-0">
-                                                                                                        <span className="text-[10px] font-black leading-none">{format(new Date(booking.scheduledAt), "HH:mm")}</span>
-                                                                                                        <Clock className="w-3 h-3 text-muted-foreground mt-1" />
-                                                                                                    </div>
-                                                                                                    <div className="space-y-1">
-                                                                                                        <h4 className="text-base sm:text-lg font-black uppercase italic tracking-tighter leading-none group-hover:text-primary transition-colors">
-                                                                                                            {service?.name || "Servicio"}
-                                                                                                        </h4>
-                                                                                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground font-medium italic">
+                                                                                                <div className="flex flex-1 gap-4 items-start">
+                                                                                                    <div className="space-y-2 flex-1">
+                                                                                                        <div className="flex items-center justify-between gap-2">
+                                                                                                            <h4 className="text-base sm:text-lg font-black uppercase italic tracking-tighter leading-none group-hover:text-primary transition-colors">
+                                                                                                                {service?.name || booking.serviceName || "Servicio"}
+                                                                                                            </h4>
+                                                                                                            <span className="text-sm font-black italic text-primary shrink-0">${service?.price || 0}</span>
+                                                                                                        </div>
+
+                                                                                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] sm:text-xs text-muted-foreground font-medium italic">
+                                                                                                            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-100 dark:border-slate-800">
+                                                                                                                <Clock className="w-3 h-3 text-primary" />
+                                                                                                                <span>{format(new Date(booking.scheduledAt), "HH:mm")} ({service?.durationMinutes || 0} min)</span>
+                                                                                                            </div>
+
+                                                                                                            {booking.resourceId && (
+                                                                                                                <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-100 dark:border-slate-800">
+                                                                                                                    <MapPin className="w-3 h-3 text-primary" />
+                                                                                                                    <span className="font-black uppercase tracking-widest">{getResourceLabel(booking.resourceId)}</span>
+                                                                                                                </div>
+                                                                                                            )}
+
                                                                                                             {booking.accessCode && (
-                                                                                                                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-md text-[9px] uppercase font-black tracking-widest text-slate-500">
-                                                                                                                    # ID: {booking.accessCode}
+                                                                                                                <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/5 dark:bg-primary/10 rounded-lg text-[9px] uppercase font-black tracking-widest text-primary border border-primary/10">
+                                                                                                                    <Tag className="w-3 h-3" />
+                                                                                                                    ID: {booking.accessCode}
                                                                                                                 </div>
                                                                                                             )}
                                                                                                         </div>
                                                                                                     </div>
                                                                                                 </div>
-                                                                                                <Badge className={cn(
-                                                                                                    "w-fit font-black uppercase italic tracking-widest text-[9px] px-3 py-1",
-                                                                                                    booking.status === 'confirmed' ? "bg-green-500 hover:bg-green-600" :
-                                                                                                        booking.status === 'pending_payment' ? "bg-amber-500 hover:bg-amber-600" :
-                                                                                                            "bg-slate-400"
-                                                                                                )}>
-                                                                                                    {t(`dashboard.bookings.status.${booking.status}`) || booking.status}
-                                                                                                </Badge>
+                                                                                                <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 shrink-0">
+                                                                                                    <Badge className={cn(
+                                                                                                        "font-black uppercase italic tracking-widest text-[9px] px-3 py-1",
+                                                                                                        booking.status === 'confirmed' ? "bg-green-500 hover:bg-green-600" :
+                                                                                                            booking.status === 'pending_payment' ? "bg-amber-500 hover:bg-amber-600" :
+                                                                                                                "bg-slate-400"
+                                                                                                    )}>
+                                                                                                        {t(`dashboard.bookings.status.${booking.status}`) || booking.status}
+                                                                                                    </Badge>
+                                                                                                </div>
                                                                                             </div>
                                                                                         </div>
                                                                                     </Card>
@@ -2629,23 +2653,38 @@ const BusinessBookingPage = () => {
                                                                 const isCancelled = booking.status === 'cancelled';
                                                                 return (
                                                                     <Card key={booking._id} className={cn(
-                                                                        "overflow-hidden border border-slate-100 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm opacity-80 hover:opacity-100 grayscale-[0.5] hover:grayscale-0 transition-all",
+                                                                        "overflow-hidden border border-slate-100 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm hover:shadow-md transition-all grayscale-[0.8] hover:grayscale-0",
                                                                         isCancelled && "opacity-60"
                                                                     )}>
                                                                         <div className="flex">
-                                                                            <div className={cn("w-1.5", isCancelled ? "bg-red-400" : "bg-slate-400")}></div>
+                                                                            <div className={cn("w-1.5", isCancelled ? "bg-red-400" : "bg-slate-300")}></div>
                                                                             <div className="flex-1 p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-                                                                                <div className="space-y-1">
-                                                                                    <h4 className="text-base font-bold uppercase italic tracking-tighter leading-none">
-                                                                                        {service?.name || "Servicio"}
-                                                                                    </h4>
-                                                                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground font-medium italic">
-                                                                                        <div className="flex items-center gap-1.5">
-                                                                                            <Clock className="w-3 h-3" />
-                                                                                            {format(new Date(booking.scheduledAt), "d MMM, HH:mm", { locale: es })}
+                                                                                <div className="flex flex-1 gap-4 items-start text-left">
+                                                                                    <div className="space-y-2 flex-1">
+                                                                                        <div className="flex items-center justify-between gap-2">
+                                                                                            <h4 className="text-base font-bold uppercase italic tracking-tighter leading-none">
+                                                                                                {service?.name || booking.serviceName || "Servicio"}
+                                                                                            </h4>
+                                                                                            <span className="text-xs font-black italic text-muted-foreground shrink-0">${service?.price || 0}</span>
                                                                                         </div>
-                                                                                        <div className="flex items-center gap-1.5">
-                                                                                            <span className="font-black">#{booking.accessCode}</span>
+
+                                                                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] text-muted-foreground font-medium italic">
+                                                                                            <div className="flex items-center gap-1.5">
+                                                                                                <Clock className="w-3 h-3" />
+                                                                                                <span>{format(new Date(booking.scheduledAt), "d MMM, HH:mm", { locale: es })}</span>
+                                                                                            </div>
+
+                                                                                            {booking.resourceId && (
+                                                                                                <div className="flex items-center gap-1.5">
+                                                                                                    <MapPin className="w-3 h-3" />
+                                                                                                    <span className="font-black uppercase tracking-widest">{getResourceLabel(booking.resourceId)}</span>
+                                                                                                </div>
+                                                                                            )}
+
+                                                                                            <div className="flex items-center gap-1.5">
+                                                                                                <Tag className="w-3 h-3" />
+                                                                                                <span className="font-black">#{booking.accessCode}</span>
+                                                                                            </div>
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>
@@ -2746,9 +2785,38 @@ const BusinessBookingPage = () => {
                                                 </div>
                                                 <h4 className="text-xs font-black uppercase tracking-widest">¿Necesitas Ayuda?</h4>
                                             </div>
-                                            <p className="text-[10px] font-medium italic text-muted-foreground leading-relaxed">
-                                                Si tienes problemas con alguna reserva o paquete, por favor contacta al negocio directamente usando los enlaces de redes sociales al final de la página.
-                                            </p>
+                                            <div className="space-y-4">
+                                                <p className="text-[10px] font-medium italic text-muted-foreground leading-relaxed">
+                                                    Si tienes problemas con alguna reserva o paquete, por favor contacta al negocio directamente:
+                                                </p>
+                                                <div className="space-y-2">
+                                                    {business?.phone && (
+                                                        <a
+                                                            href={`tel:${business.phone}`}
+                                                            className="flex items-center gap-3 text-[11px] font-bold text-primary hover:opacity-80 transition-opacity group/link"
+                                                        >
+                                                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover/link:bg-primary/20 transition-colors">
+                                                                <Phone className="w-4 h-4" />
+                                                            </div>
+                                                            <span>{business.phone}</span>
+                                                        </a>
+                                                    )}
+                                                    {business?.email && (
+                                                        <a
+                                                            href={`mailto:${business.email}`}
+                                                            className="flex items-center gap-3 text-[11px] font-bold text-primary hover:opacity-80 transition-opacity group/link"
+                                                        >
+                                                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover/link:bg-primary/20 transition-colors">
+                                                                <Mail className="w-4 h-4" />
+                                                            </div>
+                                                            <span className="truncate">{business.email}</span>
+                                                        </a>
+                                                    )}
+                                                </div>
+                                                <p className="text-[9px] font-medium italic text-muted-foreground opacity-70">
+                                                    También puedes usar los enlaces de redes sociales al final de la página.
+                                                </p>
+                                            </div>
                                         </Card>
                                     </div>
                                 </div>

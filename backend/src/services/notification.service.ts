@@ -57,6 +57,21 @@ export class NotificationService {
     );
   }
 
+  /** Obtiene la etiqueta del recurso si existe */
+  private getResourceLabel(business: Business | null, resourceId?: string): string | undefined {
+    if (!business || !resourceId || !business.resourceConfig?.enabled) {
+      return undefined;
+    }
+
+    const resource = business.resourceConfig.resources?.find(r => r.id === resourceId);
+    if (!resource) {
+      return undefined;
+    }
+
+    const type = business.resourceConfig.resourceLabel || business.resourceConfig.resourceType || 'Recurso';
+    return `${type}: ${resource.label}`;
+  }
+
   /** Envia notificaciones de nueva reserva al cliente y al negocio */
   async sendBookingConfirmation(booking: Booking, magicLinkToken?: string): Promise<void> {
     try {
@@ -70,7 +85,9 @@ export class NotificationService {
       const scheduledDate = new Date(booking.scheduledAt);
       const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale);
       const showReminder = !this.isSameDay(scheduledDate);
+      const resourceLabel = this.getResourceLabel(business, booking.resourceId);
 
+      console.log(`[DEBUG] Preparing confirmation email for client: ${booking.clientEmail}`);
       if (booking.clientEmail) {
         const clientHtml = clientBookingConfirmationTemplate({
           businessId: booking.businessId,
@@ -86,16 +103,20 @@ export class NotificationService {
           language,
           magicLinkToken,
           clientEmail: booking.clientEmail,
+          resourceLabel,
         });
 
+        console.log(`[DEBUG] Sending email to client: ${booking.clientEmail}...`);
         await sendEmail({
           to: booking.clientEmail,
           subject: `Reserva confirmada - ${businessName}`,
           html: clientHtml,
         });
+        console.log(`[DEBUG] Client email sent successfully`);
       }
 
       if (business?.email) {
+        console.log(`[DEBUG] Sending notification to business: ${business.email}...`);
         const businessHtml = businessNewBookingTemplate({
           businessName,
           clientName: booking.clientName,
@@ -105,6 +126,7 @@ export class NotificationService {
           clientPhone: booking.clientPhone,
           notes: booking.notes,
           language,
+          resourceLabel,
         });
 
         await sendEmail({
@@ -112,6 +134,7 @@ export class NotificationService {
           subject: `Nueva reserva - ${booking.clientName}`,
           html: businessHtml,
         });
+        console.log(`[DEBUG] Business notification sent successfully`);
       }
 
       // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
@@ -158,6 +181,7 @@ export class NotificationService {
       const language = business?.language || 'es';
       const locale = language === 'en' ? 'en-US' : 'es-MX';
       const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale);
+      const resourceLabel = this.getResourceLabel(business, booking.resourceId);
 
       const html = clientCancellationTemplate({
         businessName,
@@ -167,6 +191,7 @@ export class NotificationService {
         businessEmail: business?.email,
         businessPhone: business?.phone,
         language,
+        resourceLabel,
       });
 
       await sendEmail({
@@ -200,6 +225,7 @@ export class NotificationService {
       const language = business?.language || 'es';
       const locale = language === 'en' ? 'en-US' : 'es-MX';
       const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale);
+      const resourceLabel = this.getResourceLabel(business, booking.resourceId);
 
       const html = appointmentReminderTemplate({
         businessId: booking.businessId,
@@ -214,6 +240,7 @@ export class NotificationService {
         language,
         magicLinkToken,
         clientEmail: booking.clientEmail,
+        resourceLabel,
       });
 
       await sendEmail({
@@ -264,6 +291,7 @@ export class NotificationService {
       const language = business?.language || 'es';
       const locale = language === 'en' ? 'en-US' : 'es-MX';
       const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale);
+      const resourceLabel = this.getResourceLabel(business, booking.resourceId);
 
       const html = clientBookingCompletedTemplate({
         businessName,
@@ -273,6 +301,7 @@ export class NotificationService {
         businessEmail: business?.email,
         businessPhone: business?.phone,
         language,
+        resourceLabel,
       });
 
       await sendEmail({
