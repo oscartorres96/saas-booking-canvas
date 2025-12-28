@@ -17,6 +17,7 @@ import {
   BookingEmailData,
   otpTemplate,
 } from '../utils/email-templates';
+import { generateResourceMapPreview } from '../utils/resource-map-preview';
 import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
 import { Booking } from '../bookings/schemas/booking.schema';
 
@@ -104,6 +105,9 @@ export class NotificationService {
           magicLinkToken,
           clientEmail: booking.clientEmail,
           resourceLabel,
+          resourceMapPreviewUrl: booking.resourceId && (booking as any).resourceMapSnapshot
+            ? generateResourceMapPreview((booking as any).resourceMapSnapshot, booking.resourceId, business?.settings?.primaryColor)
+            : undefined,
         });
 
         console.log(`[DEBUG] Sending email to client: ${booking.clientEmail}...`);
@@ -127,6 +131,9 @@ export class NotificationService {
           notes: booking.notes,
           language,
           resourceLabel,
+          resourceMapPreviewUrl: booking.resourceId && (booking as any).resourceMapSnapshot
+            ? generateResourceMapPreview((booking as any).resourceMapSnapshot, booking.resourceId, business?.settings?.primaryColor)
+            : undefined,
         });
 
         await sendEmail({
@@ -241,6 +248,14 @@ export class NotificationService {
         magicLinkToken,
         clientEmail: booking.clientEmail,
         resourceLabel,
+        resourceMapPreviewUrl:
+          booking.resourceId && booking.resourceMapSnapshot
+            ? generateResourceMapPreview(
+              booking.resourceMapSnapshot,
+              booking.resourceId,
+              business?.settings?.primaryColor,
+            )
+            : undefined,
       });
 
       await sendEmail({

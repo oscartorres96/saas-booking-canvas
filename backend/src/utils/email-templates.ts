@@ -298,6 +298,7 @@ export interface BookingEmailData {
   language?: string;
   magicLinkToken?: string;
   resourceLabel?: string;
+  resourceMapPreviewUrl?: string;
 }
 
 const translations = {
@@ -474,6 +475,13 @@ export const clientBookingConfirmationTemplate = (data: BookingEmailData): strin
         ` : ''}
       </div>
 
+      ${data.resourceMapPreviewUrl ? `
+      <div style="text-align: center; margin: 32px 0;">
+        <p style="font-size: 14px; color: #6b7280; margin-bottom: 12px;">${lang === 'es' ? 'Tu lugar reservado' : 'Your reserved spot'}</p>
+        <img src="${data.resourceMapPreviewUrl}" alt="Reserved resource location preview" style="max-width: 100%; height: auto;" />
+      </div>
+      ` : ''}
+
       ${data.magicLinkToken ? `
       <div style="text-align: center; margin: 32px 0;">
         <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/business/${data.businessId}/booking?view=dashboard&email=${encodeURIComponent(data.clientEmail || '')}&token=${data.magicLinkToken}" class="button" style="color: #ffffff; margin: 0;">
@@ -581,10 +589,16 @@ export const businessNewBookingTemplate = (data: BookingEmailData): string => {
         ` : ''}
       </div>
 
+      ${data.resourceMapPreviewUrl ? `
+      <div style="text-align: center; margin: 32px 0;">
+        <p style="font-size: 14px; color: #6b7280; margin-bottom: 12px;">${lang === 'es' ? 'Lugar reservado' : 'Reserved spot'}</p>
+        <img src="${data.resourceMapPreviewUrl}" alt="Reserved resource location preview" style="max-width: 100%; height: auto;" />
+      </div>
+      ` : ''}
+
       <p style="margin-top: 24px;">
         ${t.manageBooking}
       </p>
-    </div>
     <div class="email-footer">
       <p>${t.bookingSystem} - ${data.businessName}</p>
     </div>
@@ -616,7 +630,7 @@ export const clientCancellationTemplate = (data: BookingEmailData): string => {
     <div class="email-body">
       <h2>${t.hello} ${data.clientName},</h2>
       <p>${t.bookingCancelledBody}</p>
-      
+
       <div class="booking-details">
         <div class="detail-row">
           <span class="detail-label">${t.service}</span>
@@ -684,7 +698,7 @@ export const appointmentReminderTemplate = (data: BookingEmailData): string => {
     <div class="email-body">
       <h2>${t.hello} ${data.clientName}!</h2>
       <p>${t.reminderBody}</p>
-      
+
       <div class="booking-details">
         <div class="detail-row">
           <span class="detail-label">${t.service}</span>
@@ -711,6 +725,13 @@ export const appointmentReminderTemplate = (data: BookingEmailData): string => {
         </div>
         ` : ''}
       </div>
+
+      ${data.resourceMapPreviewUrl ? `
+      <div style="text-align: center; margin: 32px 0;">
+        <p style="font-size: 14px; color: #6b7280; margin-bottom: 12px;">${lang === 'es' ? 'Tu lugar reservado' : 'Your reserved spot'}</p>
+        <img src="${data.resourceMapPreviewUrl}" alt="Reserved resource location preview" style="max-width: 100%; height: auto;" />
+      </div>
+      ` : ''}
 
       ${data.magicLinkToken ? `
       <div style="text-align: center; margin: 32px 0;">
@@ -761,75 +782,76 @@ interface WelcomeEmailData {
 
 export const businessWelcomeTemplate = (data: WelcomeEmailData): string => {
   return `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="light dark">
-  <meta name="supported-color-schemes" content="light dark">
-  <style>${baseStyles}</style>
-</head>
-<body>
-  <div class="email-container">
-    <div class="email-header">
-      <h1>¡Bienvenido a BookPro!</h1>
-    </div>
-    <div class="email-body">
-      <div class="email-logo">
-        <svg width="180" height="60" viewBox="0 0 180 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="10" y="10" width="40" height="40" rx="8" fill="url(#gradient)" />
-          <path d="M20 25h20M20 30h20M20 35h15" stroke="white" stroke-width="2" stroke-linecap="round" />
-          <text x="60" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="700" fill="#1e1b4b">BookPro</text>
-          <defs>
-            <linearGradient id="gradient" x1="10" y1="10" x2="50" y2="50" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#4338ca" />
-              <stop offset="1" stop-color="#1e1b4b" />
-            </linearGradient>
-          </defs>
-        </svg>
-      </div>
-      <h2>Hola ${data.ownerName},</h2>
-      <p>Tu cuenta para administrar <strong>${data.businessName}</strong> ha sido creada exitosamente.</p>
-      
-      <p>A continuación te compartimos tus credenciales de acceso. Por favor, guárdalas en un lugar seguro.</p>
+  <!DOCTYPE html>
+    <html lang="es" >
+      <head>
+      <meta charset="UTF-8" >
+        <meta name="viewport" content = "width=device-width, initial-scale=1.0" >
+          <meta name="color-scheme" content = "light dark" >
+            <meta name="supported-color-schemes" content = "light dark" >
+              <style>${baseStyles} </style>
+                </head>
+                <body>
+                <div class="email-container" >
+                  <div class="email-header" >
+                    <h1>¡Bienvenido a BookPro! </h1>
+                      </div>
+                      <div class="email-body">
+                        <div class="email-logo" >
+                          <svg width="180" height = "60" viewBox = "0 0 180 60" fill = "none" xmlns = "http://www.w3.org/2000/svg" >
+                            <rect x="10" y = "10" width = "40" height = "40" rx = "8" fill = "url(#gradient)" />
+                              <path d="M20 25h20M20 30h20M20 35h15" stroke = "white" stroke - width="2" stroke - linecap="round" />
+                                <text x="60" y = "38" font - family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font - size="24" font - weight="700" fill = "#1e1b4b" > BookPro </text>
+                                  < defs >
+                                  <linearGradient id="gradient" x1 = "10" y1 = "10" x2 = "50" y2 = "50" gradientUnits = "userSpaceOnUse" >
+                                    <stop stop - color="#4338ca" />
+                                      <stop offset="1" stop - color="#1e1b4b" />
+                                        </linearGradient>
+                                        </defs>
+                                        </svg>
+                                        </div>
+                                        < h2 > Hola ${data.ownerName}, </h2>
+                                          < p > Tu cuenta para administrar < strong > ${data.businessName} </strong> ha sido creada exitosamente.</p >
 
-      <div class="booking-details">
-        <div class="detail-row">
-          <span class="detail-label">Portal de acceso</span>
-          <span class="detail-value"><a href="${data.loginUrl}" style="color: #4338ca;">Iniciar Sesión</a></span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">Usuario / Email</span>
-          <span class="detail-value">${data.email}</span>
-        </div>
+                                            <p>A continuación te compartimos tus credenciales de acceso.Por favor, guárdalas en un lugar seguro.</p>
+
+                                              <div class="booking-details">
+                                                <div class="detail-row" >
+                                                  <span class="detail-label" > Portal de acceso </span>
+                                                    < span class="detail-value" > <a href="${data.loginUrl}" style = "color: #4338ca;" > Iniciar Sesión < /a></span >
+                                                      </div>
+                                                      <div class="detail-row">
+                                                        <span class="detail-label" > Usuario / Email </span>
+                                                          < span class="detail-value" > ${data.email} </span>
+                                                            </div>
         ${data.password ? `
         <div class="detail-row">
           <span class="detail-label">Contraseña temporal</span>
           <span class="detail-value">${data.password}</span>
         </div>
-        ` : ''}
+        ` : ''
+    }
+</div>
+
+  < div class="alert alert-info" >
+    Te recomendamos cambiar tu contraseña una vez que ingreses al sistema.
       </div>
 
-      <div class="alert alert-info">
-        Te recomendamos cambiar tu contraseña una vez que ingreses al sistema.
-      </div>
+      < div style = "text-align: center;" >
+        <a href="${data.loginUrl}" class="button" style = "color: #ffffff;" > Ir a mi panel </a>
+          </div>
 
-      <div style="text-align: center;">
-        <a href="${data.loginUrl}" class="button" style="color: #ffffff;">Ir a mi panel</a>
-      </div>
-
-      <p style="font-size: 14px;">
-        Si tienes problemas para acceder, no dudes en contactar al administrador del sistema.
+          < p style = "font-size: 14px;" >
+            Si tienes problemas para acceder, no dudes en contactar al administrador del sistema.
       </p>
-    </div>
-    <div class="email-footer">
-      <p>Bienvenido a la familia BookPro</p>
-    </div>
-  </div>
-</body>
-</html>
-  `;
+              </div>
+              <div class="email-footer">
+                <p>Bienvenido a la familia BookPro </p>
+                  </div>
+                  </div>
+                  </body>
+                  </html>
+                    `;
 };
 
 export const clientBookingCompletedTemplate = (data: BookingEmailData): string => {
@@ -837,46 +859,47 @@ export const clientBookingCompletedTemplate = (data: BookingEmailData): string =
   const t = translations[lang];
 
   return `
-<!DOCTYPE html>
-<html lang="${lang}">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="light dark">
-  <meta name="supported-color-schemes" content="light dark">
-  <style>${baseStyles}</style>
-</head>
-<body>
-  <div class="email-container">
-    <div class="email-header">
-      <h1>${t.thanksVisit}</h1>
-    </div>
-    <div class="email-body">
-      <h2>${t.hello} ${data.clientName},</h2>
-      <p>${t.hopeEnjoyed} <strong>${data.businessName}</strong>.</p>
-      
-      <p>${t.markedCompleted}</p>
+                  <!DOCTYPE html>
+                    <html lang="${lang}" >
+                      <head>
+                      <meta charset="UTF-8" >
+                        <meta name="viewport" content = "width=device-width, initial-scale=1.0" >
+                          <meta name="color-scheme" content = "light dark" >
+                            <meta name="supported-color-schemes" content = "light dark" >
+                              <style>${baseStyles} </style>
+                                </head>
+                                <body>
+                                <div class="email-container" >
+                                  <div class="email-header" >
+                                    <h1>${t.thanksVisit} </h1>
+                                      </div>
+                                      <div class="email-body">
+                                        <h2>${t.hello} ${data.clientName}, </h2>
+                                          < p > ${t.hopeEnjoyed} <strong>${data.businessName} </strong>.</p >
 
-      <div class="booking-details">
-        <div class="detail-row">
-          <span class="detail-label">${t.servicePerformed}</span>
-          <span class="detail-value">${data.serviceName}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">${t.dateLabel}</span>
-          <span class="detail-value">${data.scheduledAt}</span>
-        </div>
+                                            <p>${t.markedCompleted} </p>
+
+                                              <div class="booking-details">
+                                                <div class="detail-row" >
+                                                  <span class="detail-label" > ${t.servicePerformed} </span>
+                                                    < span class="detail-value" > ${data.serviceName} </span>
+                                                      </div>
+                                                      <div class="detail-row">
+                                                        <span class="detail-label" > ${t.dateLabel} </span>
+                                                          < span class="detail-value" > ${data.scheduledAt} </span>
+                                                            </div>
         ${data.resourceLabel ? `
         <div class="detail-row">
           <span class="detail-label">${data.resourceLabel.split(':')[0]}</span>
           <span class="detail-value">${data.resourceLabel.split(':')[1] || data.resourceLabel}</span>
         </div>
-        ` : ''}
-      </div>
+        ` : ''
+    }
+</div>
 
-      <p style="margin-top: 24px;">
-        ${t.hopeSeeYou}
-      </p>
+  < p style = "margin-top: 24px;" >
+    ${t.hopeSeeYou}
+</p>
 
       ${(data.businessPhone || data.businessEmail) ? `
       <p style="margin-top: 24px; font-size: 14px;">
@@ -884,19 +907,20 @@ export const clientBookingCompletedTemplate = (data: BookingEmailData): string =
         ${data.businessEmail ? `${data.businessEmail}<br>` : ''}
         ${data.businessPhone ? `${data.businessPhone}` : ''}
       </p>
-      ` : ''}
+      ` : ''
+    }
 
-       <div style="text-align: center; margin-top: 32px;">
-         <a href="${process.env.PUBLIC_BOOKINGS_URL || '#'}" class="button" style="color: #ffffff;">${t.bookAgain}</a>
-      </div>
+<div style="text-align: center; margin-top: 32px;" >
+  <a href="${process.env.PUBLIC_BOOKINGS_URL || '#'}" class="button" style = "color: #ffffff;" > ${t.bookAgain} </a>
+    </div>
     </div>
     <div class="email-footer">
-      <p>${data.businessName}</p>
-    </div>
-  </div>
-</body>
-</html>
-  `;
+      <p>${data.businessName} </p>
+        </div>
+        </div>
+        </body>
+        </html>
+          `;
 };
 
 export const demoRequestTemplate = (data: DemoRequestData): string => {
@@ -904,58 +928,61 @@ export const demoRequestTemplate = (data: DemoRequestData): string => {
   const t = translations[lang];
 
   return `
-<!DOCTYPE html>
-<html lang="${lang}">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>${baseStyles}</style>
-</head>
-<body>
-  <div class="email-container">
-    <div class="email-header">
-      <h1>${t.demoRequestHeader}</h1>
-    </div>
-    <div class="email-body">
-      <h2>${t.hello}!</h2>
-      <p>${t.demoRequestBody}</p>
-      
-      <div class="booking-details">
-        <div class="detail-row">
-          <span class="detail-label">${t.name}</span>
-          <span class="detail-value">${data.name}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">${t.email}</span>
-          <span class="detail-value">${data.email}</span>
-        </div>
+        <!DOCTYPE html>
+          <html lang="${lang}" >
+            <head>
+            <meta charset="UTF-8" >
+              <meta name="viewport" content = "width=device-width, initial-scale=1.0" >
+                <style>${baseStyles} </style>
+                  </head>
+                  <body>
+                  <div class="email-container" >
+                    <div class="email-header" >
+                      <h1>${t.demoRequestHeader} </h1>
+                        </div>
+                        <div class="email-body">
+                          <h2>${t.hello} !</h2>
+                            < p > ${t.demoRequestBody} </p>
+
+                              <div class="booking-details">
+                                <div class="detail-row" >
+                                  <span class="detail-label" > ${t.name} </span>
+                                    < span class="detail-value" > ${data.name} </span>
+                                      </div>
+                                      <div class="detail-row">
+                                        <span class="detail-label" > ${t.email} </span>
+                                          < span class="detail-value" > ${data.email} </span>
+                                            </div>
         ${data.phone ? `
         <div class="detail-row">
           <span class="detail-label">${t.phone}</span>
           <span class="detail-value">${data.phone}</span>
         </div>
-        ` : ''}
+        ` : ''
+    }
         ${data.company ? `
         <div class="detail-row">
           <span class="detail-label">${t.company}</span>
           <span class="detail-value">${data.company}</span>
         </div>
-        ` : ''}
+        ` : ''
+    }
         ${data.message ? `
         <div class="detail-row">
           <span class="detail-label">${t.message}</span>
           <span class="detail-value">${data.message}</span>
         </div>
-        ` : ''}
-      </div>
-    </div>
-    <div class="email-footer">
-      <p>BookPro Demo Request</p>
-    </div>
+        ` : ''
+    }
+</div>
   </div>
-</body>
-</html>
-  `;
+  <div class="email-footer">
+    <p>BookPro Demo Request </p>
+      </div>
+      </div>
+      </body>
+      </html>
+        `;
 };
 
 export const businessRegistrationReceiptTemplate = (data: DemoRequestData): string => {
@@ -963,56 +990,58 @@ export const businessRegistrationReceiptTemplate = (data: DemoRequestData): stri
   const t = translations[lang];
 
   return `
-<!DOCTYPE html>
-<html lang="${lang}">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>${baseStyles}</style>
-</head>
-<body>
-  <div class="email-container">
-    <div class="email-header">
-      <h1>${t.requestReceivedHeader}</h1>
-    </div>
-    <div class="email-body">
-      <h2>${t.hello} ${data.name}!</h2>
-      <p>${t.requestReceivedBody}</p>
-      
-      <div class="booking-details">
-        <div class="detail-row">
-          <span class="detail-label">${t.name}</span>
-          <span class="detail-value">${data.name}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">${t.email}</span>
-          <span class="detail-value">${data.email}</span>
-        </div>
+      <!DOCTYPE html>
+        <html lang="${lang}" >
+          <head>
+          <meta charset="UTF-8" >
+            <meta name="viewport" content = "width=device-width, initial-scale=1.0" >
+              <style>${baseStyles} </style>
+                </head>
+                <body>
+                <div class="email-container" >
+                  <div class="email-header" >
+                    <h1>${t.requestReceivedHeader} </h1>
+                      </div>
+                      <div class="email-body">
+                        <h2>${t.hello} ${data.name} !</h2>
+                          < p > ${t.requestReceivedBody} </p>
+
+                            <div class="booking-details">
+                              <div class="detail-row" >
+                                <span class="detail-label" > ${t.name} </span>
+                                  < span class="detail-value" > ${data.name} </span>
+                                    </div>
+                                    <div class="detail-row">
+                                      <span class="detail-label" > ${t.email} </span>
+                                        < span class="detail-value" > ${data.email} </span>
+                                          </div>
         ${data.phone ? `
         <div class="detail-row">
           <span class="detail-label">${t.phone}</span>
           <span class="detail-value">${data.phone}</span>
         </div>
-        ` : ''}
+        ` : ''
+    }
         ${data.company ? `
         <div class="detail-row">
           <span class="detail-label">${t.company}</span>
           <span class="detail-value">${data.company}</span>
         </div>
-        ` : ''}
-      </div>
+        ` : ''
+    }
+</div>
 
-      <p style="margin-top: 24px;">
-        ${t.autoEmail}
-      </p>
-    </div>
-    <div class="email-footer">
-      <p>BookPro Team</p>
-    </div>
+  < p style = "margin-top: 24px;" >
+    ${t.autoEmail}
+</p>
   </div>
-</body>
-</html>
-  `;
+  <div class="email-footer">
+    <p>BookPro Team </p>
+      </div>
+      </div>
+      </body>
+      </html>
+        `;
 };
 
 export const demoRequestReceiptTemplate = (data: DemoRequestData): string => {
@@ -1020,62 +1049,65 @@ export const demoRequestReceiptTemplate = (data: DemoRequestData): string => {
   const t = translations[lang];
 
   return `
-<!DOCTYPE html>
-<html lang="${lang}">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>${baseStyles}</style>
-</head>
-<body>
-  <div class="email-container">
-    <div class="email-header">
-      <h1>${t.requestReceivedHeader}</h1>
-    </div>
-    <div class="email-body">
-      <h2>${t.hello} ${data.name}!</h2>
-      <p>${t.demoRequestReceivedBody}</p>
-      
-      <div class="booking-details">
-        <div class="detail-row">
-          <span class="detail-label">${t.name}</span>
-          <span class="detail-value">${data.name}</span>
-        </div>
-        <div class="detail-row">
-          <span class="detail-label">${t.email}</span>
-          <span class="detail-value">${data.email}</span>
-        </div>
+      <!DOCTYPE html>
+        <html lang="${lang}" >
+          <head>
+          <meta charset="UTF-8" >
+            <meta name="viewport" content = "width=device-width, initial-scale=1.0" >
+              <style>${baseStyles} </style>
+                </head>
+                <body>
+                <div class="email-container" >
+                  <div class="email-header" >
+                    <h1>${t.requestReceivedHeader} </h1>
+                      </div>
+                      <div class="email-body">
+                        <h2>${t.hello} ${data.name} !</h2>
+                          < p > ${t.demoRequestReceivedBody} </p>
+
+                            <div class="booking-details">
+                              <div class="detail-row" >
+                                <span class="detail-label" > ${t.name} </span>
+                                  < span class="detail-value" > ${data.name} </span>
+                                    </div>
+                                    <div class="detail-row">
+                                      <span class="detail-label" > ${t.email} </span>
+                                        < span class="detail-value" > ${data.email} </span>
+                                          </div>
         ${data.phone ? `
         <div class="detail-row">
           <span class="detail-label">${t.phone}</span>
           <span class="detail-value">${data.phone}</span>
         </div>
-        ` : ''}
+        ` : ''
+    }
         ${data.company ? `
         <div class="detail-row">
           <span class="detail-label">${t.company}</span>
           <span class="detail-value">${data.company}</span>
         </div>
-        ` : ''}
+        ` : ''
+    }
         ${data.message ? `
         <div class="detail-row">
           <span class="detail-label">${t.message}</span>
           <span class="detail-value">${data.message}</span>
         </div>
-        ` : ''}
-      </div>
+        ` : ''
+    }
+</div>
 
-      <p style="margin-top: 24px;">
-        ${t.autoEmail}
-      </p>
-    </div>
-    <div class="email-footer">
-      <p>BookPro Team</p>
-    </div>
+  < p style = "margin-top: 24px;" >
+    ${t.autoEmail}
+</p>
   </div>
-</body>
-</html>
-  `;
+  <div class="email-footer">
+    <p>BookPro Team </p>
+      </div>
+      </div>
+      </body>
+      </html>
+        `;
 };
 export const otpTemplate = (data: { businessName: string; code: string; language?: string }): string => {
   const lang = (data.language || 'es') as keyof typeof translations;
@@ -1098,7 +1130,7 @@ export const otpTemplate = (data: { businessName: string; code: string; language
     </div>
     <div class="email-body">
       <p>${t.otpBody} <strong>${data.businessName}</strong>.</p>
-      
+
       <div class="access-code">
         <div class="access-code-label">${t.otpLabel}</div>
         <div class="access-code-value" style="letter-spacing: 4px;">${data.code}</div>
@@ -1119,5 +1151,5 @@ export const otpTemplate = (data: { businessName: string; code: string; language
   </div>
 </body>
 </html>
-  `;
+          `;
 };

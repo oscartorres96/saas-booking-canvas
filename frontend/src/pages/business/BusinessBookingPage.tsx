@@ -91,6 +91,7 @@ import { BusinessThemeToggle } from "@/components/BusinessThemeToggle";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "react-i18next";
 import { ResourceSelector } from "@/components/booking/ResourceSelector";
+import BookingResourceMapMiniPreview from "@/components/BookingResourceMapMiniPreview";
 import AnimatedStepper, { AnimatedStep } from "@/components/booking/AnimatedStepper";
 import { ServiceCard } from "@/components/booking/ServiceCard";
 import { ProductsStore } from "@/components/booking/ProductsStore";
@@ -2589,6 +2590,16 @@ const BusinessBookingPage = () => {
                                                                                                                 </div>
                                                                                                             )}
                                                                                                         </div>
+
+                                                                                                        {booking.resourceId && booking.resourceMapSnapshot && (
+                                                                                                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/50">
+                                                                                                                <BookingResourceMapMiniPreview
+                                                                                                                    resourceMapSnapshot={booking.resourceMapSnapshot}
+                                                                                                                    reservedResourceId={booking.resourceId}
+                                                                                                                    size="xs"
+                                                                                                                />
+                                                                                                            </div>
+                                                                                                        )}
                                                                                                     </div>
                                                                                                 </div>
                                                                                                 <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 shrink-0">
@@ -2687,6 +2698,16 @@ const BusinessBookingPage = () => {
                                                                                             </div>
                                                                                         </div>
                                                                                     </div>
+
+                                                                                    {booking.resourceId && booking.resourceMapSnapshot && (
+                                                                                        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/50">
+                                                                                            <BookingResourceMapMiniPreview
+                                                                                                resourceMapSnapshot={booking.resourceMapSnapshot}
+                                                                                                reservedResourceId={booking.resourceId}
+                                                                                                size="xs"
+                                                                                            />
+                                                                                        </div>
+                                                                                    )}
                                                                                 </div>
                                                                                 <Badge variant="outline" className={cn(
                                                                                     "w-fit font-black uppercase italic tracking-widest text-[8px] px-2 py-0.5",

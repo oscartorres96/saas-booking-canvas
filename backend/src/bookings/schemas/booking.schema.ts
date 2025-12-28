@@ -77,6 +77,9 @@ export class Booking {
 
   @Prop()
   stripePaymentIntentId?: string;
+
+  @Prop({ type: Object })
+  resourceMapSnapshot?: any;
 }
 
 

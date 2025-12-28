@@ -29,6 +29,7 @@ export interface CreateBookingPayload {
   paymentMethod?: string;
   otpToken?: string;
   sessionId?: string;
+  resourceMapSnapshot?: any;
 }
 
 export type UpdateBookingPayload = Partial<CreateBookingPayload>;
@@ -275,6 +276,10 @@ export class BookingsService {
     // Ensure serviceName is set
     if (!payload.serviceName && service) {
       payload.serviceName = service.name;
+    }
+
+    if (payload.resourceId && business.resourceConfig?.enabled) {
+      payload.resourceMapSnapshot = business.resourceConfig;
     }
 
     const booking = new this.bookingModel(payload);
