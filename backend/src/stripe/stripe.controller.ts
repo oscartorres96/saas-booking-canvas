@@ -15,6 +15,7 @@ import { StripeService } from './stripe.service';
 import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
 import { CreateDirectPurchaseDto } from './dto/create-direct-purchase.dto';
 import { CreateBookingCheckoutDto } from './dto/create-booking-checkout.dto';
+import { CreateConnectAccountDto } from './dto/create-connect-account.dto';
 import { PayoutService } from './payout.service';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { Request } from 'express';
@@ -96,6 +97,19 @@ export class StripeController {
     @UseGuards(JwtAuthGuard)
     async createPortalSession(@Body() body: { businessId: string }) {
         const result = await this.stripeService.createPortalSession(body.businessId);
+        return {
+            success: true,
+            data: result,
+        };
+    }
+
+    /**
+     * Create a Stripe Connect account onboarding link
+     */
+    @Post('connect/account')
+    @UseGuards(JwtAuthGuard)
+    async createConnectAccount(@Body() dto: CreateConnectAccountDto) {
+        const result = await this.stripeService.createConnectAccount(dto.businessId);
         return {
             success: true,
             data: result,
@@ -209,6 +223,20 @@ export class StripeController {
         return {
             success: true,
             data: payments,
+        };
+    }
+
+    /**
+     * Sync Stripe Connect account status
+     * POST /api/stripe/connect/sync/:businessId
+     */
+    @Post('connect/sync/:businessId')
+    @UseGuards(JwtAuthGuard)
+    async syncConnect(@Param('businessId') businessId: string) {
+        const result = await this.stripeService.syncConnectStatus(businessId);
+        return {
+            success: true,
+            data: result,
         };
     }
 

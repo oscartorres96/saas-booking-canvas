@@ -467,54 +467,7 @@ export class BookingsService {
     }).lean();
   }
 
-  async confirmPaymentTransfer(id: string, paymentDetails: { bank?: string; clabe?: string; holderName?: string }) {
-    const booking = await this.bookingModel.findById(id);
-    if (!booking) throw new NotFoundException('Booking not found');
 
-    booking.paymentStatus = PaymentStatus.PendingVerification;
-    booking.status = BookingStatus.PendingPayment;
-    booking.paymentDetails = {
-      ...paymentDetails,
-      transferDate: new Date(),
-    };
-    booking.paymentMethod = 'bank_transfer';
-
-    return booking.save();
-  }
-
-  async verifyPaymentTransfer(id: string, authUser: AuthUser) {
-    const booking = await this.bookingModel.findById(id);
-    if (!booking) throw new NotFoundException('Booking not found');
-
-    const filter = this.buildFilter(authUser);
-    if (filter.businessId && booking.businessId?.toString() !== filter.businessId.toString()) {
-      throw new ForbiddenException('Not allowed');
-    }
-
-    booking.paymentStatus = PaymentStatus.Paid;
-    booking.status = BookingStatus.Confirmed;
-
-    const saved = await booking.save();
-
-    // Optionally notify customer
-    await this.sendConfirmationEmail(saved as Booking);
-
-    return saved;
-  }
-
-  async rejectPaymentTransfer(id: string, authUser: AuthUser) {
-    const booking = await this.bookingModel.findById(id);
-    if (!booking) throw new NotFoundException('Booking not found');
-
-    const filter = this.buildFilter(authUser);
-    if (filter.businessId && booking.businessId?.toString() !== filter.businessId.toString()) {
-      throw new ForbiddenException('Not allowed');
-    }
-
-    booking.paymentStatus = PaymentStatus.Rejected;
-    // We could keep it as PendingPayment or change it
-    return booking.save();
-  }
 
   async resendConfirmation(id: string, authUser: AuthUser) {
     const booking = await this.bookingModel.findById(id);

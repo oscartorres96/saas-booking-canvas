@@ -96,7 +96,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import useAuth from "@/auth/useAuth";
 import { getBusinessById, type Business } from "@/api/businessesApi";
 import { getServicesByBusiness, createService, updateService, deleteService, type Service } from "@/api/servicesApi";
-import { getBookingsByBusiness, updateBooking, verifyPayment, rejectPayment, resendConfirmation, type Booking } from "@/api/bookingsApi";
+import { getBookingsByBusiness, updateBooking, resendConfirmation, type Booking } from "@/api/bookingsApi";
 import { getProductsByBusiness, type Product } from "@/api/productsApi";
 import { getByBusiness as getCustomerAssetsByBusiness, type CustomerAsset } from "@/api/customerAssetsApi";
 import { getPaymentsByBusiness } from "@/api/stripeApi";
@@ -396,25 +396,7 @@ const BusinessDashboard = () => {
         }
     };
 
-    const handleVerifyPayment = async (bookingId: string) => {
-        try {
-            await verifyPayment(bookingId);
-            setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, paymentStatus: 'paid' as any, status: 'confirmed' as any } : b));
-            toast.success(t('dashboard.bookings.toasts.payment_verified', 'Pago verificado correctamente'));
-        } catch (error) {
-            toast.error(t('dashboard.bookings.toasts.error_verify', 'Error al verificar pago'));
-        }
-    };
 
-    const handleRejectPayment = async (bookingId: string) => {
-        try {
-            await rejectPayment(bookingId);
-            setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, paymentStatus: 'rejected' as any } : b));
-            toast.success(t('dashboard.bookings.toasts.payment_rejected', 'Pago rechazado'));
-        } catch (error) {
-            toast.error(t('dashboard.bookings.toasts.error_reject', 'Error al rechazar pago'));
-        }
-    };
 
     const onUpdateBookingStatus = async (bookingId: string, newStatus: 'confirmed' | 'completed' | 'cancelled') => {
         try {
@@ -786,17 +768,7 @@ const BusinessDashboard = () => {
                                                                                     <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
                                                                                     <DropdownMenuItem onClick={() => openBookingDetails(booking)}>{t('dashboard.bookings.actions.view_details')}</DropdownMenuItem>
                                                                                     <DropdownMenuSeparator />
-                                                                                    {booking.paymentStatus === 'pending_verification' && (
-                                                                                        <>
-                                                                                            <DropdownMenuItem className="text-green-600 font-semibold" onClick={() => handleVerifyPayment(booking._id)}>
-                                                                                                {t('dashboard.bookings.actions.verify_payment')}
-                                                                                            </DropdownMenuItem>
-                                                                                            <DropdownMenuItem className="text-red-600" onClick={() => handleRejectPayment(booking._id)}>
-                                                                                                {t('dashboard.bookings.actions.reject_payment')}
-                                                                                            </DropdownMenuItem>
-                                                                                            <DropdownMenuSeparator />
-                                                                                        </>
-                                                                                    )}
+
                                                                                     {booking.status === 'pending' && (
                                                                                         <DropdownMenuItem className="text-green-600" onClick={() => onUpdateBookingStatus(booking._id, 'confirmed')}>
                                                                                             {t('dashboard.bookings.actions.confirm')}
@@ -1442,66 +1414,7 @@ const BusinessDashboard = () => {
                                             </InnerCard>
                                         </div>
 
-                                        {/* Payment Info Section (Conditional) */}
-                                        {bookingToView.paymentMethod === 'bank_transfer' && bookingToView.paymentDetails && (
-                                            <div className="space-y-3">
-                                                <AdminLabel icon={CreditCard}>{t('dashboard.bookings.details.payment_info')}</AdminLabel>
-                                                <InnerCard className="bg-amber-50/50 dark:bg-amber-500/5 border-amber-200/50 dark:border-amber-500/20 p-5 space-y-4">
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div>
-                                                            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700/70 dark:text-amber-400/70 mb-1">{t('dashboard.bookings.details.payment_status')}</p>
-                                                            <Badge variant="outline" className="uppercase font-bold text-[10px] h-5 bg-white dark:bg-slate-900 text-amber-600 border-amber-200">
-                                                                {t(`dashboard.bookings.payment_status.${bookingToView.paymentStatus}`, bookingToView.paymentStatus)}
-                                                            </Badge>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700/70 dark:text-amber-400/70 mb-1">{t('dashboard.bookings.details.payment_method')}</p>
-                                                            <p className="font-semibold text-sm text-slate-800 dark:text-amber-200">{t('dashboard.bookings.details.bank_transfer')}</p>
-                                                        </div>
-                                                        {bookingToView.paymentDetails.holderName && (
-                                                            <div>
-                                                                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700/70 dark:text-amber-400/70 mb-1">{t('dashboard.bookings.details.holder')}</p>
-                                                                <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{bookingToView.paymentDetails.holderName}</p>
-                                                            </div>
-                                                        )}
-                                                        {bookingToView.paymentDetails.clabe && (
-                                                            <div>
-                                                                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700/70 dark:text-amber-400/70 mb-1">{t('dashboard.bookings.details.clabe')}</p>
-                                                                <p className="text-sm font-medium font-mono text-slate-700 dark:text-slate-300">{bookingToView.paymentDetails.clabe}</p>
-                                                            </div>
-                                                        )}
-                                                    </div>
 
-                                                    {bookingToView.paymentDetails.transferDate && (
-                                                        <div className="pt-3 border-t border-amber-200/50 dark:border-amber-500/10">
-                                                            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700/70 dark:text-amber-400/70 mb-1">{t('dashboard.bookings.details.transfer_date')}</p>
-                                                            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                                                {format(new Date(bookingToView.paymentDetails.transferDate), "PPp", { locale: i18n.language === 'en' ? enUS : es })}
-                                                            </p>
-                                                        </div>
-                                                    )}
-
-                                                    {bookingToView.paymentStatus === 'pending_verification' && (
-                                                        <div className="flex gap-2 pt-2">
-                                                            <Button className="flex-1 rounded-xl h-10 font-bold bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/20" onClick={() => {
-                                                                handleVerifyPayment(bookingToView._id);
-                                                                setIsBookingDetailsDialogOpen(false);
-                                                            }}>
-                                                                <CheckCircle2 className="mr-2 h-4 w-4" />
-                                                                {t('dashboard.bookings.actions.confirm_receipt')}
-                                                            </Button>
-                                                            <Button variant="outline" className="flex-1 rounded-xl h-10 font-bold text-red-600 border-red-200 hover:bg-red-50" onClick={() => {
-                                                                handleRejectPayment(bookingToView._id);
-                                                                setIsBookingDetailsDialogOpen(false);
-                                                            }}>
-                                                                <XCircle className="mr-2 h-4 w-4" />
-                                                                {t('dashboard.bookings.actions.reject_payment')}
-                                                            </Button>
-                                                        </div>
-                                                    )}
-                                                </InnerCard>
-                                            </div>
-                                        )}
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                             {/* Service Info */}

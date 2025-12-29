@@ -235,7 +235,7 @@ export const ResourceMapEditor = ({ businessId, initialConfig }: ResourceMapEdit
                             </Button>
                         </div>
 
-                        <div className="relative border-2 border-dashed rounded-[2.5rem] p-8 md:p-12 bg-slate-50/30 dark:bg-slate-900/30 min-h-[400px] flex items-center justify-center overflow-auto shadow-inner">
+                        <div className="relative border-2 border-dashed rounded-[2.5rem] p-4 sm:p-8 md:p-12 bg-slate-50/30 dark:bg-slate-900/30 min-h-[400px] flex items-center justify-center overflow-auto shadow-inner">
                             <div
                                 className="grid gap-4 mx-auto"
                                 style={{
@@ -304,12 +304,12 @@ export const ResourceMapEditor = ({ businessId, initialConfig }: ResourceMapEdit
                     </div>
 
                     {/* Botón de Guardado */}
-                    <div className="flex justify-end pt-8 border-t">
+                    <div className="flex justify-center md:justify-end pt-8 border-t">
                         <Button
                             onClick={handleSave}
                             disabled={isLoading}
                             size="lg"
-                            className="px-12 h-16 text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-[1.03] active:scale-[0.97] rounded-2xl"
+                            className="w-full md:w-auto px-4 md:px-12 h-16 text-xs md:text-sm font-black uppercase tracking-wider md:tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-[1.03] active:scale-[0.97] rounded-2xl"
                         >
                             {isLoading ? (
                                 <RefreshCw className="h-5 w-5 mr-3 animate-spin" />

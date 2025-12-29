@@ -3,7 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useAuthContext } from "@/auth/AuthContext";
-import { getBusinessById, updateBusinessSettings, updatePaymentConfig } from "@/api/businessesApi";
+import { getBusinessById, updateBusinessSettings, updatePaymentConfig, type Business } from "@/api/businessesApi";
+import { createConnectAccount, syncConnectAccount } from "@/api/stripeApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,7 +27,8 @@ import {
     AdminLabel,
     InnerCard
 } from "@/components/dashboard/DashboardBase";
-import { Settings, Save, Globe, Palette, Clock, CreditCard, ShieldCheck, Building2, Zap, Check, AlertCircle } from "lucide-react";
+import { Settings, Save, Globe, Palette, Clock, CreditCard, ShieldCheck, Building2, Zap, Check, AlertCircle, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const intervalSchema = (t: any) => z.object({
     startTime: z.string(),
@@ -51,14 +53,10 @@ const createFormSchema = (t: any) => z.object({
     bookingCapacityMode: z.enum(['SINGLE', 'MULTIPLE']).default('SINGLE'),
     maxBookingsPerSlot: z.coerce.number().min(2, t('settings.booking.capacity.validation_min')).optional().nullable(),
     paymentPolicy: z.enum(['RESERVE_ONLY', 'PAY_BEFORE_BOOKING', 'PACKAGE_OR_PAY']).default('RESERVE_ONLY'),
-    allowTransfer: z.boolean().default(false),
     allowCash: z.boolean().default(false),
-    bank: z.string().optional(),
-    clabe: z.string().optional(),
-    holderName: z.string().optional(),
-    instructions: z.string().optional(),
     paymentMode: z.enum(["BOOKPRO_COLLECTS", "DIRECT_TO_BUSINESS"]).default("BOOKPRO_COLLECTS"),
     stripeConnectAccountId: z.string().optional(),
+    taxId: z.string().optional(),
     businessHours: z.array(z.object({
         day: z.string(),
         isOpen: z.boolean(),
@@ -107,6 +105,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
     const [isSaving, setIsSaving] = useState(false);
     const [hasPaymentModelSet, setHasPaymentModelSet] = useState(false);
     const [activeTab, setActiveTab] = useState("general");
+    const [businessData, setBusinessData] = useState<Business | null>(null);
+    const [isConnectingStripe, setIsConnectingStripe] = useState(false);
 
     const formSchema = createFormSchema(t);
     const form = useForm<z.infer<typeof formSchema>>({
@@ -129,14 +129,10 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
             bookingCapacityMode: "SINGLE",
             maxBookingsPerSlot: null,
             paymentPolicy: "RESERVE_ONLY",
-            allowTransfer: false,
             allowCash: false,
-            bank: "",
-            clabe: "",
-            holderName: "",
-            instructions: "",
             paymentMode: "BOOKPRO_COLLECTS",
             stripeConnectAccountId: "",
+            taxId: "",
             businessHours: daysOfWeek.map(d => ({
                 day: d.key,
                 isOpen: true,
@@ -146,10 +142,35 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
     });
 
     useEffect(() => {
+        const checkStripeStatus = async () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('stripe_success') === 'true' && businessId) {
+                try {
+                    console.log('[STRIPE] Detected success redirect, syncing account...');
+                    await syncConnectAccount(businessId);
+                    const business = await getBusinessById(businessId);
+                    setBusinessData(business);
+                    toast.success(t('settings.payments.sync_success', '¡Conexión exitosa! Ahora puedes cobrar directamente.'));
+
+                    // Cleanup URL
+                    const newSearchParams = new URLSearchParams(window.location.search);
+                    newSearchParams.delete('stripe_success');
+                    const newUrl = window.location.pathname + (newSearchParams.toString() ? `?${newSearchParams.toString()}` : '');
+                    window.history.replaceState({}, '', newUrl);
+                } catch (error) {
+                    console.error('Error syncing Stripe status:', error);
+                }
+            }
+        };
+        checkStripeStatus();
+    }, [businessId, t]);
+
+    useEffect(() => {
         async function loadSettings() {
             if (!businessId) return;
             try {
                 const business = await getBusinessById(businessId);
+                setBusinessData(business);
                 form.reset({
                     businessName: business.businessName || business.name || "",
                     language: (business.language as "es" | "en") || "es",
@@ -167,15 +188,11 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     cancellationWindowHours: business.bookingConfig?.cancellationWindowHours ?? 0,
                     bookingCapacityMode: business.bookingCapacityConfig?.mode || "SINGLE",
                     maxBookingsPerSlot: business.bookingCapacityConfig?.maxBookingsPerSlot || null,
-                    paymentPolicy: business.paymentConfig?.paymentPolicy || "RESERVE_ONLY",
-                    allowTransfer: business.paymentConfig?.allowTransfer ?? (business.paymentConfig?.method === "bank_transfer"),
+                    paymentPolicy: (business.paymentConfig?.paymentPolicy === 'PAY_BEFORE_BOOKING' ? 'PACKAGE_OR_PAY' : business.paymentConfig?.paymentPolicy) || "RESERVE_ONLY",
                     allowCash: business.paymentConfig?.allowCash ?? false,
-                    bank: business.paymentConfig?.bank || "",
-                    clabe: business.paymentConfig?.clabe || "",
-                    holderName: business.paymentConfig?.holderName || "",
-                    instructions: business.paymentConfig?.instructions || "",
                     paymentMode: business.paymentMode || "BOOKPRO_COLLECTS",
                     stripeConnectAccountId: business.stripeConnectAccountId || "",
+                    taxId: business.taxConfig?.taxId || "",
                     businessHours: business.settings?.businessHours?.length
                         ? business.settings.businessHours.map((bh) => ({
                             day: bh.day,
@@ -225,7 +242,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                 ...(values.bookingCapacityMode === 'MULTIPLE' ? ["maxBookingsPerSlot"] as const : [])
             ]);
         } else if (activeTab === "payments") {
-            isValid = await form.trigger(["paymentPolicy", "allowTransfer", "allowCash", "bank", "clabe", "holderName"]);
+            isValid = await form.trigger(["paymentPolicy", "allowCash", "taxId"]);
         }
 
         if (!isValid) {
@@ -281,15 +298,20 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
             } else if (activeTab === "payments") {
                 await updatePaymentConfig(businessId, {
                     paymentPolicy: values.paymentPolicy,
-                    allowTransfer: values.allowTransfer,
+                    allowTransfer: false,
                     allowCash: values.allowCash,
-                    method: values.allowTransfer ? 'bank_transfer' : 'none', // Backward compatibility
-                    bank: values.bank,
-                    clabe: values.clabe,
-                    holderName: values.holderName,
-                    instructions: values.instructions,
-                    // paymentModel is NOT sent from frontend, strictly handled by backend logic now
+                    method: 'none', // Bank transfer disabled
                 });
+
+                // Update business settings for taxConfig.taxId (allow clearing it)
+                await updateBusinessSettings(businessId, {
+                    taxConfig: {
+                        ...businessData?.taxConfig,
+                        taxId: values.taxId || "",
+                        enabled: Boolean(values.taxId)
+                    }
+                });
+
                 toast.success(t('settings.saved'));
                 setIsSaving(false);
                 return;
@@ -313,6 +335,63 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
         const errorCount = Object.keys(errors).length;
         const firstErrorField = Object.keys(errors)[0];
         toast.error(t('settings.form_errors', { count: errorCount, field: firstErrorField }));
+    };
+
+    const handleSyncStatus = async () => {
+        if (!businessId) return;
+        setIsConnectingStripe(true);
+        const toastId = toast.loading(t('settings.payments.syncing', 'Sincronizando estado con Stripe...'));
+        try {
+            const result = await syncConnectAccount(businessId);
+            const business = await getBusinessById(businessId);
+            setBusinessData(business);
+
+            // Update form values to match business data
+            form.setValue("paymentMode", business.paymentMode || "BOOKPRO_COLLECTS");
+            form.setValue("stripeConnectAccountId", business.stripeConnectAccountId || "");
+            if (business.taxConfig?.taxId) {
+                form.setValue("taxId", business.taxConfig.taxId);
+            }
+
+            toast.success(t('settings.payments.sync_success', 'Estado de cuenta actualizado correctamente'), { id: toastId });
+        } catch (error: any) {
+            console.error('[ERROR] Failed to sync Stripe status:', error);
+            toast.error(t('settings.payments.sync_error', 'Error al sincronizar con Stripe'), { id: toastId });
+        } finally {
+            setIsConnectingStripe(false);
+        }
+    };
+
+    const handleConnectStripe = async () => {
+        if (!businessId) return;
+
+        setIsConnectingStripe(true);
+        try {
+            // AUTO-SAVE TaxId before redirecting, if it has changed
+            const currentTaxId = form.getValues("taxId");
+            if (currentTaxId && currentTaxId !== businessData?.taxConfig?.taxId) {
+                console.log('[STRIPE] Auto-saving taxId before redirect...');
+                await updateBusinessSettings(businessId, {
+                    taxConfig: {
+                        ...businessData?.taxConfig,
+                        taxId: currentTaxId,
+                        enabled: true
+                    }
+                });
+            }
+
+            const { url } = await createConnectAccount(businessId);
+            window.location.href = url;
+        } catch (error: any) {
+            console.error('[ERROR] Failed to create Connect account:', error);
+            const errorData = error?.response?.data;
+            const detailedMessage = Array.isArray(errorData?.message)
+                ? errorData.message.join(", ")
+                : errorData?.message || error?.message || t('settings.payments.connect_error', 'Error al iniciar conexión con Stripe');
+            toast.error(detailedMessage);
+        } finally {
+            setIsConnectingStripe(false);
+        }
     };
 
     const handleFormSubmit = async (e: React.FormEvent) => {
@@ -770,23 +849,23 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                                     <RadioGroup
                                                         onValueChange={field.onChange}
                                                         value={field.value}
-                                                        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                                                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
                                                     >
-                                                        {['RESERVE_ONLY', 'PAY_BEFORE_BOOKING', 'PACKAGE_OR_PAY'].map((policy) => (
+                                                        {['RESERVE_ONLY', 'PACKAGE_OR_PAY'].map((policy) => (
                                                             <FormItem key={policy}>
                                                                 <FormControl>
                                                                     <RadioGroupItem value={policy} className="peer sr-only" />
                                                                 </FormControl>
                                                                 <div className={`
-                                                                cursor-pointer rounded-xl border-2 p-4 transition-all hover:bg-muted/50
-                                                                peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5
-                                                                ${field.value === policy ? 'border-primary bg-primary/5' : 'border-muted'}
-                                                            `}
+                                                                 cursor-pointer rounded-xl border-2 p-4 transition-all hover:bg-muted/50
+                                                                 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5
+                                                                 ${field.value === policy ? 'border-primary bg-primary/5' : 'border-muted'}
+                                                             `}
                                                                     onClick={() => field.onChange(policy)}
                                                                 >
                                                                     <div className="font-semibold text-sm mb-1 flex items-center gap-2">
                                                                         {t(`settings.payments.policies.${policy.toLowerCase()}.title`)}
-                                                                        {policy === 'PAY_BEFORE_BOOKING' && (
+                                                                        {policy === 'PACKAGE_OR_PAY' && (
                                                                             <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
                                                                                 {t('settings.payments.methods.stripe_badge', 'Recomendado')}
                                                                             </span>
@@ -830,29 +909,7 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                                 </div>
                                             </div>
 
-                                            {/* Transferencia */}
-                                            <FormField
-                                                control={form.control}
-                                                name="allowTransfer"
-                                                render={({ field }) => (
-                                                    <FormItem className="flex items-start space-x-3 rounded-lg border p-4">
-                                                        <FormControl>
-                                                            <Checkbox
-                                                                checked={field.value}
-                                                                onCheckedChange={field.onChange}
-                                                            />
-                                                        </FormControl>
-                                                        <div className="space-y-1 leading-none">
-                                                            <FormLabel className="text-sm font-medium">
-                                                                {t('settings.payments.methods.transfer')}
-                                                            </FormLabel>
-                                                            <p className="text-xs text-muted-foreground">
-                                                                {t('settings.payments.methods.transfer_desc')}
-                                                            </p>
-                                                        </div>
-                                                    </FormItem>
-                                                )}
-                                            />
+
 
                                             {/* Efectivo */}
                                             <FormField
@@ -880,116 +937,153 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                         </div>
                                     </InnerCard>
 
-                                    {/* SECTION C: BANK DETAILS (Conditional) */}
-                                    {form.watch("allowTransfer") && (
-                                        <InnerCard className="animate-in fade-in slide-in-from-left-4">
-                                            <AdminLabel icon={Building2}>{t('settings.payments.bank_title', 'Datos Bancarios')}</AdminLabel>
-                                            <div className="space-y-4 pt-4">
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <FormField
-                                                        control={form.control}
-                                                        name="bank"
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel>{t('settings.payments.bank')}</FormLabel>
-                                                                <FormControl>
-                                                                    <Input {...field} placeholder="Ej. BBVA" />
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-                                                    <FormField
-                                                        control={form.control}
-                                                        name="clabe"
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel>{t('settings.payments.clabe')}</FormLabel>
-                                                                <FormControl>
-                                                                    <Input {...field} placeholder="18 dígitos" />
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
-                                                </div>
-                                                <FormField
-                                                    control={form.control}
-                                                    name="holderName"
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel>{t('settings.payments.holder')}</FormLabel>
-                                                            <FormControl>
-                                                                <Input {...field} />
-                                                            </FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                                <FormField
-                                                    control={form.control}
-                                                    name="instructions"
-                                                    render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel>{t('settings.payments.instructions')}</FormLabel>
-                                                            <FormControl>
-                                                                <Textarea {...field} placeholder="Instrucciones adicionales..." />
-                                                            </FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                            </div>
-                                        </InnerCard>
-                                    )}
+
                                 </ConfigPanel>
 
-                                {/* SECTION D: INFRASTRUCTURE (Stripe) */}
-                                <InnerCard className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-900/50 border-slate-200 dark:border-slate-800">
-                                    <div className="flex items-start gap-4">
-                                        <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
-                                            <Zap className="h-6 w-6 text-[#635BFF]" /> {/* Stripe Blurple */}
-                                        </div>
-                                        <div className="space-y-1 flex-1">
-                                            <h3 className="font-semibold text-lg flex items-center gap-2">
-                                                {t('settings.payments.online_title')}
-                                                <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full">
-                                                    {t('settings.payments.status.active')}
-                                                </span>
-                                            </h3>
-                                            <p className="text-sm text-foreground/80 max-w-2xl">
-                                                {form.getValues().paymentMode === 'DIRECT_TO_BUSINESS'
-                                                    ? t('settings.payments.models.connect_desc')
-                                                    : t('settings.payments.models.intermediated_desc')}
+                                {/* SECTION D: STRIPE CONFIGURATION & TAX ID */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                    <div className="lg:col-span-1 space-y-6">
+                                        <InnerCard>
+                                            <AdminLabel icon={Building2}>{t('settings.payments.tax_info_title', 'Información Fiscal')}</AdminLabel>
+                                            <p className="text-xs text-muted-foreground mt-1 mb-4">
+                                                {t('settings.payments.tax_info_desc', 'Necesaria para activar pagos directos a tu cuenta Stripe.')}
                                             </p>
-                                        </div>
+                                            <FormField
+                                                control={form.control}
+                                                name="taxId"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                                                            {t('settings.payments.tax_id', 'RFC / Tax ID')}
+                                                        </FormLabel>
+                                                        <FormControl>
+                                                            <Input {...field} placeholder="ABC123456XYZ" className="rounded-xl" />
+                                                        </FormControl>
+                                                        {!businessData?.stripeConnectAccountId && (
+                                                            <p className="text-[10px] text-muted-foreground mt-2">
+                                                                {t('settings.payments.tax_id_hint', 'Guarda los cambios antes de activar Stripe Connect.')}
+                                                            </p>
+                                                        )}
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </InnerCard>
                                     </div>
 
-                                    <div className="mt-6 pl-[4.5rem] grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        <div className="space-y-4">
-                                            <div className="text-sm font-medium text-muted-foreground">{t('settings.payments.online_status')}</div>
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                                <span className="font-medium">
-                                                    {form.getValues().paymentMode === 'DIRECT_TO_BUSINESS'
-                                                        ? t('settings.payments.models.connect')
-                                                        : t('settings.payments.models.intermediated')}
-                                                </span>
+                                    <div className="lg:col-span-2">
+                                        <InnerCard className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-900/50 border-slate-200 dark:border-slate-800 h-full">
+                                            <div className="flex items-start gap-4">
+                                                <div className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700">
+                                                    <Zap className="h-6 w-6 text-[#635BFF]" />
+                                                </div>
+                                                <div className="space-y-1 flex-1">
+                                                    <div className="flex items-center justify-between">
+                                                        <h3 className="font-semibold text-lg flex items-center gap-2">
+                                                            {t('settings.payments.online_title')}
+                                                            {businessData?.paymentMode === 'DIRECT_TO_BUSINESS' ? (
+                                                                <span className="text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2 py-1 rounded-full flex items-center gap-1">
+                                                                    <Check className="h-3 w-3" />
+                                                                    {t('settings.payments.status.direct', 'Pagos Directos Activos')}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-1 rounded-full">
+                                                                    {t('settings.payments.status.intermediated', 'Modelo Intermediado')}
+                                                                </span>
+                                                            )}
+                                                        </h3>
+                                                    </div>
+                                                    <p className="text-sm text-foreground/80 max-w-2xl mt-2">
+                                                        {businessData?.paymentMode === 'DIRECT_TO_BUSINESS'
+                                                            ? t('settings.payments.models.connect_desc', 'El dinero de tus ventas llega directamente a tu cuenta de Stripe. BookPro solo aplica la comisión correspondiente.')
+                                                            : t('settings.payments.models.intermediated_desc', 'BookPro procesa los pagos y los transfiere a tu cuenta bancaria de forma programada. Es el modelo por defecto mientras activas Stripe Connect.')}
+                                                    </p>
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        {form.getValues().paymentMode === 'DIRECT_TO_BUSINESS' && (
-                                            <div className="space-y-1 p-3 bg-white dark:bg-slate-950 rounded-lg border text-xs font-mono text-muted-foreground">
-                                                <div>ID: {form.getValues().stripeConnectAccountId}</div>
+                                            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                                                <div className="space-y-4">
+                                                    <div className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                                        {t('settings.payments.connection_status', 'Estado de Conexión')}
+                                                        {businessData?.stripeConnectAccountId && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={handleSyncStatus}
+                                                                disabled={isConnectingStripe}
+                                                                className="text-[10px] bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 px-2 py-0.5 rounded-md transition-colors flex items-center gap-1 ml-2"
+                                                            >
+                                                                <RefreshCw className={cn("h-2.5 w-2.5", isConnectingStripe && "animate-spin")} />
+                                                                {t('common.refresh', 'Sincronizar')}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        {!businessData?.stripeConnectAccountId ? (
+                                                            <>
+                                                                <div className="h-2 w-2 rounded-full bg-slate-400" />
+                                                                <span className="font-medium text-slate-500 italic">
+                                                                    {t('settings.payments.status.not_connected', 'No configurado')}
+                                                                </span>
+                                                            </>
+                                                        ) : businessData.connectStatus === 'ACTIVE' ? (
+                                                            <>
+                                                                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                                                                <span className="font-medium">
+                                                                    {t('settings.payments.status.active', 'Conectado y Activo')}
+                                                                </span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <div className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse" />
+                                                                <span className="font-medium text-yellow-600">
+                                                                    {t('settings.payments.status.pending', 'Pendiente de completar')}
+                                                                </span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-end">
+                                                    {businessData?.connectStatus !== 'ACTIVE' && (
+                                                        <Button
+                                                            type="button"
+                                                            variant={!form.watch('taxId') ? "outline" : "default"}
+                                                            disabled={isConnectingStripe || !form.watch('taxId')}
+                                                            onClick={handleConnectStripe}
+                                                            className={`rounded-xl h-11 px-6 shadow-md transition-all ${form.watch('taxId') ? 'bg-[#635BFF] hover:bg-[#5249db] text-white' : ''}`}
+                                                        >
+                                                            {isConnectingStripe ? (
+                                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <Zap className="mr-2 h-4 w-4 fill-current" />
+                                                            )}
+                                                            {businessData?.stripeConnectAccountId
+                                                                ? t('settings.payments.cta.complete_connect', 'Completar registro Stripe')
+                                                                : t('settings.payments.cta.activate_connect', 'Activar Pagos Directos')}
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
-                                        )}
-                                    </div>
 
-                                    <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs text-muted-foreground">
-                                        <p>{t('settings.payments.legal_notice')}</p>
-                                        <div className="font-semibold text-[#635BFF]">{t('settings.payments.powered_by')}</div>
+                                            {!form.watch('taxId') && businessData?.connectStatus !== 'ACTIVE' && (
+                                                <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/30 rounded-lg flex items-start gap-3">
+                                                    <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+                                                    <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                                                        {t('settings.payments.connect_requirement', 'Para activar los pagos directos, primero debes ingresar tu RFC / Tax ID y guardar los cambios.')}
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            <div className="mt-8 pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-[10px] text-muted-foreground">
+                                                <p>{t('settings.payments.legal_notice', 'Todas las transacciones son procesadas de forma segura de acuerdo a los términos de Stripe.')}</p>
+                                                <div className="font-semibold text-[#635BFF] flex items-center gap-1">
+                                                    <ShieldCheck className="h-3 w-3" />
+                                                    {t('settings.payments.powered_by', 'Powered by Stripe')}
+                                                </div>
+                                            </div>
+                                        </InnerCard>
                                     </div>
-                                </InnerCard>
+                                </div>
                             </TabsContent>
                         </Tabs>
                     </div>

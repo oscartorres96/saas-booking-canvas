@@ -293,6 +293,18 @@ export class BusinessesService {
     }
 
     if (settings.taxConfig) {
+      // BLINDAJE E: Protección de Identidad Fiscal
+      const oldTaxId = business.taxConfig?.taxId;
+      const newTaxId = settings.taxConfig.taxId;
+
+      if (oldTaxId && newTaxId && oldTaxId !== newTaxId && business.connectStatus === 'ACTIVE') {
+        console.warn(`[SECURITY] Business ${id} changed taxId from ${oldTaxId} to ${newTaxId} while ACTIVE. Invalidating Connect status.`);
+        business.connectStatus = 'NOT_STARTED';
+        business.paymentMode = 'BOOKPRO_COLLECTS';
+        // Desvinculamos la cuenta anterior para forzar nuevo proceso con el nuevo RFC
+        business.stripeConnectAccountId = undefined;
+      }
+
       business.taxConfig = {
         ...business.taxConfig,
         ...settings.taxConfig,
@@ -421,11 +433,11 @@ export class BusinessesService {
     // Note: We intentionally ignore config.paymentMode as it is now system-determined.
 
     // Filter out root fields from nested paymentConfig update
-    const { paymentMode, stripeConnectAccountId, ...paymentConfig } = config;
+    const { paymentMode, stripeConnectAccountId, allowTransfer, bank, clabe, holderName, instructions, method, ...restConfig } = config;
 
     business.paymentConfig = {
       ...business.paymentConfig,
-      ...paymentConfig,
+      ...restConfig,
     };
     return business.save();
   }
