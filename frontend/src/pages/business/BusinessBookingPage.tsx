@@ -455,7 +455,7 @@ const BusinessBookingPage = () => {
                 form.setValue('paymentOption', 'ASSET');
             }
         } else if (currentStepType === 'PAYMENT' && !paymentMethod) {
-            if (!business?.paymentConfig?.allowCash && !business?.paymentConfig?.allowTransfer) {
+            if (!business?.paymentConfig?.allowCash) {
                 setPaymentMethod('STRIPE');
                 form.setValue('paymentOption', 'STRIPE');
             }
@@ -2066,8 +2066,7 @@ const BusinessBookingPage = () => {
                                                             {paymentMethod === 'STRIPE' ? 'Tarjeta Crédito/Débito' :
                                                                 paymentMethod === 'ASSET' ? (selectedAsset?.productId?.name || 'Paquete Seleccionado') :
                                                                     paymentMethod === 'IN_PERSON' ? 'Pago en Sitio' :
-                                                                        business?.paymentConfig?.allowTransfer ? 'Transferencia' :
-                                                                            (!bookingSteps.includes('PAYMENT') ? (selectedService?.price === 0 ? 'Sin Costo' : 'Reserva Directa') : 'Pendiente')}
+                                                                        (!bookingSteps.includes('PAYMENT') ? (selectedService?.price === 0 ? 'Sin Costo' : 'Reserva Directa') : 'Pendiente')}
                                                         </p>
                                                         <p className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground truncate">
                                                             {!bookingSteps.includes('PAYMENT') && !paymentMethod ? 'Reserva Garantizada' : 'Método Seleccionado'}

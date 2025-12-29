@@ -45,17 +45,19 @@ export class StripeService {
         @InjectModel(Product.name) private productModel: Model<ProductDocument>,
         private readonly stripeSyncService: StripeSyncService,
     ) {
-        const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+        const secretKey = this.configService.get<string>('stripe.secretKey');
         if (!secretKey) {
-            throw new Error('STRIPE_SECRET_KEY is not defined');
+            throw new Error('STRIPE_SECRET_KEY is not defined in config');
         }
 
         this.stripe = new Stripe(secretKey, {
             apiVersion: '2025-11-17.clover',
         });
 
-        this.webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET') || '';
-        this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+        this.webhookSecret = this.configService.get<string>('stripe.webhookSecret') || '';
+        let baseUrl = this.configService.get<string>('frontendUrl') || 'http://localhost:5173';
+        // Remove trailing slash if present
+        this.frontendUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     }
 
     /**
@@ -82,10 +84,9 @@ export class StripeService {
 
         if (!finalPriceId) {
             if (billingPeriod === 'annual') {
-                finalPriceId = this.configService.get<string>('STRIPE_PRICE_ID_ANNUAL') || 'price_1Sf5dUQ12BYwu1Gtc44DvB2d';
-
+                finalPriceId = this.configService.get<string>('stripe.priceIdAnnual') || 'price_1Sf5dUQ12BYwu1Gtc44DvB2d';
             } else {
-                finalPriceId = this.configService.get<string>('STRIPE_PRICE_ID_MONTHLY') || this.configService.get<string>('STRIPE_PRICE_ID') || 'price_1Seq4UQ12BYwu1GtvHcSAF4U';
+                finalPriceId = this.configService.get<string>('stripe.priceIdMonthly') || 'price_1Seq4UQ12BYwu1GtvHcSAF4U';
             }
         }
 
@@ -339,6 +340,14 @@ export class StripeService {
 
                 case 'customer.subscription.updated':
                     await this.handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+                    break;
+
+                case 'account.updated':
+                    await this.handleAccountUpdated(event.data.object as Stripe.Account);
+                    break;
+
+                case 'charge.dispute.created':
+                    await this.handleDisputeCreated(event.data.object as Stripe.Dispute);
                     break;
 
                 default:
@@ -610,7 +619,7 @@ export class StripeService {
         // State mapping logic:
         // BOOKPRO_COLLECTS -> PENDING_PAYOUT (The money is in Platform's main account)
         // DIRECT_TO_BUSINESS -> PAID (The money was automatically routed to Business via Destination Charge)
-        const sessionStatus = paymentMode === 'BOOKPRO_COLLECTS' ? 'PENDING_PAYOUT' : 'PAID';
+        const sessionStatus = paymentMode === 'DIRECT_TO_BUSINESS' ? 'PAID' : 'PENDING_PAYOUT';
 
         // Update booking record
         const booking = await this.bookingModel.findById(bookingId);
@@ -706,6 +715,15 @@ export class StripeService {
 
         this.logger.log(`Creating checkout session for product ${product._id} using price ${finalPriceId}`);
 
+        // BLINDAJE D: Pre-flight Check antes de Checkout
+        let effectivePaymentMode = business.paymentMode || 'BOOKPRO_COLLECTS';
+        const isConnectActive = business.stripeConnectAccountId && business.connectStatus === 'ACTIVE';
+
+        if (effectivePaymentMode === 'DIRECT_TO_BUSINESS' && !isConnectActive) {
+            this.logger.warn(`Business ${businessId} attempted DIRECT_TO_BUSINESS but Connect is NOT active. Falling back to platform collection.`);
+            effectivePaymentMode = 'BOOKPRO_COLLECTS';
+        }
+
         const sessionData: Stripe.Checkout.SessionCreateParams = {
             mode: 'payment',
             customer_email: clientEmail,
@@ -720,11 +738,27 @@ export class StripeService {
                 clientPhone: clientPhone || '',
                 clientName: clientName || '',
                 bookingData: bookingData ? JSON.stringify(bookingData) : '',
+                // BLINDAJE F: Metadata Financiera
+                paymentMode: effectivePaymentMode,
+                business_id: businessId,
+                platform_fee_accrued: '0', // Placeholder for actual fee logic
                 environment: this.configService.get('NODE_ENV') || 'development',
-                // Keep for backward compatibility during transition if needed
                 type: 'product_purchase',
             },
         };
+
+        // BLINDAJE A: Reembolsos Seguros (Metadata de transferencia)
+        if (effectivePaymentMode === 'DIRECT_TO_BUSINESS' && business.stripeConnectAccountId) {
+            sessionData.payment_intent_data = {
+                transfer_data: {
+                    destination: business.stripeConnectAccountId,
+                },
+                metadata: {
+                    business_id: businessId,
+                    paymentMode: effectivePaymentMode,
+                }
+            };
+        }
 
         let session: Stripe.Checkout.Session;
         try {
@@ -749,6 +783,7 @@ export class StripeService {
 
         const paymentIntentId = session.payment_intent as string;
         const sessionId = session.id;
+        const paymentMode = session.metadata?.paymentMode || 'BOOKPRO_COLLECTS';
 
         // Create the CustomerAsset
         const asset = await this.customerAssetsService.createFromPurchase(
@@ -760,14 +795,18 @@ export class StripeService {
             paymentIntentId
         );
 
+        // State mapping logic:
+        const sessionStatus = paymentMode === 'DIRECT_TO_BUSINESS' ? 'PAID' : 'PENDING_PAYOUT';
+
         // Check if payment already exists
         const existingPayment = await this.paymentModel.findOne({ stripeSessionId: sessionId });
         if (existingPayment) {
             this.logger.log(`Payment already recorded for session ${sessionId}`);
+            existingPayment.status = sessionStatus;
             if (!existingPayment.stripePaymentIntentId) {
                 existingPayment.stripePaymentIntentId = paymentIntentId;
-                await existingPayment.save();
             }
+            await existingPayment.save();
         } else {
             // Record the payment
             await this.paymentModel.create({
@@ -779,7 +818,8 @@ export class StripeService {
                 netAmount: session.amount_total || 0,
                 platformFee: 0,
                 currency: session.currency || 'mxn',
-                status: 'PAID',
+                status: sessionStatus,
+                paymentMode: paymentMode as any,
                 description: `Product purchase: ${productId}`,
             });
         }
@@ -808,6 +848,109 @@ export class StripeService {
         }
 
         this.logger.log(`Product ${productId} purchased by ${clientEmail} (Session: ${sessionId})`);
+    }
+
+    /**
+     * Create a Stripe Connect account for a business and return onboarding link
+     */
+    async createConnectAccount(businessId: string): Promise<{ url: string }> {
+        const business = await this.businessModel.findById(businessId);
+        if (!business) throw new NotFoundException('Business not found');
+
+        let accountId = business.stripeConnectAccountId;
+
+        try {
+            // Validate if exists in Stripe if we already have an ID
+            if (accountId) {
+                try {
+                    await this.stripe.accounts.retrieve(accountId);
+                } catch (e) {
+                    this.logger.warn(`Existing Stripe account ${accountId} not found, resetting.`);
+                    accountId = undefined;
+                    business.stripeConnectAccountId = undefined;
+                    await business.save();
+                }
+            }
+
+            if (!accountId) {
+                this.logger.log(`Creating new Stripe Connect Express account for business: ${businessId}`);
+
+                // Ensure absolute URL
+                const businessUrl = this.frontendUrl.startsWith('http')
+                    ? `${this.frontendUrl}/b/${business.slug || business._id}`
+                    : `https://${this.frontendUrl}/b/${business.slug || business._id}`;
+
+                // EXTREME CLEANING: Ensure no spaces or illegal characters
+                const rawBase = (this.frontendUrl || 'http://localhost:5173').trim();
+                const safeBase = rawBase.startsWith('http') ? rawBase : `https://${rawBase}`;
+                const sanitizedBase = safeBase.replace(/\/+$/, "");
+
+                // For business profile, Stripe often REJECTS localhost. 
+                // We use a real domain as fallback for the PROFILE URL only.
+                const profileUrl = sanitizedBase.includes('localhost')
+                    ? 'https://bookpro.mx'
+                    : `${sanitizedBase}/b/${business.slug || business._id}`;
+
+                const accountCreateParams: Stripe.AccountCreateParams = {
+                    type: 'express',
+                    country: 'MX',
+                    capabilities: {
+                        card_payments: { requested: true },
+                        transfers: { requested: true },
+                    },
+                    business_profile: {
+                        name: (business.businessName || business.name || 'Negocio BookPro').substring(0, 100).trim(),
+                        url: profileUrl,
+                    },
+                    email: business.email?.trim() || undefined,
+                    metadata: {
+                        businessId: business._id.toString(),
+                    },
+                    settings: {
+                        payouts: {
+                            schedule: {
+                                interval: 'manual',
+                            },
+                        },
+                    },
+                };
+
+                this.logger.log(`[STRIPE-DEBUG] Payload: ${JSON.stringify(accountCreateParams)}`);
+                const account = await this.stripe.accounts.create(accountCreateParams);
+                this.logger.log(`Created Stripe Account: ${account.id} with business URL: ${profileUrl}`);
+
+                accountId = account.id;
+                business.stripeConnectAccountId = accountId;
+                business.connectStatus = 'PENDING';
+                await business.save();
+            }
+
+            this.logger.log(`Generating account onboarding link for account: ${accountId}`);
+
+            // Re-sanitize everything for the links
+            const rawBase = (this.frontendUrl || 'http://localhost:5173').trim();
+            const safeBase = rawBase.startsWith('http') ? rawBase : `https://${rawBase}`;
+            const sanitizedBase = safeBase.replace(/\/+$/, "");
+
+            const refresh_url = `${sanitizedBase}/business/${businessId}/dashboard?tab=settings&stripe_refresh=true`.trim();
+            const return_url = `${sanitizedBase}/business/${businessId}/dashboard?tab=settings&stripe_success=true`.trim();
+
+            this.logger.log(`[STRIPE-DEBUG] Onboarding URLs: refresh=${refresh_url}, return=${return_url}`);
+
+            const accountLink = await this.stripe.accountLinks.create({
+                account: accountId,
+                refresh_url,
+                return_url,
+                type: 'account_onboarding',
+            });
+
+            return { url: accountLink.url };
+        } catch (error: any) {
+            this.logger.error(`Failed to create Stripe Connect account: ${error.message}`, error.stack);
+            // Si el error viene de Stripe, mostramos el mensaje detallado para depuración
+            const stripeError = error.raw && error.raw.message ? error.raw.message : error.message;
+            throw new BadRequestException(`Error de Stripe: ${stripeError}`);
+        }
     }
 
     /**
@@ -1056,6 +1199,15 @@ export class StripeService {
 
         this.logger.log(`Creating checkout session for service ${service._id} using price ${finalPriceId}`);
 
+        let effectivePaymentMode = paymentMode;
+        const isConnectActive = business.stripeConnectAccountId && business.connectStatus === 'ACTIVE';
+
+        // BLINDAJE D: Pre-flight check
+        if (effectivePaymentMode === 'DIRECT_TO_BUSINESS' && !isConnectActive) {
+            this.logger.warn(`Business ${businessId} attempted DIRECT_TO_BUSINESS booking but Connect is NOT active. Falling back.`);
+            effectivePaymentMode = 'BOOKPRO_COLLECTS';
+        }
+
         const sessionData: Stripe.Checkout.SessionCreateParams = {
             mode: 'payment',
             customer_email: booking.clientEmail,
@@ -1067,18 +1219,24 @@ export class StripeService {
                 bookingId,
                 businessId,
                 serviceId: service._id.toString(),
-                paymentMode,
+                // BLINDAJE F: Metadata Financiera
+                paymentMode: effectivePaymentMode,
+                business_id: businessId,
+                platform_fee_accrued: '0',
                 environment: this.configService.get('NODE_ENV') || 'development',
-                // Keep for backward compatibility during transition if needed
                 type: 'booking_payment',
             },
         };
 
-        if (paymentMode === 'DIRECT_TO_BUSINESS' && business.stripeConnectAccountId) {
+        if (effectivePaymentMode === 'DIRECT_TO_BUSINESS' && business.stripeConnectAccountId) {
             sessionData.payment_intent_data = {
                 transfer_data: {
                     destination: business.stripeConnectAccountId,
                 },
+                metadata: {
+                    business_id: businessId,
+                    paymentMode: effectivePaymentMode,
+                }
             };
         }
 
@@ -1133,5 +1291,124 @@ export class StripeService {
         });
 
         return { url: session.url };
+    }
+
+    /**
+     * Handle account.updated event (Sync Stripe Connect status)
+     */
+    private async handleAccountUpdated(account: Stripe.Account): Promise<void> {
+        const businessId = account.metadata?.businessId;
+        if (!businessId) {
+            this.logger.warn(`Received account.updated for account ${account.id} without businessId in metadata`);
+            return;
+        }
+
+        const business = await this.businessModel.findById(businessId);
+        if (!business) {
+            this.logger.error(`Business ${businessId} not found for account.updated event`);
+            return;
+        }
+
+        // Check if the account is fully enabled
+        const isDetailsSubmitted = account.details_submitted;
+        const isChargesEnabled = account.charges_enabled;
+        const isPayoutsEnabled = account.payouts_enabled;
+
+        const previousStatus = business.connectStatus;
+        let newStatus: 'NOT_STARTED' | 'PENDING' | 'ACTIVE' = 'PENDING';
+
+        // BLINDAJE C: Resiliencia ante Stripe Connect
+        if (!isDetailsSubmitted || !isChargesEnabled || !isPayoutsEnabled) {
+            newStatus = isDetailsSubmitted ? 'PENDING' : 'NOT_STARTED';
+
+            // Si estaba activo pero algo falló, forzamos regreso a modo intermediado para evitar fallos de checkout
+            if (business.paymentMode === 'DIRECT_TO_BUSINESS') {
+                this.logger.warn(`Business ${businessId} Connect account is RESTRICTED. Reverting to BOOKPRO_COLLECTS.`);
+                business.paymentMode = 'BOOKPRO_COLLECTS';
+            }
+        } else {
+            newStatus = 'ACTIVE';
+            // Únicamente activamos automático si el usuario ya tenía intención de cobrar directo o si es su primer onboarding completo satisfactorio
+            business.paymentMode = 'DIRECT_TO_BUSINESS';
+        }
+
+        if (previousStatus !== newStatus || business.isModified('paymentMode')) {
+            business.connectStatus = newStatus;
+            await business.save();
+            this.logger.log(`Updated connectStatus for business ${businessId}: ${previousStatus} -> ${newStatus}. Mode: ${business.paymentMode}`);
+        }
+    }
+
+    /**
+     * Public method to manually sync a business's Connect account status
+     */
+    async syncConnectStatus(businessId: string): Promise<any> {
+        const business = await this.businessModel.findById(businessId);
+        if (!business || !business.stripeConnectAccountId) {
+            throw new BadRequestException('El negocio no tiene una cuenta de Stripe vinculada.');
+        }
+
+        const account = await this.stripe.accounts.retrieve(business.stripeConnectAccountId);
+        await this.handleAccountUpdated(account);
+
+        return {
+            connectStatus: business.connectStatus,
+            paymentMode: business.paymentMode
+        };
+    }
+
+    /**
+     * BLINDAJE B: Webhook de Disputas
+     */
+    private async handleDisputeCreated(dispute: Stripe.Dispute): Promise<void> {
+        const paymentIntentId = dispute.payment_intent as string;
+        this.logger.warn(`DISPUTE CREATED for payment intent: ${paymentIntentId}. Amount: ${dispute.amount / 100} ${dispute.currency}`);
+
+        // Buscar el pago y marcarlo como DISPUTED
+        const payment = await this.paymentModel.findOne({ stripePaymentIntentId: paymentIntentId });
+        if (payment) {
+            payment.status = 'FAILED'; // O crear un nuevo estado 'DISPUTED' en el esquema
+            payment.metadata = {
+                ...(payment.metadata || {}),
+                disputeId: dispute.id,
+                disputeReason: dispute.reason,
+                disputedAt: new Date().toISOString(),
+            };
+            await payment.save();
+
+            // También marcar la reserva asociada si existe
+            if (payment.bookingId) {
+                await this.bookingModel.findByIdAndUpdate(payment.bookingId, {
+                    $set: { status: 'CANCELLED', notes: `Pago disputado en Stripe (${dispute.id})` }
+                });
+            }
+        }
+    }
+
+    /**
+     * BLINDAJE A: Reembolsos Seguros
+     */
+    async refundPayment(paymentId: string): Promise<any> {
+        const payment = await this.paymentModel.findById(paymentId);
+        if (!payment || !payment.stripePaymentIntentId) {
+            throw new Error('Pago no encontrado o sin ID de Stripe');
+        }
+
+        const refundParams: Stripe.RefundCreateParams = {
+            payment_intent: payment.stripePaymentIntentId,
+        };
+
+        // REGLA OBLIGATORIA: Si fue directo, revertimos la transferencia
+        if (payment.paymentMode === 'DIRECT_TO_BUSINESS') {
+            refundParams.reverse_transfer = true;
+            refundParams.refund_application_fee = true;
+        }
+
+        const refund = await this.stripe.refunds.create(refundParams);
+
+        payment.status = 'REFUNDED';
+        await payment.save();
+
+        return refund;
     }
 }

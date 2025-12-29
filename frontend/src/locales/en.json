@@ -714,8 +714,8 @@
                     "desc": "Clients must pay for each session individually when booking."
                 },
                 "package_or_pay": {
-                    "title": "Package or Pay",
-                    "desc": "Dynamic: Deducts from package if available, otherwise requires individual payment."
+                    "title": "Upfront Payment (Session or Package)",
+                    "desc": "System will charge for the session or deduct a use if the client has an active package."
                 }
             },
             "methods_title": "Accepted Payment Methods",
@@ -723,17 +723,10 @@
             "methods": {
                 "stripe": "Credit/debit card, Apple Pay, Google Pay",
                 "stripe_badge": "Recommended",
-                "transfer": "Bank Transfer (Manual)",
-                "transfer_desc": "Manual payment outside the platform",
                 "cash": "Cash",
                 "cash_desc": "Payment at the establishment",
-                "none": "None (Reserve only)",
-                "bank_transfer": "Bank Transfer"
+                "none": "None (Reserve only)"
             },
-            "bank": "Bank",
-            "clabe": "Account Number / CLABE",
-            "holder": "Account Holder",
-            "instructions": "Additional instructions",
             "disclaimer": "BookPro does not process these payments. Responsibility for verification lies with the business.",
             "online_title": "Payment Infrastructure (Stripe)",
             "online_desc": "Select how you wish to receive card payments.",

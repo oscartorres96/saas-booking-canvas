@@ -67,20 +67,7 @@ export const deleteBooking = async (bookingId: string): Promise<void> => {
     await apiClient.delete(`/bookings/${bookingId}`);
 };
 
-export const confirmTransfer = async (bookingId: string, details: any): Promise<Booking> => {
-    const { data } = await apiClient.post<Booking>(`/bookings/${bookingId}/confirm-transfer`, details);
-    return data;
-};
 
-export const verifyPayment = async (bookingId: string): Promise<Booking> => {
-    const { data } = await apiClient.post<Booking>(`/bookings/${bookingId}/verify-payment`);
-    return data;
-};
-
-export const rejectPayment = async (bookingId: string): Promise<Booking> => {
-    const { data } = await apiClient.post<Booking>(`/bookings/${bookingId}/reject-payment`);
-    return data;
-};
 
 export const resendConfirmation = async (bookingId: string): Promise<{ success: boolean }> => {
     const { data } = await apiClient.post<{ success: boolean }>(`/bookings/${bookingId}/resend-confirmation`);

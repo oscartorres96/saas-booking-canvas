@@ -12,4 +12,11 @@ export default () => ({
     apiKey: process.env.CLOUDINARY_API_KEY,
     apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY,
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+    priceIdMonthly: process.env.STRIPE_PRICE_ID_MONTHLY,
+    priceIdAnnual: process.env.STRIPE_PRICE_ID_ANNUAL,
+  },
+  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
 });

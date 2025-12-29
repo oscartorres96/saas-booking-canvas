@@ -30,6 +30,7 @@ export interface Business {
   };
   paymentMode?: 'BOOKPRO_COLLECTS' | 'DIRECT_TO_BUSINESS';
   stripeConnectAccountId?: string;
+  connectStatus?: 'NOT_STARTED' | 'PENDING' | 'ACTIVE';
   resourceConfig?: {
     enabled: boolean;
     resourceType?: string;
@@ -46,6 +47,10 @@ export interface Business {
         col: number;
       };
     }>;
+  };
+  bookingCapacityConfig?: {
+    mode: 'SINGLE' | 'MULTIPLE';
+    maxBookingsPerSlot: number | null;
   };
   settings?: {
     primaryColor?: string;
@@ -83,7 +88,7 @@ export interface Business {
     enabled: boolean;
     taxName?: string;
     taxRate?: number;
-    taxIdLabel?: string;
+    taxId?: string;
     invoicingEnabled?: boolean;
   };
 }

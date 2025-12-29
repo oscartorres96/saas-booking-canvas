@@ -45,3 +45,13 @@ export const getPaymentsByBusiness = async (businessId: string) => {
     const { data } = await apiClient.get<{ success: boolean, data: any[] }>(`/stripe/payments/${businessId}`);
     return data.data;
 };
+
+export const createConnectAccount = async (businessId: string) => {
+    const { data } = await apiClient.post<{ success: boolean, data: { url: string } }>('/stripe/connect/account', { businessId });
+    return data.data;
+};
+
+export const syncConnectAccount = async (businessId: string) => {
+    const { data } = await apiClient.post<{ success: boolean, data: any }>(`/stripe/connect/sync/${businessId}`);
+    return data.data;
+};

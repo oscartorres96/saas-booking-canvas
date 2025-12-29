@@ -19,6 +19,8 @@ import { NotificationService } from '../services/notification.service';
 import { BookingsModule } from '../bookings/bookings.module';
 import { ProductsModule } from '../products/products.module';
 import { forwardRef } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
+import { JwtAuthGuard } from '../auth/jwt.guard';
 
 @Module({
     imports: [
@@ -36,9 +38,10 @@ import { forwardRef } from '@nestjs/common';
         CustomerAssetsModule,
         forwardRef(() => ProductsModule),
         forwardRef(() => BookingsModule),
+        AuthModule,
     ],
     controllers: [StripeController],
-    providers: [StripeService, NotificationService, PayoutService, StripeSyncService, StripeSyncCronService],
+    providers: [StripeService, NotificationService, PayoutService, StripeSyncService, StripeSyncCronService, JwtAuthGuard],
     exports: [StripeService, PayoutService, StripeSyncService],
 })
 export class StripeModule { }

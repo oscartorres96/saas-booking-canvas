@@ -752,8 +752,8 @@
           "desc": "El cliente debe pagar cada sesión individualmente al momento de reservar."
         },
         "package_or_pay": {
-          "title": "Paquete o Pago",
-          "desc": "Dinámico: Si tiene paquete se descuenta uso, si no, se le cobra la sesión."
+          "title": "Pago Obligatorio (Sesión o Paquete)",
+          "desc": "El sistema cobrará la sesión o descontará un uso si el cliente tiene un paquete activo."
         }
       },
       "methods_title": "Métodos de Pago Aceptados",
@@ -761,25 +761,31 @@
       "methods": {
         "stripe": "Tarjeta crédito/débito, Apple Pay, Google Pay",
         "stripe_badge": "Recomendado",
-        "transfer": "Transferencia Bancaria (Manual)",
-        "transfer_desc": "Pago manual fuera de plataforma",
         "cash": "Efectivo",
         "cash_desc": "Pago en el establecimiento",
-        "none": "Ninguno (Solo reserva)",
-        "bank_transfer": "Transferencia Bancaria"
+        "none": "Ninguno (Solo reserva)"
       },
-      "bank": "Banco",
-      "clabe": "CLABE",
-      "holder": "Nombre del titular",
-      "instructions": "Instrucciones opcionales",
       "disclaimer": "BookPro no procesa estos pagos. La verificación y cobro de los mismos queda bajo responsabilidad del negocio.",
       "online_title": "Infraestructura de Pagos (Stripe)",
       "online_desc": "Stripe es la forma estándar de cobrar en BookPro. Permite pagos automáticos y confirmación inmediata.",
       "online_status": "Estado de conexión:",
+      "tax_info_title": "Información Fiscal",
+      "tax_info_desc": "Necesaria para activar pagos directos a tu cuenta Stripe.",
+      "tax_id": "RFC / Tax ID",
+      "tax_id_hint": "Guarda los cambios antes de activar Stripe Connect.",
+      "connection_status": "Estado de Conexión",
+      "connect_requirement": "Para activar los pagos directos, primero debes ingresar tu RFC / Tax ID y guardar los cambios.",
       "status": {
-        "active": "Activo",
-        "pending": "Pendiente",
+        "active": "Conectado y Activo",
+        "pending": "Pendiente de completar",
+        "direct": "Pagos Directos Activos",
+        "intermediated": "Modelo Intermediado",
+        "not_connected": "No configurado",
         "action_required": "Requiere Acción"
+      },
+      "cta": {
+        "activate_connect": "Activar Pagos Directos",
+        "complete_connect": "Completar registro Stripe"
       },
       "powered_by": "Powered by Stripe",
       "model_locked_title": "Modelo de pago asignado",

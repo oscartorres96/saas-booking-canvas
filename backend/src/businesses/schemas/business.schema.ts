@@ -143,6 +143,7 @@ export class Business {
       taxName: { type: String, default: 'IVA' },
       taxRate: { type: Number, default: 0.16 },
       taxIdLabel: { type: String, default: 'RFC' },
+      taxId: { type: String, trim: true },
       invoicingEnabled: { type: Boolean, default: false },
     }
   })
@@ -151,6 +152,7 @@ export class Business {
     taxName?: string;
     taxRate?: number;
     taxIdLabel?: string;
+    taxId?: string;
     invoicingEnabled?: boolean;
   };
   @Prop({
@@ -160,24 +162,12 @@ export class Business {
         enum: ['RESERVE_ONLY', 'PAY_BEFORE_BOOKING', 'PACKAGE_OR_PAY'],
         default: 'RESERVE_ONLY'
       },
-      method: { type: String, default: 'none' },
-      allowTransfer: { type: Boolean, default: false },
       allowCash: { type: Boolean, default: false },
-      bank: String,
-      clabe: String,
-      holderName: String,
-      instructions: String,
     },
   })
   paymentConfig?: {
     paymentPolicy: 'RESERVE_ONLY' | 'PAY_BEFORE_BOOKING' | 'PACKAGE_OR_PAY';
-    method: 'none' | 'bank_transfer';
-    allowTransfer: boolean;
     allowCash: boolean;
-    bank?: string;
-    clabe?: string;
-    holderName?: string;
-    instructions?: string;
   };
 
   @Prop({
@@ -189,6 +179,13 @@ export class Business {
 
   @Prop({ trim: true })
   stripeConnectAccountId?: string;
+
+  @Prop({
+    type: String,
+    enum: ['NOT_STARTED', 'PENDING', 'ACTIVE'],
+    default: 'NOT_STARTED',
+  })
+  connectStatus?: 'NOT_STARTED' | 'PENDING' | 'ACTIVE';
 
   @Prop({
     type: {
