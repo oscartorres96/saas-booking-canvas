@@ -36,6 +36,8 @@ export class StripeSyncService {
         const now = new Date();
         const lockDuration = 10 * 60 * 1000; // 10 minutes
 
+        const currentLiveMode = this.configService.get<string>('STRIPE_SECRET_KEY')?.startsWith('sk_live') || false;
+
         // 1. Acquire Lock
         const service = await this.serviceModel.findOneAndUpdate(
             {
@@ -43,6 +45,7 @@ export class StripeSyncService {
                 $or: [
                     { 'stripe.syncStatus': { $in: ['PENDING', 'ERROR', null] } },
                     { 'stripe.syncStatus': { $exists: false } },
+                    { 'stripe.livemode': { $ne: currentLiveMode } },
                     {
                         'stripe.syncStatus': 'SYNCING',
                         'stripe.syncLockedAt': { $lt: new Date(Date.now() - lockDuration) }
@@ -66,8 +69,9 @@ export class StripeSyncService {
         try {
             this.logger.log(`Syncing service to Stripe: ${service.name} (${service._id})`);
 
-            // Ensure Product exists
-            let stripeProductId = service.stripe?.productId;
+            const environmentMismatch = service.stripe?.livemode !== currentLiveMode;
+            let stripeProductId = environmentMismatch ? null : service.stripe?.productId;
+
             if (!stripeProductId) {
                 const product = await this.stripe.products.create({
                     name: service.name,
@@ -88,7 +92,7 @@ export class StripeSyncService {
             }
 
             // Ensure Price exists/is correct
-            const currentPriceId = service.stripe?.priceId;
+            const currentPriceId = environmentMismatch ? null : service.stripe?.priceId;
             let shouldCreatePrice = !currentPriceId;
 
             if (currentPriceId) {
@@ -147,12 +151,15 @@ export class StripeSyncService {
         const now = new Date();
         const lockDuration = 10 * 60 * 1000;
 
+        const currentLiveMode = this.configService.get<string>('STRIPE_SECRET_KEY')?.startsWith('sk_live') || false;
+
         const productEntity = await this.productModel.findOneAndUpdate(
             {
                 _id: new Types.ObjectId(productId),
                 $or: [
                     { 'stripe.syncStatus': { $in: ['PENDING', 'ERROR', null] } },
                     { 'stripe.syncStatus': { $exists: false } },
+                    { 'stripe.livemode': { $ne: currentLiveMode } },
                     {
                         'stripe.syncStatus': 'SYNCING',
                         'stripe.syncLockedAt': { $lt: new Date(Date.now() - lockDuration) }
@@ -173,7 +180,9 @@ export class StripeSyncService {
         try {
             this.logger.log(`Syncing product to Stripe: ${productEntity.name} (${productEntity._id})`);
 
-            let stripeProductId = productEntity.stripe?.productId;
+            const environmentMismatch = productEntity.stripe?.livemode !== currentLiveMode;
+            let stripeProductId = environmentMismatch ? null : productEntity.stripe?.productId;
+
             if (!stripeProductId) {
                 const stripeProduct = await this.stripe.products.create({
                     name: productEntity.name,
@@ -193,7 +202,7 @@ export class StripeSyncService {
                 });
             }
 
-            const currentPriceId = productEntity.stripe?.priceId;
+            const currentPriceId = environmentMismatch ? null : productEntity.stripe?.priceId;
             let shouldCreatePrice = !currentPriceId;
 
             if (currentPriceId) {
