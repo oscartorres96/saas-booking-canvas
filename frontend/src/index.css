@@ -250,6 +250,18 @@
   transition: transform 0.25s ease;
 }
 
+.branded-summary {
+  --summary-primary: hsl(var(--primary-safe, var(--primary)));
+}
+
+.branded-summary .text-primary {
+  color: var(--summary-primary) !important;
+}
+
+.branded-summary .bg-primary {
+  background-color: var(--summary-primary) !important;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;

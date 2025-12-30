@@ -390,11 +390,26 @@ const BusinessBookingPage = () => {
 
         const isBuyAndBook = !!sessionStorage.getItem('buyAndBookPackage');
 
-        const hasValidPackage = availableAssets.some(asset => {
+        const validAssets = availableAssets.filter(asset => {
             if (!selectedService) return false;
+
+            // 1. Service restriction check
             const allowed = asset.productId?.allowedServiceIds;
-            return !allowed || allowed.length === 0 || allowed.includes(selectedService._id);
+            const isAllowed = !allowed || allowed.length === 0 || allowed.includes(selectedService._id);
+            if (!isAllowed) return false;
+
+            // 2. Uses check
+            const hasUses = asset.isUnlimited || (asset.remainingUses && asset.remainingUses > 0);
+            if (!hasUses) return false;
+
+            // 3. Expiry check (must be valid for the selected booking date)
+            const expiryDate = asset.expiresAt ? new Date(asset.expiresAt) : null;
+            const isNotExpired = !expiryDate || !selectedDate || expiryDate >= selectedDate;
+
+            return isNotExpired;
         });
+
+        const hasValidPackage = validAssets.length > 0;
 
         const steps = generateBookingSteps({
             bookingConfig: business.bookingConfig,
@@ -412,7 +427,7 @@ const BusinessBookingPage = () => {
         if (step > steps.length) {
             setStep(steps.length);
         }
-    }, [business, selectedService, selectedProduct, preSelectedPackage, availableAssets, step]);
+    }, [business, selectedService, selectedProduct, preSelectedPackage, availableAssets, step, selectedDate]);
 
     // Watch fields to ensure whole page re-renders on change (important for summary panel)
     const clientName = form.watch("clientName");
@@ -481,6 +496,7 @@ const BusinessBookingPage = () => {
                     phone: targetPhone,
                 });
                 setAvailableAssets(assets);
+                setIsCheckingAssets(false);
 
                 if (assets.length > 0) {
                     const usableAssets = assets.filter(asset => {
@@ -522,12 +538,14 @@ const BusinessBookingPage = () => {
                         }
                     }
                 }
+                return assets;
             } catch (e) {
                 console.error("Guest asset lookup failed", e);
-            } finally {
                 setIsCheckingAssets(false);
+                return [];
             }
         }
+        return [];
     };
 
     useEffect(() => {
@@ -576,6 +594,17 @@ const BusinessBookingPage = () => {
                 const isDark = isColorDark(business.settings!.primaryColor!);
                 document.documentElement.style.setProperty('--primary-foreground', isDark ? '0 0% 100%' : '0 0% 0%');
                 document.documentElement.style.setProperty('--ring', primaryHsl);
+
+                // Add a contrast-safe version for use on dark backgrounds (like the Step 5 summary)
+                // If the primary color is dark, we use a lightened version or white
+                if (isDark) {
+                    // Extract H and S from primaryHsl (format: "H S% L%")
+                    const parts = primaryHsl.split(' ');
+                    const safePrimary = `${parts[0]} ${parts[1]} 85%`; // High lightness for visibility
+                    document.documentElement.style.setProperty('--primary-safe', safePrimary);
+                } else {
+                    document.documentElement.style.setProperty('--primary-safe', primaryHsl);
+                }
             }
 
             if (secondaryHsl) {
@@ -782,6 +811,9 @@ const BusinessBookingPage = () => {
     const handleDashboardBookAgain = async () => {
         await handleDashboardLogout();
         setSelectedResourceId(null);
+        setPreSelectedPackage(null);
+        setSelectedProduct(null);
+        sessionStorage.removeItem('buyAndBookPackage');
         setStep(1);
     };
 
@@ -1684,12 +1716,14 @@ const BusinessBookingPage = () => {
                                                         return;
                                                     }
 
-                                                    const email = form.getValues('clientEmail');
-                                                    const assetId = form.getValues('assetId');
-                                                    const policy = business?.paymentConfig?.paymentPolicy || 'RESERVE_ONLY';
+                                                    // Fetch fresh assets if needed
+                                                    let latestAssets = availableAssets;
+                                                    if (!user) {
+                                                        latestAssets = await fetchAssetsForContact(email, phone);
+                                                    }
 
-                                                    // Determine if OTP is needed based on assets or online payment
-                                                    const usableAssetsForBooking = availableAssets.filter(asset => {
+                                                    // Use the latest fetched assets instead of stale state
+                                                    const usableAssetsForBooking = latestAssets.filter(asset => {
                                                         const isSAllowed = !asset.productId?.allowedServiceIds ||
                                                             asset.productId.allowedServiceIds.length === 0 ||
                                                             asset.productId.allowedServiceIds.includes(selectedServiceId!);
@@ -1739,7 +1773,7 @@ const BusinessBookingPage = () => {
 
                                 {/* Right: Summary */}
                                 <div className="space-y-6">
-                                    <div className="bg-slate-900 dark:bg-slate-950 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] p-5 sm:p-8 text-white shadow-2xl relative overflow-hidden group">
+                                    <div className="bg-slate-900 dark:bg-slate-950 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] p-5 sm:p-8 text-white shadow-2xl relative overflow-hidden group branded-summary">
                                         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/30 transition-colors duration-500"></div>
 
                                         <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-6 flex items-center gap-2">
@@ -1980,7 +2014,7 @@ const BusinessBookingPage = () => {
                                 </div>
 
                                 <div className="space-y-4 sm:space-y-6">
-                                    <div className="bg-slate-900 dark:bg-slate-950 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] p-5 sm:p-6 md:p-8 text-white shadow-xl sm:shadow-2xl relative overflow-hidden group">
+                                    <div className="bg-slate-900 dark:bg-slate-950 rounded-[1.5rem] sm:rounded-[2rem] md:rounded-[2.5rem] p-5 sm:p-6 md:p-8 text-white shadow-xl sm:shadow-2xl relative overflow-hidden group branded-summary">
                                         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/30 transition-colors duration-500"></div>
 
                                         <h3 className="text-xs font-black uppercase tracking-[0.2em] text-primary mb-6 flex items-center gap-3">
@@ -2141,7 +2175,7 @@ const BusinessBookingPage = () => {
                                         </div>
 
                                         {/* Final Action */}
-                                        <div className="flex flex-col gap-3 sm:gap-4">
+                                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 pt-3 sm:pt-4">
                                             <Button
                                                 type="submit"
                                                 disabled={isSubmitting || (bookingSteps.includes('PAYMENT') && !paymentMethod)}
@@ -2174,7 +2208,7 @@ const BusinessBookingPage = () => {
                                 {/* Right: Detailed Summary Panel */}
                                 <div className="hidden lg:block">
                                     <div className="sticky top-8 space-y-6">
-                                        <div className="bg-slate-900 dark:bg-slate-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-white/5 relative overflow-hidden h-full">
+                                        <div className="bg-slate-900 dark:bg-slate-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-white/5 relative overflow-hidden h-full branded-summary">
                                             {/* Background glow */}
                                             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -mr-32 -mt-32"></div>
 
