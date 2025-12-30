@@ -71,7 +71,7 @@ export class ResourceMapService {
         }
 
         const expiresAt = new Date();
-        expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minutes hold
+        expiresAt.setMinutes(expiresAt.getMinutes() + 5); // 5 minutes hold
 
         const hold = new this.resourceHoldModel({
             businessId,
@@ -89,6 +89,13 @@ export class ResourceMapService {
             businessId,
             resourceId,
             scheduledAt: { $gte: new Date(scheduledAt.getTime() - 1000), $lt: new Date(scheduledAt.getTime() + 1000) },
+            sessionId,
+        });
+    }
+
+    async releaseAllUserHolds(businessId: string, sessionId: string) {
+        await this.resourceHoldModel.deleteMany({
+            businessId,
             sessionId,
         });
     }

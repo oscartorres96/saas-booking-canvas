@@ -27,6 +27,13 @@ export class ResourceMapController {
         );
     }
 
+    @Post('release-holds')
+    async releaseHolds(
+        @Body() body: { businessId: string; sessionId: string },
+    ) {
+        return this.resourceMapService.releaseAllUserHolds(body.businessId, body.sessionId);
+    }
+
     @UseGuards(JwtAuthGuard)
     @Put(':businessId/config')
     async updateConfig(

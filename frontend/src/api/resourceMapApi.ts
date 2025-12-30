@@ -45,3 +45,13 @@ export const createResourceHold = async (
   });
   return data;
 };
+export const releaseResourceHolds = async (
+  businessId: string,
+  sessionId: string
+): Promise<any> => {
+  const { data } = await apiClient.post('/resource-map/release-holds', {
+    businessId,
+    sessionId,
+  });
+  return data;
+};

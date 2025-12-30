@@ -76,7 +76,8 @@ import {
     CalendarCheck,
     SearchX,
     MapPin,
-    Tag
+    Tag,
+    Loader2
 } from "lucide-react";
 import useAuth from "@/auth/useAuth";
 import { getBusinessById, type Business, type Slot } from "@/api/businessesApi";
@@ -84,6 +85,7 @@ import { getServicesByBusiness, type Service } from "@/api/servicesApi";
 import { createBooking, getBookingsByClient, type Booking } from "@/api/bookingsApi";
 import { getActiveAssets, type CustomerAsset } from "@/api/customerAssetsApi";
 import { getProductsByBusiness, createProductCheckout, type Product, ProductType } from "@/api/productsApi";
+import { releaseResourceHolds } from "@/api/resourceMapApi";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useSlots } from "@/hooks/useSlots";
@@ -341,6 +343,9 @@ const BusinessBookingPage = () => {
     const handleNext = () => setStep(prev => Math.min(prev + 1, bookingSteps.length));
     const handleBack = () => {
         if (step === 1) {
+            if (businessId && bookingSessionId && selectedResourceId) {
+                releaseResourceHolds(businessId, bookingSessionId);
+            }
             setSelectedService(null);
             setSelectedProduct(null);
             setPreSelectedPackage(null);
@@ -820,6 +825,9 @@ const BusinessBookingPage = () => {
 
     const handleDashboardBookAgain = async () => {
         await handleDashboardLogout();
+        if (businessId && bookingSessionId) {
+            releaseResourceHolds(businessId, bookingSessionId);
+        }
         setSelectedResourceId(null);
         setPreSelectedPackage(null);
         setSelectedProduct(null);
