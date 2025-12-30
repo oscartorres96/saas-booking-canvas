@@ -108,131 +108,162 @@
     position: relative;
     -webkit-overflow-scrolling: touch;
   }
+}
 
-  #root,
-  #app,
-  .booking-root {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
+/* ============================================
+   DISCRETE EVENT ANIMATION SYSTEM
+   ============================================
+   
+   Rules:
+   - NO decorative loops
+   - Each pulse is a discrete event
+   - Opacity: 0 → peak → 0
+   - Delays create sequence
+   ============================================ */
+
+/* Core pulse - optimized for long sequence */
+@keyframes corePulse {
+
+  0%,
+  25%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
   }
 
-  .stepper-wrapper {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    overflow: hidden;
+  5%,
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.5);
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    @apply font-semibold tracking-tight;
+  20% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.1);
   }
 }
 
-@layer utilities {
-  .glass {
-    @apply bg-white/70 dark:bg-black/70 backdrop-blur-xl border border-white/20;
+/* Node pulse - optimized for long sequence */
+@keyframes nodePulse {
+
+  0%,
+  25%,
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
   }
 
-  .glass-card {
-    @apply bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg border border-white/20 shadow-sm;
+  6%,
+  18% {
+    opacity: 1;
+    transform: scale(1.25);
   }
 
-  .ios-btn {
-    @apply active:scale-95 transition-transform duration-200 ease-out;
+  22% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* Core breathing - subtle scale effect */
+@keyframes coreBreathing {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.3;
   }
 
-  .ios-input {
-    @apply bg-gray-100 dark:bg-zinc-800 border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/50 transition-all;
+  50% {
+    transform: scale(1.15);
+    opacity: 0.6;
+  }
+}
+
+/* Flow line - data pulse moving to core */
+@keyframes flowLine {
+
+  0%,
+  25%,
+  100% {
+    stroke-dashoffset: 100;
+    opacity: 0;
   }
 
-  /* Dark-mode fixes for react-phone-input-2 dropdown/search */
-  .react-tel-input .country-list {
-    @apply bg-popover text-foreground border border-border shadow-lg;
+  5% {
+    opacity: 1;
+    stroke-dashoffset: 100;
   }
 
-  .react-tel-input .country-list .country {
-    @apply text-foreground bg-popover;
+  15% {
+    opacity: 1;
+    stroke-dashoffset: 0;
   }
 
-  .react-tel-input .country-list .country.highlight {
-    @apply bg-secondary text-foreground;
+  20% {
+    opacity: 0;
+    stroke-dashoffset: -20;
+  }
+}
+
+/* Flow indicator - consistent pulse */
+@keyframes flowPulse {
+
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(0.85);
   }
 
-  .react-tel-input .country-list .search-box {
-    @apply bg-input text-foreground border border-border rounded-md;
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .core-pulse {
+    animation: corePulse 12s ease-in-out infinite;
   }
 
-  .react-tel-input .country-list .search-box input {
-    color: hsl(var(--foreground));
-    background-color: hsl(var(--input));
+  .node-pulse {
+    animation: nodePulse 12s ease-in-out infinite;
   }
 
-  .react-tel-input .country-list .search-box input::placeholder {
-    color: hsl(var(--muted-foreground));
+  .flow-line {
+    stroke-dasharray: 20 80;
+    animation: flowLine 12s ease-in-out infinite;
   }
 
-  .react-tel-input .flag-dropdown {
-    @apply bg-background border border-input;
+  .core-breathing {
+    animation: coreBreathing 4s ease-in-out infinite;
   }
 
-  /* Landing Page Animations */
-  @keyframes blob {
-    0% {
-      transform: translate(0px, 0px) scale(1);
-    }
-
-    33% {
-      transform: translate(30px, -50px) scale(1.1);
-    }
-
-    66% {
-      transform: translate(-20px, 20px) scale(0.9);
-    }
-
-    100% {
-      transform: translate(0px, 0px) scale(1);
-    }
+  .flow-pulse {
+    animation: flowPulse 2s ease-in-out infinite;
   }
+}
 
-  .animate-blob {
-    animation: blob 7s infinite;
-  }
+/* Subtle hover effects */
+.node-card:hover {
+  transform: scale(1.04);
+  transition: transform 0.25s ease;
+}
 
-  .animation-delay-2000 {
-    animation-delay: 2s;
-  }
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
 
-  /* Custom Scrollbar */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 dark:bg-slate-800 rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors;
+}
 
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
 
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-slate-200 dark:bg-slate-800 rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors;
-  }
-
-  /* Hide scrollbars but keep functionality */
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    /* IE and Edge */
-    scrollbar-width: none;
-    /* Firefox */
-  }
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

@@ -7,13 +7,13 @@ const useCaseIcons = {
     gym: Dumbbell,
     medical: Stethoscope,
     beauty: Scissors,
-    professionals: Briefcase,
+    wellness: Briefcase,
 };
 
 export const UseCasesSection = () => {
     const { t } = useTranslation();
 
-    const useCases = ['gym', 'medical', 'beauty', 'professionals'];
+    const useCases = ['gym', 'medical', 'beauty', 'wellness'];
 
     const container = {
         hidden: { opacity: 0 },

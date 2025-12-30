@@ -88,13 +88,13 @@
             "error_desc": "There was a problem sending your request. Please try again."
         },
         "hero": {
-            "headline": "Manage your business bookings without complications",
-            "subheadline": "BookPro is the SaaS platform you need to automate your appointments, impress your clients, and grow your business.",
-            "cta_primary": "Get started now",
+            "headline": "Online booking and payment system for service businesses",
+            "subheadline": "Receive 24/7 appointments without calls or WhatsApp messages. Collect secure payments and reduce cancellations.",
+            "cta_primary": "Start receiving bookings today",
             "cta_secondary": "See how it works",
             "badge": "14-day free trial",
-            "trust_indicator_1": "100% secure payments",
-            "trust_indicator_2": "Setup in minutes"
+            "trust_indicator_1": "Secure online payments",
+            "trust_indicator_2": "3-minute setup"
         },
         "what_is": {
             "title": "What is BookPro?",
@@ -107,20 +107,20 @@
             "subtitle": "Not just managing appointments, improving your entire operation",
             "items": {
                 "time": {
-                    "title": "Save valuable time",
-                    "description": "Automate bookings and dedicate your time to what really matters: serving your clients."
+                    "title": "More bookings, less WhatsApp",
+                    "description": "Automate your bookings and free up your time. Your clients book themselves from your personalized page."
                 },
                 "clients": {
                     "title": "Attract more clients",
                     "description": "A professional booking page improves your image and makes it easier for new clients to find you."
                 },
                 "errors": {
-                    "title": "Eliminate errors",
-                    "description": "Smart system that automatically prevents double bookings and schedule conflicts."
+                    "title": "Total agenda control",
+                    "description": "Forget overlaps and double bookings. Smart management that keeps your business organized."
                 },
                 "professional": {
-                    "title": "Professional image",
-                    "description": "Build trust with a modern platform, personalized with your brand."
+                    "title": "Guaranteed payments",
+                    "description": "Collect at the moment of booking. Receive money directly into your account and secure client commitment."
                 }
             }
         },
@@ -152,21 +152,48 @@
             "items": {
                 "gym": {
                     "title": "Gyms and Studios",
-                    "description": "Manage classes, personal training, and group schedules."
+                    "description": "Manage spinning, yoga, personal training, and group schedules."
                 },
                 "medical": {
-                    "title": "Medical Offices",
-                    "description": "Organize consultations, nutrition, therapies, and patient follow-ups."
+                    "title": "Clinics and Offices",
+                    "description": "Efficiently organize medical, dental consultations, and patient follow-ups."
                 },
                 "beauty": {
                     "title": "Beauty Studios",
-                    "description": "Bookings for hair, nails, lashes, makeup, and more."
+                    "description": "Bookings for hair, nails, lashes, makeup, and spas."
                 },
-                "professionals": {
-                    "title": "Independent Professionals",
-                    "description": "Ideal for coaches, consultants, photographers, and freelancers."
+                "wellness": {
+                    "title": "Health and Wellness",
+                    "description": "Ideal for nutritionists, physiotherapists, psychologists, and wellness coaches."
                 }
             }
+        },
+        "comparison": {
+            "title": "The Change Your Business Needs",
+            "subtitle": "Leave behind the manual chaos and professionalize your operation today",
+            "before": {
+                "title": "Without BookPro (Manual Chaos)",
+                "items": [
+                    "WhatsApp and calls that interrupt your day",
+                    "Notebooks or notes that easily get lost",
+                    "Double-bookings and human errors",
+                    "Constant no-shows due to lack of reminders",
+                    "Manual payments that don't secure your income",
+                    "No client history or administrative order"
+                ]
+            },
+            "after": {
+                "title": "With BookPro (Control & Growth)",
+                "items": [
+                    "24/7 Online Booking: Your clients book themselves",
+                    "Upfront Payments: Secure your income when booking",
+                    "Email Notifications (WhatsApp coming soon)",
+                    "Resource Mapping: Full control of your space (spinning, yoga, etc.)",
+                    "Complete History: Know and retain your clients",
+                    "Universal Access: Manage everything from your phone or laptop"
+                ]
+            },
+            "cta": "I want this change for my business"
         },
         "features": {
             "title": "Everything you need in one place",
@@ -205,16 +232,16 @@
                     "description": "Availability updated instantly, no conflicts."
                 },
                 "payments": {
-                    "title": "Card Payments",
-                    "description": "Accept secure payments for your services with Stripe, if you choose to."
+                    "title": "Online Payments",
+                    "description": "Charge your clients when booking and receive the money directly in your bank account securely."
                 }
             }
         },
         "cta": {
-            "title": "Ready to transform your business?",
-            "subtitle": "Join hundreds of professionals who are already growing with BookPro",
-            "button": "Request Demo",
-            "note": "Schedule a custom demo"
+            "title": "Ready to automate your business?",
+            "subtitle": "Join the professionals who are already saving hours of work with BookPro.",
+            "button": "Start free today",
+            "note": "14-day trial, no commitment"
         },
         "footer": {
             "tagline": "The simplest way to manage your bookings",
@@ -1065,8 +1092,8 @@
         }
     },
     "pricing": {
-        "title": "Plans & Pricing",
-        "subtitle": "Choose the perfect plan for your business",
+        "title": "Simple and Transparent Pricing",
+        "subtitle": "Recover your monthly investment with just one booking. No small print.",
         "billing": {
             "monthly": "Monthly",
             "annual": "Annual",
@@ -1079,8 +1106,10 @@
             "currency": "MXN",
             "period": "month",
             "period_annual": "year",
-            "annual_savings": "Equivalent to 10 months! Save $698 MXN",
-            "cta": "Get started",
+            "annual_savings": "Equivalent to 10 months • Save $698 MXN",
+            "value_anchor": "Recover your investment with just 1 booking.",
+            "value_anchor_2": "Ideal for businesses looking to automate and grow.",
+            "cta": "Start 14-day free trial",
             "features": {
                 "title": "Everything you need:",
                 "feature1": "Unlimited bookings",

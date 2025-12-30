@@ -19,6 +19,11 @@ class RegisterDto extends LoginDto {
   name!: string;
 }
 
+class CheckEmailDto {
+  @IsEmail()
+  email!: string;
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) { }
@@ -36,6 +41,11 @@ export class AuthController {
   @Post('activate')
   activate(@Body() body: ActivateAccountDto) {
     return this.authService.activateAccount(body.token, body.newPassword);
+  }
+
+  @Post('check-email')
+  async checkEmail(@Body() body: CheckEmailDto) {
+    return this.authService.checkEmailExists(body.email);
   }
 
   @UseGuards(JwtAuthGuard)

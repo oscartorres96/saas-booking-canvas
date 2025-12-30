@@ -24,6 +24,29 @@ export const DemoSection = ({ id }: { id?: string }) => {
 
         try {
             const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+            // First, check if email already exists
+            const checkEmailResponse = await fetch(`${apiUrl}/auth/check-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            });
+
+            const emailCheckData = await checkEmailResponse.json();
+
+            if (emailCheckData.exists) {
+                // Email exists, redirect to login
+                toast.info('Ya tienes una cuenta con este correo. Redirigiendo al Login...');
+
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 1500);
+                return;
+            }
+
+            // Email doesn't exist, proceed with demo request
             const response = await fetch(`${apiUrl}/leads/demo`, {
                 method: 'POST',
                 headers: {
