@@ -220,6 +220,7 @@ const BusinessBookingPage = () => {
     const [dashboardEmail, setDashboardEmail] = useState("");
     const [dashboardSearchTerm, setDashboardSearchTerm] = useState("");
     const isFetchingDashboardRef = useRef(false);
+    const checkAssetsPromiseRef = useRef<Promise<CustomerAsset[]> | null>(null);
 
     // Session ID for resource holds persistence
     const [bookingSessionId] = useState(() => {
@@ -479,7 +480,10 @@ const BusinessBookingPage = () => {
     }, [step, bookingSteps, availableAssets, business, paymentMethod, selectedServiceId]);
 
     const fetchAssetsForContact = async (email?: string, phone?: string) => {
-        if (isCheckingAssets) return;
+        // If already checking, return the current promise to avoid race conditions
+        if (checkAssetsPromiseRef.current) {
+            return checkAssetsPromiseRef.current;
+        }
 
         const targetEmail = email || clientEmail;
         const targetPhone = phone || clientPhone;
@@ -488,62 +492,68 @@ const BusinessBookingPage = () => {
         const hasValidPhone = targetPhone && targetPhone.length >= 8;
 
         if ((hasValidEmail || hasValidPhone) && businessId && !user) {
-            try {
-                setIsCheckingAssets(true);
-                const assets = await getActiveAssets({
-                    businessId,
-                    email: targetEmail,
-                    phone: targetPhone,
-                });
-                setAvailableAssets(assets);
-                setIsCheckingAssets(false);
-
-                if (assets.length > 0) {
-                    const usableAssets = assets.filter(asset => {
-                        const isServiceAllowed = !selectedServiceId ||
-                            !asset.productId?.allowedServiceIds ||
-                            asset.productId.allowedServiceIds.length === 0 ||
-                            asset.productId.allowedServiceIds.includes(selectedServiceId);
-
-                        const hasUses = asset.isUnlimited || (asset.remainingUses && asset.remainingUses > 0);
-                        const isDateValid = !asset.expiresAt || !selectedDate || new Date(asset.expiresAt) >= selectedDate;
-
-                        return isServiceAllowed && hasUses && isDateValid;
+            const promise = (async () => {
+                try {
+                    setIsCheckingAssets(true);
+                    const assets = await getActiveAssets({
+                        businessId,
+                        email: targetEmail,
+                        phone: targetPhone,
                     });
+                    setAvailableAssets(assets);
 
-                    if (usableAssets.length > 0) {
-                        const sortedAssets = prioritizeAssets(usableAssets);
-                        const bestAsset = sortedAssets[0];
+                    if (assets.length > 0) {
+                        const usableAssets = assets.filter(asset => {
+                            const isServiceAllowed = !selectedServiceId ||
+                                !asset.productId?.allowedServiceIds ||
+                                asset.productId.allowedServiceIds.length === 0 ||
+                                asset.productId.allowedServiceIds.includes(selectedServiceId);
 
-                        const currentAssetId = form.getValues('assetId');
-                        const isCurrentStillValid = sortedAssets.some(a => a._id === currentAssetId);
+                            const hasUses = asset.isUnlimited || (asset.remainingUses && asset.remainingUses > 0);
+                            const isDateValid = !asset.expiresAt || !selectedDate || new Date(asset.expiresAt) >= selectedDate;
 
-                        if (!currentAssetId || !isCurrentStillValid) {
-                            form.setValue('assetId', bestAsset._id);
-                            form.setValue('paymentOption', 'ASSET');
-                            setPaymentMethod('ASSET');
-                            setSelectedAsset(bestAsset);
-                            setActiveTab('credits');
+                            return isServiceAllowed && hasUses && isDateValid;
+                        });
 
-                            const expiresAt = bestAsset.expiresAt ? new Date(bestAsset.expiresAt) : null;
-                            const diffDays = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+                        if (usableAssets.length > 0) {
+                            const sortedAssets = prioritizeAssets(usableAssets);
+                            const bestAsset = sortedAssets[0];
 
-                            if (diffDays !== null && diffDays <= 7) {
-                                toast.success(`¡Encontramos tus créditos! Tienes un paquete que vence pronto (en ${diffDays} días).`);
+                            const currentAssetId = form.getValues('assetId');
+                            const isCurrentStillValid = sortedAssets.some(a => a._id === currentAssetId);
+
+                            if (!currentAssetId || !isCurrentStillValid) {
+                                form.setValue('assetId', bestAsset._id);
+                                form.setValue('paymentOption', 'ASSET');
+                                setPaymentMethod('ASSET');
+                                setSelectedAsset(bestAsset);
+                                setActiveTab('credits');
+
+                                const expiresAt = bestAsset.expiresAt ? new Date(bestAsset.expiresAt) : null;
+                                const diffDays = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+
+                                if (diffDays !== null && diffDays <= 7) {
+                                    toast.success(`¡Encontramos tus créditos! Tienes un paquete que vence pronto (en ${diffDays} días).`);
+                                } else {
+                                    toast.success(`¡Encontramos tus créditos! Se han aplicado automáticamente.`);
+                                }
                             } else {
-                                toast.success(`¡Encontramos tus créditos! Se han aplicado automáticamente.`);
+                                setActiveTab('credits');
                             }
-                        } else {
-                            setActiveTab('credits');
                         }
                     }
+                    return assets;
+                } catch (e) {
+                    console.error("Guest asset lookup failed", e);
+                    return [];
+                } finally {
+                    setIsCheckingAssets(false);
+                    checkAssetsPromiseRef.current = null;
                 }
-                return assets;
-            } catch (e) {
-                console.error("Guest asset lookup failed", e);
-                setIsCheckingAssets(false);
-                return [];
-            }
+            })();
+
+            checkAssetsPromiseRef.current = promise;
+            return promise;
         }
         return [];
     };
@@ -1769,9 +1779,19 @@ const BusinessBookingPage = () => {
                                                     handleNext();
                                                 }
                                             }}
-                                            className="h-12 sm:h-14 md:h-16 px-6 sm:px-10 md:px-12 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-tighter text-sm sm:text-lg md:text-xl shadow-lg sm:shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all order-1 sm:order-2"
+                                            disabled={isCheckingAssets}
+                                            className="min-w-[150px] h-12 sm:h-14 md:h-16 px-6 sm:px-10 md:px-12 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-tighter text-sm sm:text-lg md:text-xl shadow-lg sm:shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all order-1 sm:order-2"
                                         >
-                                            Continuar <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
+                                            {isCheckingAssets ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
+                                                    Verificando...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Continuar <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />
+                                                </>
+                                            )}
                                         </Button>
                                     </div>
                                 </div>
