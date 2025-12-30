@@ -89,13 +89,13 @@
       "error_desc": "Hubo un problema al enviar tu solicitud. Intenta de nuevo."
     },
     "hero": {
-      "headline": "Gestiona las reservas de tu negocio sin complicaciones",
-      "subheadline": "BookPro es la plataforma SaaS que necesitas para automatizar tus citas, impresionar a tus clientes y hacer crecer tu negocio.",
-      "cta_primary": "Empezar ahora",
+      "headline": "Sistema de reservas y pagos en línea para negocios de servicios",
+      "subheadline": "Recibe citas 24/7 sin llamadas ni mensajes de WhatsApp. Cobra pagos seguros y reduce cancelaciones.",
+      "cta_primary": "Empieza a recibir reservas hoy",
       "cta_secondary": "Ver cómo funciona",
       "badge": "14 días de prueba gratis",
-      "trust_indicator_1": "Pagos 100% seguros",
-      "trust_indicator_2": "Configuración en minutos"
+      "trust_indicator_1": "Pagos en línea seguros",
+      "trust_indicator_2": "Configuración en 3 minutos"
     },
     "what_is": {
       "title": "¿Qué es BookPro?",
@@ -108,20 +108,20 @@
       "subtitle": "No solo gestionas citas, mejoras toda tu operación",
       "items": {
         "time": {
-          "title": "Ahorra tiempo valioso",
-          "description": "Automatiza las reservas y dedica tu tiempo a lo que realmente importa: atender a tus clientes."
+          "title": "Más citas, menos WhatsApp",
+          "description": "Automatiza tus reservas y libera tu tiempo. Tus clientes agendan solos desde tu página personalizada."
         },
         "clients": {
           "title": "Atrae más clientes",
           "description": "Una página profesional de reservas mejora tu imagen y facilita que nuevos clientes te encuentren."
         },
         "errors": {
-          "title": "Elimina errores",
-          "description": "Sistema inteligente que previene dobles reservas y conflictos de horarios automáticamente."
+          "title": "Control total de tu agenda",
+          "description": "Olvida los traslapes y dobles reservas. Gestión inteligente que mantiene tu negocio organizado."
         },
         "professional": {
-          "title": "Imagen profesional",
-          "description": "Transmite confianza con una plataforma moderna, personalizada con tu marca."
+          "title": "Cobros asegurados",
+          "description": "Cobra al momento de reservar. Recibe el dinero directo en tu cuenta y asegura el compromiso de tus clientes."
         }
       }
     },
@@ -153,21 +153,48 @@
       "items": {
         "gym": {
           "title": "Gimnasios y Estudios",
-          "description": "Gestiona clases, entrenamientos personales y horarios grupales."
+          "description": "Gestiona clases de spinning, yoga, entrenamientos personales y horarios grupales."
         },
         "medical": {
-          "title": "Consultorios Médicos",
-          "description": "Organiza consultas, nutrición, terapias y seguimientos de pacientes."
+          "title": "Clínicas y Consultorios",
+          "description": "Organiza consultas médicas, dentales y seguimientos de pacientes de forma eficiente."
         },
         "beauty": {
           "title": "Estudios de Belleza",
-          "description": "Reservas para peluquería, uñas, pestañas, maquillaje y más."
+          "description": "Reservas para peluquería, uñas, pestañas, maquillaje y spas."
         },
-        "professionals": {
-          "title": "Profesionales Independientes",
-          "description": "Ideal para coaches, consultores, fotógrafos y freelancers."
+        "wellness": {
+          "title": "Bienestar y Salud",
+          "description": "Ideal para nutriólogos, fisioterapeutas, psicólogos y coaches de bienestar."
         }
       }
+    },
+    "comparison": {
+      "title": "El cambio que tu negocio necesita",
+      "subtitle": "Deja atrás el caos manual y profesionaliza tu operación hoy mismo",
+      "before": {
+        "title": "Sin BookPro (El Caos Manual)",
+        "items": [
+          "Reservas por WhatsApp y llamadas que interrumpen tu día",
+          "Agenda en libretas o notas que se pierden fácilmente",
+          "Doble-reservas y errores humanos por falta de control",
+          "No-shows constantes por falta de recordatorios",
+          "Cobros manuales que no aseguran tu ingreso",
+          "Sin historial de clientes ni orden administrativo"
+        ]
+      },
+      "after": {
+        "title": "Con BookPro (Control y Crecimiento)",
+        "items": [
+          "Agenda online 24/7: Tus clientes reservan solos",
+          "Cobros anticipados: Asegura tus ingresos al agendar",
+          "Notificaciones por Email (WhatsApp próximamente)",
+          "Mapa de recursos: Control total de tu espacio (spinning, yoga, etc.)",
+          "Historial completo: Conoce a tus clientes y fidelízalos",
+          "Acceso universal: Gestiona todo desde tu celular o laptop"
+        ]
+      },
+      "cta": "Quiero este cambio en mi negocio"
     },
     "features": {
       "title": "Todo lo que necesitas en un solo lugar",
@@ -206,16 +233,16 @@
           "description": "Disponibilidad actualizada al instante, sin conflictos."
         },
         "payments": {
-          "title": "Pagos con Tarjeta",
-          "description": "Acepta pagos por tus servicios de forma segura con Stripe, si así lo requieres."
+          "title": "Pagos en línea",
+          "description": "Cobra a tus clientes al reservar y recibe el dinero directamente en tu cuenta bancaria de forma segura."
         }
       }
     },
     "cta": {
-      "title": "¿Listo para transformar tu negocio?",
-      "subtitle": "Únete a cientos de profesionales que ya están creciendo con BookPro",
-      "button": "Solicitar Demo",
-      "note": "Agenda una demostración personalizada"
+      "title": "¿Listo para automatizar tu negocio?",
+      "subtitle": "Únete a los profesionales que ya están ahorrando horas de trabajo con BookPro.",
+      "button": "Empezar gratis hoy",
+      "note": "14 días de prueba sin compromiso"
     },
     "demo": {
       "title": "Solicita una Demo",
@@ -1098,8 +1125,8 @@
     }
   },
   "pricing": {
-    "title": "Planes y Precios",
-    "subtitle": "Elige el plan perfecto para tu negocio",
+    "title": "Precio Simple y Transparente",
+    "subtitle": "Con una sola reserva recuperas tu inversión mensual. Sin letras chiquitas.",
     "billing": {
       "monthly": "Mensual",
       "annual": "Anual",
@@ -1113,7 +1140,9 @@
       "period": "mes",
       "period_annual": "año",
       "annual_savings": "¡Equivalente a 10 meses! Ahorra $698 MXN",
-      "cta": "Comenzar ahora",
+      "value_anchor": "Con solo 1 reserva recuperas tu inversión.",
+      "value_anchor_2": "Ideal para negocios que buscan automatizar y crecer.",
+      "cta": "Iniciar prueba gratis de 14 días",
       "features": {
         "title": "Todo lo que necesitas:",
         "feature1": "Reservas ilimitadas",

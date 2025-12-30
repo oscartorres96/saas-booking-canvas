@@ -64,7 +64,28 @@ export function DirectPurchaseDialog({ open, onOpenChange, billingPeriod = 'mont
     const onSubmit = async (data: PurchaseFormData) => {
         setLoading(true);
         try {
-            // Create direct purchase checkout session
+            // First, check if email already exists
+            const checkEmailResponse = await axios.post(`${API_URL}/auth/check-email`, {
+                email: data.email,
+            });
+
+            if (checkEmailResponse.data.exists) {
+                // Email exists, redirect to login
+                toast({
+                    title: t('common.info') || 'Información',
+                    description: 'Ya tienes una cuenta con este correo. Redirigiendo al Login...',
+                    variant: 'default',
+                });
+
+                // Close dialog and redirect to login after a short delay
+                setTimeout(() => {
+                    handleClose();
+                    window.location.href = '/login';
+                }, 1500);
+                return;
+            }
+
+            // Email doesn't exist, proceed with checkout
             const response = await axios.post(`${API_URL}/stripe/direct-purchase/checkout`, {
                 name: data.name,
                 email: data.email,

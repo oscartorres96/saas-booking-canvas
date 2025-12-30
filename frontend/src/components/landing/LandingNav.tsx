@@ -111,7 +111,7 @@ export const LandingNav = () => {
 
                         {/* Demo Button */}
                         <Button
-                            onClick={() => setIsDemoOpen(true)}
+                            onClick={() => scrollToSection('demo')}
                             className="text-xs sm:text-sm px-2 sm:px-3 md:px-4 h-9 md:h-10 whitespace-nowrap"
                         >
                             Demo

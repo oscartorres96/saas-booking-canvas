@@ -34,6 +34,15 @@ export const HeroSection = () => {
                         transition={{ duration: 0.6 }}
                         className="text-center lg:text-left"
                     >
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-6"
+                        >
+                            <Badge variant="secondary" className="bg-primary text-primary-foreground animate-pulse">NUEVO</Badge>
+                            <span className="text-sm font-medium text-primary">{t('landing.hero.badge')}</span>
+                        </motion.div>
 
 
                         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 leading-tight">
@@ -50,7 +59,7 @@ export const HeroSection = () => {
                         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start mb-8 sm:mb-12">
                             <Button
                                 size="lg"
-                                onClick={() => navigate('/login')}
+                                onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
                                 className="group text-sm sm:text-base px-8 sm:px-8 py-6 sm:py-6 min-h-[52px] sm:min-h-[56px] bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 touch-manipulation"
                             >
                                 {t('landing.hero.cta_primary')}

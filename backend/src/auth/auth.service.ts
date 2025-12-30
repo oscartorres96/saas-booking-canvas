@@ -107,6 +107,19 @@ export class AuthService {
     return this.buildAuthResponse(user as UserDocument);
   }
 
+  async checkEmailExists(email: string): Promise<{ exists: boolean; isActive?: boolean }> {
+    const user = await this.usersService.findByEmail(email);
+
+    if (!user) {
+      return { exists: false };
+    }
+
+    return {
+      exists: true,
+      isActive: user.isActive
+    };
+  }
+
   private async buildAuthResponse(user: UserDocument): Promise<AuthResponse> {
     const payload: JwtPayload = {
       sub: user.id,
