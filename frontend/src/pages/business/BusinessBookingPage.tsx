@@ -1716,6 +1716,11 @@ const BusinessBookingPage = () => {
                                                         return;
                                                     }
 
+                                                    const email = form.getValues('clientEmail');
+                                                    const phone = form.getValues('clientPhone');
+                                                    const assetId = form.getValues('assetId');
+                                                    const policy = business?.paymentConfig?.paymentPolicy || 'RESERVE_ONLY';
+
                                                     // Fetch fresh assets if needed
                                                     let latestAssets = availableAssets;
                                                     if (!user) {
