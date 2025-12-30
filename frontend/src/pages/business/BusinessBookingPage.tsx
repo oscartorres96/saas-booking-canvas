@@ -391,6 +391,7 @@ const BusinessBookingPage = () => {
     }, [business, i18n]);
 
     // Update dynamic steps when context changes
+    // Recalculate steps only when core state changes
     useEffect(() => {
         if (!business) return;
 
@@ -417,7 +418,7 @@ const BusinessBookingPage = () => {
 
         const hasValidPackage = validAssets.length > 0;
 
-        const steps = generateBookingSteps({
+        const newSteps = generateBookingSteps({
             bookingConfig: business.bookingConfig,
             paymentMode: business.paymentMode,
             productType: (selectedProduct || preSelectedPackage) ? 'PACKAGE' : 'SERVICE',
@@ -427,13 +428,15 @@ const BusinessBookingPage = () => {
             paymentPolicy: business.paymentConfig?.paymentPolicy
         });
 
-        setBookingSteps(steps);
-
-        // Ensure current step is within bounds if steps shrink
-        if (step > steps.length) {
-            setStep(steps.length);
+        // Only update if steps actually changed to avoid unnecessary re-renders
+        if (JSON.stringify(newSteps) !== JSON.stringify(bookingSteps)) {
+            setBookingSteps(newSteps);
+            // Ensure current step is within bounds if steps shrink
+            if (step > newSteps.length) {
+                setStep(newSteps.length);
+            }
         }
-    }, [business, selectedService, selectedProduct, preSelectedPackage, availableAssets, step, selectedDate]);
+    }, [business, selectedService, selectedProduct, preSelectedPackage, availableAssets, step, selectedDate, bookingSteps]);
 
     // Watch fields to ensure whole page re-renders on change (important for summary panel)
     const clientName = form.watch("clientName");
@@ -441,10 +444,12 @@ const BusinessBookingPage = () => {
     const clientPhone = form.watch("clientPhone");
     const prevStepRef = useRef(step);
 
-    // Auto-scroll to top on step change
+    // Auto-scroll to top on step change, but NOT when on Step 1 (UX improvement)
     useEffect(() => {
         if (step !== prevStepRef.current) {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (step > 1) {
+                window.scrollTo({ top: 0, behavior: 'instant' });
+            }
             prevStepRef.current = step;
         }
     }, [step]);
@@ -1726,74 +1731,81 @@ const BusinessBookingPage = () => {
                                         <Button
                                             type="button"
                                             onClick={async () => {
-                                                const isValid = await form.trigger(['clientName', 'clientEmail', 'clientPhone']);
-                                                if (isValid) {
-                                                    // If user is logged in, skip OTP
-                                                    if (user) {
-                                                        handleNext();
-                                                        return;
-                                                    }
-
-                                                    const email = form.getValues('clientEmail');
-                                                    const phone = form.getValues('clientPhone');
-                                                    const assetId = form.getValues('assetId');
-                                                    const policy = business?.paymentConfig?.paymentPolicy || 'RESERVE_ONLY';
-
-                                                    // Fetch fresh assets if needed
-                                                    let latestAssets = availableAssets;
-                                                    if (!user) {
-                                                        latestAssets = await fetchAssetsForContact(email, phone);
-                                                    }
-
-                                                    // Use the latest fetched assets instead of stale state
-                                                    const usableAssetsForBooking = latestAssets.filter(asset => {
-                                                        const isSAllowed = !asset.productId?.allowedServiceIds ||
-                                                            asset.productId.allowedServiceIds.length === 0 ||
-                                                            asset.productId.allowedServiceIds.includes(selectedServiceId!);
-                                                        const isDValid = !asset.expiresAt || !selectedDate || new Date(asset.expiresAt) >= selectedDate;
-                                                        const hasU = asset.isUnlimited || (asset.remainingUses && asset.remainingUses > 0);
-                                                        return isSAllowed && isDValid && hasU;
-                                                    });
-
-                                                    const hasUsableAssets = usableAssetsForBooking.length > 0;
-
-                                                    if (assetId && !usableAssetsForBooking.some(a => a._id === assetId)) {
-                                                        form.setValue('assetId', '');
-                                                        setSelectedAsset(null);
-                                                    }
-
-                                                    const updatedAssetId = form.getValues('assetId');
-                                                    const isOnlinePayment = (policy === 'PAY_BEFORE_BOOKING' || policy === 'PACKAGE_OR_PAY') &&
-                                                        !updatedAssetId &&
-                                                        selectedService &&
-                                                        selectedService.price > 0;
-
-                                                    const isAlreadyVerified = otpToken && otpVerifiedEmail === email;
-
-                                                    if (hasUsableAssets && !isAlreadyVerified) {
-                                                        try {
-                                                            const purpose = 'ASSET_USAGE';
-                                                            const res = await requestOtp(email, businessId!, purpose);
-                                                            if (res.requiresOtp) {
-                                                                setOtpPurpose(purpose);
-                                                                setIsOtpModalOpen(true);
-                                                                return;
-                                                            }
-                                                        } catch (err) {
-                                                            console.error("OTP request failed", err);
+                                                if (isSubmitting) return;
+                                                setIsSubmitting(true);
+                                                try {
+                                                    const isValid = await form.trigger(['clientName', 'clientEmail', 'clientPhone']);
+                                                    if (isValid) {
+                                                        // If user is logged in, skip OTP
+                                                        if (user) {
+                                                            handleNext();
+                                                            return;
                                                         }
-                                                    }
 
-                                                    handleNext();
+                                                        const email = form.getValues('clientEmail');
+                                                        const phone = form.getValues('clientPhone');
+                                                        const assetId = form.getValues('assetId');
+                                                        const policy = business?.paymentConfig?.paymentPolicy || 'RESERVE_ONLY';
+
+                                                        // Fetch fresh assets if needed
+                                                        let latestAssets = availableAssets;
+                                                        if (!user) {
+                                                            // This will wait if a check is already running from onBlur
+                                                            latestAssets = await fetchAssetsForContact(email, phone);
+                                                        }
+
+                                                        // Use the latest fetched assets instead of stale state
+                                                        const usableAssetsForBooking = latestAssets.filter(asset => {
+                                                            const isSAllowed = !asset.productId?.allowedServiceIds ||
+                                                                asset.productId.allowedServiceIds.length === 0 ||
+                                                                asset.productId.allowedServiceIds.includes(selectedServiceId!);
+                                                            const isDValid = !asset.expiresAt || !selectedDate || new Date(asset.expiresAt) >= selectedDate;
+                                                            const hasU = asset.isUnlimited || (asset.remainingUses && asset.remainingUses > 0);
+                                                            return isSAllowed && isDValid && hasU;
+                                                        });
+
+                                                        const hasUsableAssets = usableAssetsForBooking.length > 0;
+
+                                                        if (assetId && !usableAssetsForBooking.some(a => a._id === assetId)) {
+                                                            form.setValue('assetId', '');
+                                                            setSelectedAsset(null);
+                                                        }
+
+                                                        const updatedAssetId = form.getValues('assetId');
+                                                        const isOnlinePayment = (policy === 'PAY_BEFORE_BOOKING' || policy === 'PACKAGE_OR_PAY') &&
+                                                            !updatedAssetId &&
+                                                            selectedService &&
+                                                            selectedService.price > 0;
+
+                                                        const isAlreadyVerified = otpToken && otpVerifiedEmail === email;
+
+                                                        if (hasUsableAssets && !isAlreadyVerified) {
+                                                            try {
+                                                                const purpose = 'ASSET_USAGE';
+                                                                const res = await requestOtp(email, businessId!, purpose);
+                                                                if (res.requiresOtp) {
+                                                                    setOtpPurpose(purpose);
+                                                                    setIsOtpModalOpen(true);
+                                                                    return;
+                                                                }
+                                                            } catch (err) {
+                                                                console.error("OTP request failed", err);
+                                                            }
+                                                        }
+
+                                                        handleNext();
+                                                    }
+                                                } finally {
+                                                    setIsSubmitting(false);
                                                 }
                                             }}
-                                            disabled={isCheckingAssets}
+                                            disabled={isSubmitting}
                                             className="min-w-[150px] h-12 sm:h-14 md:h-16 px-6 sm:px-10 md:px-12 rounded-xl sm:rounded-2xl font-black uppercase italic tracking-tighter text-sm sm:text-lg md:text-xl shadow-lg sm:shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all order-1 sm:order-2"
                                         >
-                                            {isCheckingAssets ? (
+                                            {(isCheckingAssets || isSubmitting) ? (
                                                 <>
                                                     <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
-                                                    Verificando...
+                                                    {isCheckingAssets ? "Verificando..." : "Continuando..."}
                                                 </>
                                             ) : (
                                                 <>
