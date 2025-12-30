@@ -64,6 +64,8 @@ export class Business {
       instagram: String,
       twitter: String,
       website: String,
+      accentColor: String,
+      theme: { type: String, enum: ['light', 'dark', 'custom', 'system'], default: 'custom' },
       currency: { type: String, default: 'MXN' },
       businessHours: [{
         day: String,
@@ -87,6 +89,8 @@ export class Business {
     instagram?: string;
     twitter?: string;
     website?: string;
+    accentColor?: string;
+    theme?: 'light' | 'dark' | 'custom' | 'system';
     currency?: string;
     businessHours?: {
       day: string;

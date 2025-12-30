@@ -41,6 +41,8 @@ const createFormSchema = (t: any) => z.object({
     logoUrl: z.string().url(t('settings.validation.url_invalid')).optional().or(z.literal("")),
     primaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, t('settings.validation.color_invalid')).optional(),
     secondaryColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, t('settings.validation.color_invalid')).optional(),
+    accentColor: z.string().regex(/^#([0-9A-F]{3}){1,2}$/i, t('settings.validation.color_invalid')).optional(),
+    theme: z.enum(['light', 'dark', 'custom', 'system']).default('custom'),
     description: z.string().max(500, t('settings.validation.desc_max')).optional(),
     communicationLanguage: z.string().optional(),
     defaultServiceDuration: z.coerce.number().min(5, t('settings.validation.duration_min')).default(30),
@@ -117,6 +119,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
             logoUrl: "",
             primaryColor: "#000000",
             secondaryColor: "#ffffff",
+            accentColor: "#f4f4f5",
+            theme: "custom",
             description: "",
             communicationLanguage: "es_MX",
             defaultServiceDuration: 30,
@@ -177,6 +181,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     logoUrl: business.logoUrl || "",
                     primaryColor: business.settings?.primaryColor || "#000000",
                     secondaryColor: business.settings?.secondaryColor || "#ffffff",
+                    accentColor: business.settings?.accentColor || "#f4f4f5",
+                    theme: business.settings?.theme || "custom",
                     description: business.settings?.description || "",
                     communicationLanguage: business.settings?.language || "es_MX",
                     defaultServiceDuration: business.settings?.defaultServiceDuration || 30,
@@ -269,6 +275,8 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     logoUrl: values.logoUrl,
                     primaryColor: values.primaryColor,
                     secondaryColor: values.secondaryColor,
+                    accentColor: values.accentColor,
+                    theme: values.theme,
                     language: values.communicationLanguage,
                     facebook: values.facebook,
                     instagram: values.instagram,
@@ -572,6 +580,44 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                                         <input type="color" className="w-12 h-10 p-1 rounded-xl border border-muted bg-background cursor-pointer" {...field} />
                                                         <Input {...field} placeholder="#ffffff" className="rounded-xl border-muted bg-white dark:bg-slate-950" />
                                                     </div>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="accentColor"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">{t('settings.branding.accent', 'Color de Acento')}</FormLabel>
+                                                    <div className="flex gap-2">
+                                                        <input type="color" className="w-12 h-10 p-1 rounded-xl border border-muted bg-background cursor-pointer" {...field} />
+                                                        <Input {...field} placeholder="#f4f4f5" className="rounded-xl border-muted bg-white dark:bg-slate-950" />
+                                                    </div>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={form.control}
+                                            name="theme"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">{t('settings.branding.default_theme', 'Tema por Defecto')}</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger className="rounded-xl border-muted bg-white dark:bg-slate-950">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            <SelectItem value="light">{t('theme.light', 'Claro')}</SelectItem>
+                                                            <SelectItem value="dark">{t('theme.dark', 'Oscuro')}</SelectItem>
+                                                            <SelectItem value="custom">{t('theme.custom', 'Personalizado')}</SelectItem>
+                                                            <SelectItem value="system">{t('theme.system', 'Sistema')}</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <p className="text-[10px] text-muted-foreground mt-1">{t('settings.branding.theme_hint', 'Define cómo se verá tu página inicialmente para los visitantes.')}</p>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}

@@ -62,6 +62,8 @@ export interface Business {
     instagram?: string;
     twitter?: string;
     website?: string;
+    accentColor?: string;
+    theme?: 'light' | 'dark' | 'custom' | 'system';
     currency?: string;
     businessHours?: Array<{
       day: string;

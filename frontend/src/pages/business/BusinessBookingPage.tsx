@@ -558,33 +558,46 @@ const BusinessBookingPage = () => {
         }
     };
 
-    // Apply custom colors when business data is loaded AND theme is custom
+    // Apply custom colors when business data is loaded
     useEffect(() => {
-        if (theme === 'custom' && business?.settings?.primaryColor) {
-            const primaryHsl = hexToHSL(business.settings.primaryColor);
-            const secondaryHsl = business.settings.secondaryColor ? hexToHSL(business.settings.secondaryColor) : null;
+        const hasPrimary = !!business?.settings?.primaryColor;
+        const hasSecondary = !!business?.settings?.secondaryColor;
+        const hasAccent = !!business?.settings?.accentColor;
+
+        // Apply colors if we are in 'custom' theme OR if the business explicitly has colors configured
+        // (We apply them even in light/dark if we want forceful branding, but usually 'custom' is safer)
+        if ((theme === 'custom' || theme === 'dark' || theme === 'light') && hasPrimary) {
+            const primaryHsl = hexToHSL(business.settings!.primaryColor!);
+            const secondaryHsl = hasSecondary ? hexToHSL(business.settings!.secondaryColor!) : null;
+            const accentHsl = hasAccent ? hexToHSL(business.settings!.accentColor!) : null;
 
             if (primaryHsl) {
                 document.documentElement.style.setProperty('--primary', primaryHsl);
-
-                // Calculate contrast for foreground
-                const isDark = isColorDark(business.settings.primaryColor);
+                const isDark = isColorDark(business.settings!.primaryColor!);
                 document.documentElement.style.setProperty('--primary-foreground', isDark ? '0 0% 100%' : '0 0% 0%');
                 document.documentElement.style.setProperty('--ring', primaryHsl);
             }
 
             if (secondaryHsl) {
                 document.documentElement.style.setProperty('--secondary', secondaryHsl);
-                const isSecondaryDark = isColorDark(business.settings.secondaryColor);
+                const isSecondaryDark = isColorDark(business.settings!.secondaryColor!);
                 document.documentElement.style.setProperty('--secondary-foreground', isSecondaryDark ? '0 0% 100%' : '0 0% 0%');
             }
+
+            if (accentHsl) {
+                document.documentElement.style.setProperty('--accent', accentHsl);
+                const isAccentDark = isColorDark(business.settings!.accentColor!);
+                document.documentElement.style.setProperty('--accent-foreground', isAccentDark ? '0 0% 100%' : '0 0% 0%');
+            }
         } else {
-            // Reset to default when not using custom theme
+            // Reset to default when not using branded colors
             document.documentElement.style.removeProperty('--primary');
             document.documentElement.style.removeProperty('--primary-foreground');
             document.documentElement.style.removeProperty('--ring');
             document.documentElement.style.removeProperty('--secondary');
             document.documentElement.style.removeProperty('--secondary-foreground');
+            document.documentElement.style.removeProperty('--accent');
+            document.documentElement.style.removeProperty('--accent-foreground');
         }
 
         // Return cleanup function
@@ -594,23 +607,29 @@ const BusinessBookingPage = () => {
             document.documentElement.style.removeProperty('--ring');
             document.documentElement.style.removeProperty('--secondary');
             document.documentElement.style.removeProperty('--secondary-foreground');
+            document.documentElement.style.removeProperty('--accent');
+            document.documentElement.style.removeProperty('--accent-foreground');
         };
     }, [business, theme]);
 
-    // Auto-set custom theme if business has custom colors and no theme preference is saved for this business
+    // Auto-set theme from backend branding
     useEffect(() => {
         if (!businessId || !business) return;
 
+        const backendTheme = business.settings?.theme;
+        const businessHasColors = !!business.settings?.primaryColor;
         const businessThemeKey = `theme-business-${businessId}`;
         const savedThemeForBusiness = localStorage.getItem(businessThemeKey);
 
-        // If no theme preference for THIS business AND business has custom colors, set to custom
-        if (!savedThemeForBusiness && business.settings?.primaryColor) {
-            setTheme('custom');
-            localStorage.setItem(businessThemeKey, 'custom');
-        } else if (savedThemeForBusiness && savedThemeForBusiness !== theme) {
-            // Restore saved preference for this business
-            setTheme(savedThemeForBusiness as any);
+        if (backendTheme) {
+            // Backend preference is absolute
+            if (theme !== backendTheme) setTheme(backendTheme);
+        } else if (businessHasColors) {
+            // Brand colors are absolute (default to custom theme to show them)
+            if (theme !== 'custom') setTheme('custom');
+        } else if (savedThemeForBusiness) {
+            // Only use localStorage if business has NO branding settings at all
+            if (theme !== savedThemeForBusiness) setTheme(savedThemeForBusiness as any);
         }
     }, [business, businessId]);
 
