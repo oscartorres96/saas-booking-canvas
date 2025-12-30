@@ -23,6 +23,12 @@ export class Payment {
     @Prop({ required: true })
     amount!: number; // Amount in cents (Total paid by client)
 
+    @Prop()
+    grossAmount?: number; // Alias for amount, for traceability
+
+    @Prop({ default: 0 })
+    stripeFee?: number; // Fee charged by Stripe
+
     @Prop({ required: true })
     netAmount!: number; // Amount to be received by the business (amount - platformFee)
 
@@ -44,6 +50,9 @@ export class Payment {
         enum: ['BOOKPRO_COLLECTS', 'DIRECT_TO_BUSINESS'],
     })
     paymentMode?: 'BOOKPRO_COLLECTS' | 'DIRECT_TO_BUSINESS';
+
+    @Prop()
+    paymentModel?: string; // For explicit traceability as requested
 
     @Prop()
     description?: string;

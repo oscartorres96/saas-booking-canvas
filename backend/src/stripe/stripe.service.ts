@@ -602,6 +602,25 @@ export class StripeService {
     }
 
     /**
+     * Retrieve the Stripe fee for a specific PaymentIntent
+     */
+    private async getStripeFee(paymentIntentId: string): Promise<number> {
+        if (!paymentIntentId) return 0;
+        try {
+            const pi = await this.stripe.paymentIntents.retrieve(paymentIntentId, {
+                expand: ['latest_charge.balance_transaction']
+            });
+            const charge = pi.latest_charge as Stripe.Charge;
+            if (charge && typeof charge.balance_transaction === 'object' && charge.balance_transaction) {
+                return (charge.balance_transaction as Stripe.BalanceTransaction).fee;
+            }
+        } catch (e: any) {
+            this.logger.warn(`Failed to retrieve Stripe fee for ${paymentIntentId}: ${e.message}`);
+        }
+        return 0;
+    }
+
+    /**
      * Handle booking payment completion
      */
     private async handleBookingPaymentCompleted(session: Stripe.Checkout.Session): Promise<void> {
@@ -615,6 +634,7 @@ export class StripeService {
 
         const paymentIntentId = session.payment_intent as string;
         const sessionId = session.id;
+        const stripeFee = await this.getStripeFee(paymentIntentId);
 
         // State mapping logic:
         // BOOKPRO_COLLECTS -> PENDING_PAYOUT (The money is in Platform's main account)
@@ -629,21 +649,27 @@ export class StripeService {
         if (payment) {
             payment.status = sessionStatus;
             payment.stripePaymentIntentId = paymentIntentId;
+            payment.stripeFee = stripeFee;
+            payment.grossAmount = session.amount_total || 0;
+            payment.paymentModel = paymentMode; // From metadata
             await payment.save();
         } else {
             // Backup in case record wasn't created during session creation
             await this.paymentModel.create({
                 stripeSessionId: sessionId,
                 stripePaymentIntentId: paymentIntentId,
+                stripeFee,
                 bookingId,
                 businessId,
                 userId: booking?.userId || businessId, // Emergency fallback
                 amount: session.amount_total || 0,
+                grossAmount: session.amount_total || 0,
                 netAmount: session.amount_total || 0,
                 platformFee: 0,
                 currency: session.currency || 'mxn',
                 status: sessionStatus,
                 paymentMode: paymentMode as any,
+                paymentModel: paymentMode,
                 description: 'Booking payment completed (webhook backup)',
             });
         }
@@ -726,24 +752,42 @@ export class StripeService {
             effectivePaymentMode = 'BOOKPRO_COLLECTS';
         }
 
+        const businessName = business.businessName || business.name || 'Negocio';
+        const productName = product.name || 'Paquete/Pase';
+
         const sessionData: Stripe.Checkout.SessionCreateParams = {
             mode: 'payment',
             customer_email: clientEmail,
             success_url: successUrl || `${this.frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=product&businessId=${businessId}`,
             cancel_url: cancelUrl || `${this.frontendUrl}/payment/cancel?type=product`,
             line_items: [{ price: finalPriceId, quantity: 1 }],
+            payment_intent_data: {
+                description: `BookPro – ${businessName} – ${productName}`,
+                statement_descriptor: 'BOOKPRO', // Max 22 chars
+                metadata: {
+                    businessId: businessId,
+                    businessName: businessName,
+                    businessEmail: business.email || '',
+                    paymentModel: effectivePaymentMode,
+                    source: 'bookpro',
+                }
+            },
             metadata: {
                 purchaseType: 'PACKAGE',
                 productId,
                 businessId,
+                businessName,
+                businessEmail: business.email || '',
                 clientEmail,
                 clientPhone: clientPhone || '',
                 clientName: clientName || '',
                 bookingData: bookingData ? JSON.stringify(bookingData) : '',
-                // BLINDAJE F: Metadata Financiera
+                // Financial Traceability
+                paymentModel: effectivePaymentMode,
                 paymentMode: effectivePaymentMode,
                 business_id: businessId,
-                platform_fee_accrued: '0', // Placeholder for actual fee logic
+                source: 'bookpro',
+                platform_fee_accrued: '0',
                 environment: this.configService.get('NODE_ENV') || 'development',
                 type: 'product_purchase',
             },
@@ -808,6 +852,7 @@ export class StripeService {
         const paymentIntentId = session.payment_intent as string;
         const sessionId = session.id;
         const paymentMode = session.metadata?.paymentMode || 'BOOKPRO_COLLECTS';
+        const stripeFee = await this.getStripeFee(paymentIntentId);
 
         // Create the CustomerAsset
         const asset = await this.customerAssetsService.createFromPurchase(
@@ -827,6 +872,10 @@ export class StripeService {
         if (existingPayment) {
             this.logger.log(`Payment already recorded for session ${sessionId}`);
             existingPayment.status = sessionStatus;
+            existingPayment.stripeFee = stripeFee;
+            existingPayment.grossAmount = session.amount_total || 0;
+            existingPayment.paymentModel = paymentMode;
+
             if (!existingPayment.stripePaymentIntentId) {
                 existingPayment.stripePaymentIntentId = paymentIntentId;
             }
@@ -836,14 +885,17 @@ export class StripeService {
             await this.paymentModel.create({
                 stripeSessionId: sessionId,
                 stripePaymentIntentId: paymentIntentId,
+                stripeFee,
                 businessId,
                 userId: (asset as any).userId || businessId, // Fallback if no userId
                 amount: session.amount_total || 0,
+                grossAmount: session.amount_total || 0,
                 netAmount: session.amount_total || 0,
                 platformFee: 0,
                 currency: session.currency || 'mxn',
                 status: sessionStatus,
                 paymentMode: paymentMode as any,
+                paymentModel: paymentMode,
                 description: `Product purchase: ${productId}`,
             });
         }
@@ -1233,20 +1285,38 @@ export class StripeService {
             effectivePaymentMode = 'BOOKPRO_COLLECTS';
         }
 
+        const businessName = business.businessName || business.name || 'Negocio';
+        const serviceName = service.name || 'Servicio';
+
         const sessionData: Stripe.Checkout.SessionCreateParams = {
             mode: 'payment',
             customer_email: booking.clientEmail,
             success_url: successUrl || `${this.frontendUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&type=booking&businessId=${businessId}&bookingId=${bookingId}`,
             cancel_url: cancelUrl || `${this.frontendUrl}/payment/cancel?type=booking`,
             line_items: [{ price: finalPriceId, quantity: 1 }],
+            payment_intent_data: {
+                description: `BookPro – ${businessName} – ${serviceName}`,
+                statement_descriptor: 'BOOKPRO', // Max 22 chars
+                metadata: {
+                    businessId: businessId,
+                    businessName: businessName,
+                    businessEmail: business.email || '',
+                    paymentModel: effectivePaymentMode,
+                    source: 'bookpro',
+                }
+            },
             metadata: {
                 purchaseType: 'SERVICE',
                 bookingId,
                 businessId,
+                businessName,
+                businessEmail: business.email || '',
                 serviceId: service._id.toString(),
-                // BLINDAJE F: Metadata Financiera
+                // Financial Traceability
+                paymentModel: effectivePaymentMode,
                 paymentMode: effectivePaymentMode,
                 business_id: businessId,
+                source: 'bookpro',
                 platform_fee_accrued: '0',
                 environment: this.configService.get('NODE_ENV') || 'development',
                 type: 'booking_payment',
