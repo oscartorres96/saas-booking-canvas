@@ -40,6 +40,7 @@ export class Service {
     type: {
       productId: { type: String, default: null },
       priceId: { type: String, default: null },
+      livemode: { type: Boolean, default: false },
       syncStatus: { type: String, enum: ['PENDING', 'SYNCING', 'SYNCED', 'ERROR'], default: 'PENDING' },
       lastSyncError: { type: String },
       lastSyncedAt: { type: Date },
@@ -52,6 +53,7 @@ export class Service {
   stripe!: {
     productId: string | null;
     priceId: string | null;
+    livemode: boolean;
     syncStatus: 'PENDING' | 'SYNCING' | 'SYNCED' | 'ERROR';
     lastSyncError?: string;
     lastSyncedAt?: Date;

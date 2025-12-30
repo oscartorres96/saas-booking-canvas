@@ -694,11 +694,12 @@ export class StripeService {
         const business = await this.businessModel.findById(businessId);
         if (!business) throw new NotFoundException('Business not found');
 
-        // Critical check: Ensure product is synced with Stripe
+        // Critical check: Ensure product is synced with Stripe and matches environment
         let finalPriceId = product.stripe?.priceId || product.stripePriceId;
+        const currentLiveMode = this.configService.get<string>('STRIPE_SECRET_KEY')?.startsWith('sk_live') || false;
 
-        if (!finalPriceId) {
-            this.logger.warn(`Product ${product._id} missing Price ID. Attempting JIT sync...`);
+        if (!finalPriceId || product.stripe?.livemode !== currentLiveMode) {
+            this.logger.warn(`Product ${product._id} needs sync (Missing ID or Env Mismatch). FinalPriceId: ${finalPriceId}, StoredLivemode: ${product.stripe?.livemode}, CurrentLivemode: ${currentLiveMode}. Attempting JIT sync...`);
             await this.stripeSyncService.syncProduct(product._id.toString());
 
             const reProduct = await this.productModel.findById(product._id);
@@ -707,8 +708,9 @@ export class StripeService {
 
         if (!finalPriceId) {
             this.logger.error(`Product ${product._id} is NOT ready for payments even after JIT sync.`);
-            if (product.stripe?.syncStatus === 'ERROR') {
-                throw new BadRequestException(`Stripe Sync Error: ${product.stripe.lastSyncError}`);
+            const updatedProduct = await this.productModel.findById(product._id);
+            if (updatedProduct?.stripe?.syncStatus === 'ERROR') {
+                throw new BadRequestException(`Stripe Sync Error: ${updatedProduct.stripe.lastSyncError}`);
             }
             throw new BadRequestException('Este paquete no está configurado para pagos en Stripe todavía.');
         }
@@ -764,8 +766,30 @@ export class StripeService {
         try {
             session = await this.stripe.checkout.sessions.create(sessionData);
         } catch (err: any) {
-            this.logger.error(`Stripe Product Session Creation failed: ${err.message}`, err.stack);
-            throw new BadRequestException(`Stripe Error: ${err.message}`);
+            // PHASE 1: SAFE CHECKOUT - Retry once if "No such price"
+            if (err.message?.includes('No such price') || err.code === 'resource_missing') {
+                this.logger.warn(`Stripe reported 'No such price' for product ${productId}. This usually happens after environment switches. Retrying once...`);
+
+                await this.stripeSyncService.syncProduct(productId);
+                const refreshedProduct = await this.productModel.findById(productId);
+                const retryPriceId = refreshedProduct?.stripe?.priceId || refreshedProduct?.stripePriceId;
+
+                if (retryPriceId && retryPriceId !== finalPriceId) {
+                    sessionData.line_items = [{ price: retryPriceId, quantity: 1 }];
+                    try {
+                        session = await this.stripe.checkout.sessions.create(sessionData);
+                        this.logger.log(`Checkout retry successful for product ${productId} with new price ${retryPriceId}`);
+                    } catch (retryErr: any) {
+                        this.logger.error(`Stripe Product Session Retry failed: ${retryErr.message}`);
+                        throw new BadRequestException(`Stripe Error (Retry): ${retryErr.message}`);
+                    }
+                } else {
+                    throw new BadRequestException(`Stripe Error: No se pudo regenerar el precio para este paquete. Por favor, contacte a soporte.`);
+                }
+            } else {
+                this.logger.error(`Stripe Product Session Creation failed: ${err.message}`, err.stack);
+                throw new BadRequestException(`Stripe Error: ${err.message}`);
+            }
         }
 
         if (!session.url) throw new BadRequestException('Failed to create checkout session');
@@ -1176,11 +1200,12 @@ export class StripeService {
         const amountInCents = Math.round(service.price * 100);
         const paymentMode = business.paymentMode || 'BOOKPRO_COLLECTS';
 
-        // Critical check: Ensure service is synced with Stripe
+        // Critical check: Ensure service is synced with Stripe and matches environment
         let finalPriceId = service.stripe?.priceId || service.stripePriceId;
+        const currentLiveMode = this.configService.get<string>('STRIPE_SECRET_KEY')?.startsWith('sk_live') || false;
 
-        if (!finalPriceId) {
-            this.logger.warn(`Service ${service._id} missing Price ID. Attempting JIT sync...`);
+        if (!finalPriceId || service.stripe?.livemode !== currentLiveMode) {
+            this.logger.warn(`Service ${service._id} needs sync (Missing ID or Env Mismatch). FinalPriceId: ${finalPriceId}, StoredLivemode: ${service.stripe?.livemode}, CurrentLivemode: ${currentLiveMode}. Attempting JIT sync...`);
             await this.stripeSyncService.syncService(service._id.toString());
 
             const reService = await this.serviceModel.findById(service._id);
@@ -1244,8 +1269,30 @@ export class StripeService {
         try {
             session = await this.stripe.checkout.sessions.create(sessionData);
         } catch (err: any) {
-            this.logger.error(`Stripe Session Creation failed: ${err.message}`, err.stack);
-            throw new BadRequestException(`Stripe Error: ${err.message}`);
+            // PHASE 1: SAFE CHECKOUT - Retry once if "No such price"
+            if (err.message?.includes('No such price') || err.code === 'resource_missing') {
+                this.logger.warn(`Stripe reported 'No such price' for service ${service._id}. This usually happens after environment switches. Retrying once...`);
+
+                await this.stripeSyncService.syncService(service._id.toString());
+                const refreshedService = await this.serviceModel.findById(service._id);
+                const retryPriceId = refreshedService?.stripe?.priceId || refreshedService?.stripePriceId;
+
+                if (retryPriceId && retryPriceId !== finalPriceId) {
+                    sessionData.line_items = [{ price: retryPriceId, quantity: 1 }];
+                    try {
+                        session = await this.stripe.checkout.sessions.create(sessionData);
+                        this.logger.log(`Checkout retry successful for service ${service._id} with new price ${retryPriceId}`);
+                    } catch (retryErr: any) {
+                        this.logger.error(`Stripe Session Retry failed: ${retryErr.message}`);
+                        throw new BadRequestException(`Stripe Error (Retry): ${retryErr.message}`);
+                    }
+                } else {
+                    throw new BadRequestException(`Stripe Error: No se pudo regenerar el precio para este servicio. Por favor, contacte a soporte.`);
+                }
+            } else {
+                this.logger.error(`Stripe Session Creation failed: ${err.message}`, err.stack);
+                throw new BadRequestException(`Stripe Error: ${err.message}`);
+            }
         }
 
         if (!session.url) {

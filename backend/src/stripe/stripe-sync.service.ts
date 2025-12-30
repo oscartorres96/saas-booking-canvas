@@ -124,6 +124,7 @@ export class StripeSyncService {
                 $set: {
                     'stripe.productId': stripeProductId,
                     'stripe.priceId': finalPriceId,
+                    'stripe.livemode': this.configService.get<string>('STRIPE_SECRET_KEY')?.startsWith('sk_live') || false,
                     'stripe.syncStatus': 'SYNCED',
                     'stripe.lastSyncedAt': now,
                     'stripe.lastSyncError': null,
@@ -227,6 +228,7 @@ export class StripeSyncService {
                 $set: {
                     'stripe.productId': stripeProductId,
                     'stripe.priceId': finalPriceId,
+                    'stripe.livemode': this.configService.get<string>('STRIPE_SECRET_KEY')?.startsWith('sk_live') || false,
                     'stripe.syncStatus': 'SYNCED',
                     'stripe.lastSyncedAt': now,
                     'stripe.lastSyncError': null,
