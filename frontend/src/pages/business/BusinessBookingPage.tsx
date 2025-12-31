@@ -1163,7 +1163,7 @@ const BusinessBookingPage = () => {
             case 'SERVICE':
             case 'PACKAGE':
                 return (
-                    <Card className="w-full max-w-full shadow-2xl border-2 overflow-hidden border-slate-100 dark:border-slate-800/10">
+                    <Card className="w-full max-w-full shadow-2xl border-2 border-slate-100 dark:border-slate-800/10">
                         <CardHeader className="pb-2 px-3 sm:px-6">
                             <div className="text-center mb-4 sm:mb-6 px-2">
                                 <div className="flex items-center justify-center gap-2 mb-2">
@@ -1216,7 +1216,7 @@ const BusinessBookingPage = () => {
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="pt-4 sm:pt-6 px-2 sm:px-3 md:px-8 pb-6 sm:pb-10">
+                        <CardContent className="pt-4 sm:pt-6 px-2 sm:px-3 md:px-8 pb-4">
                             {/* Selected Package/Service Banner */}
                             {selectedProduct && (
                                 <div className="mb-6 sm:mb-8 animate-in fade-in slide-in-from-top-6 duration-700">
@@ -1303,7 +1303,7 @@ const BusinessBookingPage = () => {
                                             return products
                                                 .filter(p => p.active && (p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.description?.toLowerCase().includes(searchTerm.toLowerCase())))
                                                 .map((product) => (
-                                                    <motion.div key={product._id} whileHover={{ y: -5 }}>
+                                                    <motion.div key={product._id} whileHover={{ y: -5 }} className="h-full">
                                                         <Card
                                                             onClick={() => handleBuyPackage(product)}
                                                             className="cursor-pointer border-2 border-slate-100 dark:border-slate-800/50 hover:border-amber-500/50 transition-all p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] h-full flex flex-col group"
@@ -2396,7 +2396,7 @@ const BusinessBookingPage = () => {
 
     return (
         <div
-            className="booking-root min-h-screen transition-all duration-300 max-w-full overflow-x-hidden relative flex flex-col pb-12 sm:pb-24"
+            className="booking-root min-h-screen transition-all duration-300 max-w-full overflow-x-hidden relative flex flex-col pb-0"
             style={{
                 ...(theme === 'custom' && business.settings?.secondaryColor ? {
                     backgroundColor: business.settings.secondaryColor.startsWith('#')
@@ -2513,7 +2513,7 @@ const BusinessBookingPage = () => {
                 </div>
             </div>
 
-            <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-8">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 w-full flex flex-col space-y-4 sm:space-y-8">
                 {/* Stepper */}
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)}>

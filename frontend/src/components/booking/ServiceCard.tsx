@@ -32,7 +32,7 @@ export const ServiceCard = ({ service, primaryColor, onBook, isSelected, applica
     <motion.div
       whileHover={{ y: -5 }}
       transition={{ type: "spring", stiffness: 400, damping: 17 }}
-      className="h-full"
+      className="h-full w-full"
     >
       <Card
         className={cn(

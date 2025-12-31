@@ -205,5 +205,5 @@ export default function AnimatedStepper({
 }
 
 export function AnimatedStep({ children, className }: { children: React.ReactNode; className?: string }) {
-    return <div className={cn("w-full mb-4", className)}>{children}</div>;
+    return <div className={cn("w-full mb-0", className)}>{children}</div>;
 }
