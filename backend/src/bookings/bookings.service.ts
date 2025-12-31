@@ -10,6 +10,7 @@ import { Service, ServiceDocument } from '../services/schemas/service.schema';
 import { CustomerAssetsService } from '../customer-assets/customer-assets.service';
 import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
 import { OtpService } from './otp/otp.service';
+import { ResourceMap, ResourceMapDocument } from '../resource-map/schemas/resource-map.schema';
 
 export interface CreateBookingPayload {
   clientName: string;
@@ -48,6 +49,7 @@ export class BookingsService {
     @InjectModel(Booking.name) private readonly bookingModel: Model<BookingDocument>,
     @InjectModel(Service.name) private readonly serviceModel: Model<ServiceDocument>,
     @InjectModel(Business.name) private readonly businessModel: Model<BusinessDocument>,
+    @InjectModel(ResourceMap.name) private readonly resourceMapModel: Model<ResourceMapDocument>,
     private readonly notificationService: NotificationService,
     private readonly customerAssetsService: CustomerAssetsService,
     private readonly otpService: OtpService,
@@ -133,6 +135,34 @@ export class BookingsService {
       }
     }
 
+    // Same session prevention (Hard rule: One spot per client per session)
+    const sessionDate = new Date(payload.scheduledAt);
+    const sameSessionFilter: any = {
+      businessId: payload.businessId,
+      scheduledAt: sessionDate, // Use the parsed Date object
+      status: { $ne: BookingStatus.Cancelled },
+    };
+    const sessionIdentityFilters = [];
+    if (payload.clientEmail) sessionIdentityFilters.push({ clientEmail: payload.clientEmail });
+    if (payload.userId) sessionIdentityFilters.push({ userId: payload.userId });
+    if (payload.clientPhone) sessionIdentityFilters.push({ clientPhone: payload.clientPhone });
+
+    if (sessionIdentityFilters.length > 0) {
+      const existingSessionBooking = await this.bookingModel.findOne({
+        ...sameSessionFilter,
+        $or: sessionIdentityFilters,
+      }).lean();
+
+      if (existingSessionBooking) {
+        throw new ConflictException({
+          message: 'Ya tienes un lugar reservado para esta clase. Solo se permite una reserva por persona por clase.',
+          code: 'SAME_SESSION_BOOKING',
+          bookingId: existingSessionBooking._id?.toString?.(),
+          accessCode: existingSessionBooking.accessCode,
+        });
+      }
+    }
+
     // Validar servicio: debe existir y pertenecer al negocio
     const service = await this.serviceModel.findById(payload.serviceId).lean();
     if (!service) {
@@ -207,10 +237,22 @@ export class BookingsService {
       return requestedStart < bEnd && requestedEnd > bStart;
     });
 
+    // Get resource config (Service specific or Business Global)
+    let activeResourceConfig = await this.resourceMapModel.findOne({
+      businessId: payload.businessId,
+      serviceId: payload.serviceId
+    }).lean();
+
+    if (!activeResourceConfig) {
+      if (business.resourceConfig?.enabled) {
+        activeResourceConfig = business.resourceConfig as any;
+      }
+    }
+
     // Determinar capacidad máxima
     let maxCapacity = 1;
-    if (business.resourceConfig?.enabled) {
-      maxCapacity = business.resourceConfig.resources?.filter(r => r.isActive).length || 1;
+    if (activeResourceConfig?.enabled) {
+      maxCapacity = activeResourceConfig.resources?.filter(r => r.isActive).length || 1;
     } else if (business.bookingCapacityConfig?.mode === 'MULTIPLE') {
       maxCapacity = business.bookingCapacityConfig.maxBookingsPerSlot || 1;
     }
@@ -278,8 +320,8 @@ export class BookingsService {
       payload.serviceName = service.name;
     }
 
-    if (payload.resourceId && business.resourceConfig?.enabled) {
-      payload.resourceMapSnapshot = business.resourceConfig;
+    if (payload.resourceId && activeResourceConfig?.enabled) {
+      payload.resourceMapSnapshot = activeResourceConfig;
     }
 
     const booking = new this.bookingModel(payload);
@@ -494,18 +536,35 @@ export class BookingsService {
       businessId,
     }).sort({ scheduledAt: -1 }).lean();
 
-    const upcoming = allBookings.filter(b =>
+    // 3. Get all services for enrichment (including inactive ones for history)
+    const services = await this.serviceModel.find({ businessId }).lean();
+    const serviceMap = new Map(services.map(s => [s._id.toString(), s]));
+
+    const enrichBooking = (booking: any) => {
+      const service = serviceMap.get(booking.serviceId?.toString());
+      return {
+        ...booking,
+        serviceName: service?.name || booking.serviceName || "Servicio",
+        servicePrice: service?.price || 0,
+        serviceDuration: service?.durationMinutes || 0,
+        // Keep original serviceId
+      };
+    };
+
+    const enrichedBookings = allBookings.map(enrichBooking);
+
+    const upcoming = enrichedBookings.filter(b =>
       new Date(b.scheduledAt) >= startOfDay(now) &&
       [BookingStatus.Pending, BookingStatus.Confirmed, BookingStatus.PendingPayment].includes(b.status as BookingStatus)
-    ).reverse(); // Sort upcoming by closest first
+    ).sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()); // Sort upcoming by closest first (ascending)
 
-    const past = allBookings.filter(b =>
+    const past = enrichedBookings.filter(b =>
       new Date(b.scheduledAt) < startOfDay(now) ||
       b.status === BookingStatus.Cancelled ||
       b.status === BookingStatus.Completed
-    );
+    ).sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime()); // Sort past desc
 
-    // 3. Get active assets (packages/credits)
+    // 4. Get active assets (packages/credits)
     const assets = await this.customerAssetsService.findActiveAssets(businessId, email);
     const consumedAssets = await this.customerAssetsService.findRecentlyConsumedAssets(businessId, email);
 

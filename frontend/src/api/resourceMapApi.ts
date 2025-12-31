@@ -21,30 +21,53 @@ export interface ResourceAvailability {
 
 export const getResourceAvailability = async (
   businessId: string,
+  serviceId: string,
   scheduledAt: string,
   sessionId?: string
 ): Promise<ResourceAvailability> => {
   const { data } = await apiClient.get<ResourceAvailability>(
     `/resource-map/${businessId}/availability`,
-    { params: { scheduledAt, sessionId } }
+    { params: { serviceId, scheduledAt, sessionId } }
+  );
+  return data;
+};
+
+export const getResourceConfig = async (
+  businessId: string,
+  serviceId: string
+): Promise<ResourceAvailability['resourceConfig']> => {
+  const { data } = await apiClient.get(
+    `/resource-map/${businessId}/${serviceId}/config`
   );
   return data;
 };
 
 export const createResourceHold = async (
   businessId: string,
+  serviceId: string,
   resourceId: string,
   scheduledAt: string,
   sessionId?: string
 ): Promise<any> => {
   const { data } = await apiClient.post('/resource-map/hold', {
     businessId,
+    serviceId,
     resourceId,
     scheduledAt,
     sessionId,
   });
   return data;
 };
+
+export const updateResourceConfig = async (
+  businessId: string,
+  serviceId: string,
+  config: any
+): Promise<any> => {
+  const { data } = await apiClient.put(`/resource-map/${businessId}/${serviceId}/config`, config);
+  return data;
+};
+
 export const releaseResourceHolds = async (
   businessId: string,
   sessionId: string

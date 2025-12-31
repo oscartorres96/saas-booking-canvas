@@ -59,6 +59,7 @@ const BookingResourceMapMiniPreview: React.FC<BookingResourceMapMiniPreviewProps
                     style={{ display: 'block' }}
                 >
                     {resources.map((res) => {
+                        if (!res.isActive) return null; // Don't render inactive/disabled spots to respect map layout
                         const isReserved = res.id === reservedResourceId;
                         const x = padding + res.position.col * (dotSize + gap) + dotSize / 2;
                         const y = padding + res.position.row * (dotSize + gap) + dotSize / 2;

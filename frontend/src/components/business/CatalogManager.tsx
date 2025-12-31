@@ -57,6 +57,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ResourceMapEditor } from "./ResourceMapEditor";
 
 interface CatalogManagerProps {
     businessId: string;
@@ -173,10 +174,11 @@ export const CatalogManager = ({ businessId, services, products, onDataUpdate }:
 
     const handleToggleProductRelationship = async (product: Product, serviceId: string) => {
         try {
-            const isLinked = product.allowedServiceIds.includes(serviceId);
+            const currentIds = product.allowedServiceIds || [];
+            const isLinked = currentIds.includes(serviceId);
             const newAllowedIds = isLinked
-                ? product.allowedServiceIds.filter(id => id !== serviceId)
-                : [...product.allowedServiceIds, serviceId];
+                ? currentIds.filter(id => id !== serviceId)
+                : [...currentIds, serviceId];
 
             await updateProduct(product._id, { allowedServiceIds: newAllowedIds });
             toast.success(isLinked ? "Paquete desvinculado de este servicio" : "Paquete vinculado a este servicio");
@@ -303,7 +305,7 @@ export const CatalogManager = ({ businessId, services, products, onDataUpdate }:
                         ) : (
                             services.map((service) => {
                                 const isExpanded = expandedServices.includes(service._id);
-                                const associatedProducts = products.filter(p => p.allowedServiceIds.includes(service._id));
+                                const associatedProducts = products.filter(p => p.allowedServiceIds?.includes(service._id));
 
                                 return (
                                     <Card key={service._id} className={cn(
@@ -448,8 +450,8 @@ export const CatalogManager = ({ businessId, services, products, onDataUpdate }:
                                                                         </p>
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-3">
-                                                                    <div className="text-left xs:text-right sm:mr-2">
+                                                                <div className="flex flex-col min-[450px]:flex-row min-[450px]:items-center justify-between gap-3">
+                                                                    <div className="text-left min-[450px]:text-right sm:mr-2">
                                                                         <p className="text-xs font-black text-foreground">${service.price}</p>
                                                                         <p className="text-[10px] text-muted-foreground">por uso</p>
                                                                     </div>
@@ -508,7 +510,7 @@ export const CatalogManager = ({ businessId, services, products, onDataUpdate }:
                                                                                 <div className="flex items-center gap-2">
                                                                                     <span className="text-[9px] uppercase font-bold text-muted-foreground">Vincular</span>
                                                                                     <Switch
-                                                                                        checked={true}
+                                                                                        checked={product.allowedServiceIds?.includes(service._id)}
                                                                                         onCheckedChange={() => handleToggleProductRelationship(product, service._id)}
                                                                                         className="scale-75 sm:scale-90"
                                                                                     />
@@ -559,6 +561,45 @@ export const CatalogManager = ({ businessId, services, products, onDataUpdate }:
                                                                 </div>
                                                             )}
                                                         </div>
+                                                    </div>
+
+                                                    {/* Configuración de Sala Section */}
+                                                    <div className="space-y-4 pt-6 border-t">
+                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                            <div className="space-y-1">
+                                                                <h4 className="text-[11px] sm:text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                                                    <Grid3X3 className="h-3.5 w-3.5 sm:h-4 w-4" />
+                                                                    Mapa de Sala y Recursos
+                                                                </h4>
+                                                                <p className="text-[10px] sm:text-xs text-muted-foreground">Configura un mapa de asientos o recursos específicos para este servicio.</p>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <Switch
+                                                                    checked={service.requireResource}
+                                                                    onCheckedChange={async (checked) => {
+                                                                        try {
+                                                                            await updateService(service._id, { requireResource: checked });
+                                                                            toast.success(checked ? "Mapa de recursos habilitado" : "Mapa de recursos deshabilitado");
+                                                                            if (onDataUpdate) onDataUpdate();
+                                                                        } catch (err) {
+                                                                            toast.error("Error al actualizar configuración");
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                                                                    {service.requireResource ? "Habilitado" : "Deshabilitado"}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        {service.requireResource && (
+                                                            <div className="mt-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                                                                <ResourceMapEditor
+                                                                    businessId={businessId}
+                                                                    serviceId={service._id}
+                                                                />
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -638,7 +679,7 @@ export const CatalogManager = ({ businessId, services, products, onDataUpdate }:
                                                         </span>
                                                         <span className="flex items-center gap-1">
                                                             <Grid3X3 className="h-3 w-3" />
-                                                            {product.allowedServiceIds.length} servicios vinculados
+                                                            {(product.allowedServiceIds || []).length} servicios vinculados
                                                         </span>
                                                     </div>
                                                 </div>
@@ -801,17 +842,12 @@ export const CatalogManager = ({ businessId, services, products, onDataUpdate }:
                             </div>
                         </div>
 
-                        <DialogFooter className="gap-2 sm:gap-0 mt-2 pt-4 border-t">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={() => setIsProductDialogOpen(false)}
-                                className="font-semibold text-xs"
-                            >
-                                Cancelar
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsProductDialogOpen(false)} className="rounded-xl h-10">
+                                {t('common.cancel')}
                             </Button>
-                            <Button type="submit" className="rounded-lg px-6 font-bold shadow-sm h-10">
-                                {editingProduct?._id ? "Actualizar Oferta" : "Crear Oferta"}
+                            <Button type="submit" className="rounded-xl h-10 px-8">
+                                {editingProduct?._id ? t('common.save') : t('common.create')}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -820,123 +856,87 @@ export const CatalogManager = ({ businessId, services, products, onDataUpdate }:
 
             {/* Delete Product Confirmation */}
             <Dialog open={isDeletingProduct} onOpenChange={setIsDeletingProduct}>
-                <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="text-destructive flex items-center gap-2">
-                            <Trash2 className="h-5 w-5" />
-                            Eliminar Producto
-                        </DialogTitle>
+                        <DialogTitle>Eliminar Paquete</DialogTitle>
                         <DialogDescription>
-                            ¿Estás seguro de que deseas eliminar <strong>{productToDelete?.name}</strong>?
-                            Esta acción eliminará el producto de <strong>TODOS</strong> los servicios vinculados y no se puede deshacer.
+                            ¿Estás seguro de que quieres eliminar este paquete? Esta acción no se puede deshacer.
                         </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter className="gap-2 sm:gap-0">
-                        <Button variant="ghost" onClick={() => setIsDeletingProduct(false)}>Cancelar</Button>
-                        <Button variant="destructive" onClick={confirmDeleteProduct}>Eliminar permanentemente</Button>
+                    <DialogFooter className="flex items-center gap-2">
+                        <Button variant="outline" onClick={() => setIsDeletingProduct(false)} className="rounded-xl h-11 flex-1">
+                            Cancelar
+                        </Button>
+                        <Button variant="destructive" onClick={confirmDeleteProduct} className="rounded-xl h-11 flex-1">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Eliminar
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            {/* Link Existing Product Dialog */}
+            {/* Link Existing Dialog */}
             <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
-                <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Settings2 className="h-5 w-5 text-primary" />
                             Vincular Paquetes Existentes
                         </DialogTitle>
                         <DialogDescription>
-                            Selecciona los paquetes que quieres ofrecer para este servicio.
+                            Selecciona los paquetes que quieres habilitar para este servicio.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4 py-4">
-                        <div className="border rounded-2xl overflow-hidden divide-y bg-background">
-                            {products.length === 0 ? (
-                                <div className="p-8 text-center text-muted-foreground text-sm">
-                                    No hay paquetes creados todavía.
-                                </div>
-                            ) : (
-                                products.map((product) => (
-                                    <div key={product._id} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
+                    <div className="py-4 space-y-2 max-h-60 overflow-y-auto pr-2">
+                        {products.length === 0 ? (
+                            <p className="text-sm text-center text-muted-foreground py-8">No hay paquetes creados.</p>
+                        ) : (
+                            products.map((product) => {
+                                const isLinked = linkingServiceId ? product.allowedServiceIds?.includes(linkingServiceId) : false;
+                                return (
+                                    <div key={product._id} className="flex items-center justify-between p-3 rounded-xl border hover:bg-muted/30 transition-colors">
                                         <div className="flex items-center gap-3">
-                                            <Checkbox
-                                                id={`link-pkg-${product._id}`}
-                                                checked={linkingServiceId ? product.allowedServiceIds.includes(linkingServiceId) : false}
-                                                onCheckedChange={() => linkingServiceId && handleToggleProductRelationship(product, linkingServiceId)}
-                                            />
-                                            <div className="space-y-0.5">
-                                                <label htmlFor={`link-pkg-${product._id}`} className="text-sm font-bold cursor-pointer">
-                                                    {product.name}
-                                                </label>
-                                                <p className="text-[10px] text-muted-foreground">
-                                                    ${product.price} • {product.isUnlimited ? "Ilimitado" : `${product.totalUses} usos`}
-                                                </p>
+                                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                                <Package className="h-4 w-4 text-primary" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold">{product.name}</p>
+                                                <p className="text-[10px] text-muted-foreground">${product.price}</p>
                                             </div>
                                         </div>
-                                        {product.active ? (
-                                            <Badge variant="outline" className="text-[9px] bg-green-50 text-green-600 border-green-100">Activo</Badge>
-                                        ) : (
-                                            <Badge variant="secondary" className="text-[9px]">Inactivo Global</Badge>
-                                        )}
+                                        <Switch
+                                            checked={isLinked}
+                                            onCheckedChange={() => linkingServiceId && handleToggleProductRelationship(product, linkingServiceId)}
+                                        />
                                     </div>
-                                ))
-                            )}
-                        </div>
+                                );
+                            })
+                        )}
                     </div>
 
                     <DialogFooter>
-                        <Button onClick={() => setIsLinkDialogOpen(false)} className="w-full font-bold">
-                            Cerrar
-                        </Button>
+                        <Button onClick={() => setIsLinkDialogOpen(false)} className="w-full rounded-xl">Listo</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
             {/* Delete Service Confirmation */}
             <Dialog open={isDeletingService} onOpenChange={setIsDeletingService}>
-                <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="text-destructive flex items-center gap-2">
-                            <div className="h-10 w-10 rounded-2xl bg-destructive/10 flex items-center justify-center">
-                                <Trash2 className="h-5 w-5" />
-                            </div>
-                            <span>Eliminar Servicio</span>
-                        </DialogTitle>
-                        <DialogDescription className="space-y-3 pt-2">
-                            <p className="text-base">
-                                ¿Estás seguro de que deseas eliminar <strong className="text-foreground">{serviceToDelete?.name}</strong>?
-                            </p>
-                            <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 space-y-2">
-                                <div className="flex items-start gap-2">
-                                    <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-                                    <div className="space-y-1">
-                                        <p className="text-sm font-bold text-destructive">Esta acción no se puede deshacer</p>
-                                        <ul className="text-xs space-y-1 text-muted-foreground list-disc list-inside">
-                                            <li>Se eliminarán todas las reservas futuras asociadas</li>
-                                            <li>Los paquetes vinculados perderán la relación con este servicio</li>
-                                            <li>El servicio desaparecerá de tu catálogo público</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
+                        <DialogTitle>Eliminar Servicio</DialogTitle>
+                        <DialogDescription>
+                            ¿Estás seguro de que quieres eliminar el servicio <strong>{serviceToDelete?.name}</strong>? Se perderán las relaciones con los paquetes.
                         </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter className="gap-2 sm:gap-0 mt-2">
-                        <Button
-                            variant="outline"
-                            onClick={() => setIsDeletingService(false)}
-                            className="font-semibold"
-                        >
+                    <DialogFooter className="flex items-center gap-2">
+                        <Button variant="outline" onClick={() => setIsDeletingService(false)} className="rounded-xl h-11 flex-1">
                             Cancelar
                         </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={confirmDeleteService}
-                            className="font-bold shadow-sm"
-                        >
-                            Eliminar permanentemente
+                        <Button variant="destructive" onClick={confirmDeleteService} className="rounded-xl h-11 flex-1">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Eliminar
                         </Button>
                     </DialogFooter>
                 </DialogContent>

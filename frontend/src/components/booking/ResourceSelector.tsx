@@ -9,6 +9,7 @@ import { getResourceAvailability, createResourceHold } from '@/api/resourceMapAp
 
 interface ResourceSelectorProps {
     businessId: string;
+    serviceId?: string;
     scheduledAt: string;
     selectedId: string | null;
     sessionId: string;
@@ -18,6 +19,7 @@ interface ResourceSelectorProps {
 
 export const ResourceSelector: React.FC<ResourceSelectorProps> = ({
     businessId,
+    serviceId,
     scheduledAt,
     selectedId,
     sessionId,
@@ -41,7 +43,7 @@ export const ResourceSelector: React.FC<ResourceSelectorProps> = ({
     const loadAvailability = async () => {
         try {
             setLoading(true);
-            const data = await getResourceAvailability(businessId, scheduledAt, sessionId);
+            const data = await getResourceAvailability(businessId, serviceId!, scheduledAt, sessionId);
             setAvailability(data);
 
             if (data.userHoldResourceId && !selectedId) {
@@ -60,7 +62,7 @@ export const ResourceSelector: React.FC<ResourceSelectorProps> = ({
 
         try {
             setIsHolding(true);
-            await createResourceHold(businessId, resourceId, scheduledAt, sessionId);
+            await createResourceHold(businessId, serviceId!, resourceId, scheduledAt, sessionId);
             setLocalSelectedId(resourceId);
             onResourceSelected(resourceId);
         } catch (error) {

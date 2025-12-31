@@ -221,6 +221,8 @@ const BusinessBookingPage = () => {
     const [isRequestingDashboard, setIsRequestingDashboard] = useState(false);
     const [dashboardEmail, setDashboardEmail] = useState("");
     const [dashboardSearchTerm, setDashboardSearchTerm] = useState("");
+    const [isSingleSpotModalOpen, setIsSingleSpotModalOpen] = useState(false);
+    const [activeResourceConfig, setActiveResourceConfig] = useState<any>(null);
     const isFetchingDashboardRef = useRef(false);
     const checkAssetsPromiseRef = useRef<Promise<CustomerAsset[]> | null>(null);
 
@@ -261,6 +263,23 @@ const BusinessBookingPage = () => {
         selectedDate,
         selectedServiceId
     );
+
+    useEffect(() => {
+        const fetchResourceConfig = async () => {
+            if (businessId && selectedServiceId && selectedService?.requireResource) {
+                try {
+                    const { getResourceConfig } = await import("@/api/resourceMapApi");
+                    const config = await getResourceConfig(businessId, selectedServiceId);
+                    setActiveResourceConfig(config);
+                } catch (error) {
+                    console.error("Error fetching resource config:", error);
+                }
+            } else {
+                setActiveResourceConfig(null);
+            }
+        };
+        fetchResourceConfig();
+    }, [businessId, selectedServiceId, selectedService?.requireResource]);
 
     const resources = business?.resourceConfig?.resources || [];
 
@@ -444,10 +463,12 @@ const BusinessBookingPage = () => {
     const clientPhone = form.watch("clientPhone");
     const prevStepRef = useRef(step);
 
-    // Auto-scroll to top on step change, but NOT when on Step 1 (UX improvement)
+    // Auto-scroll to top on step change, but ONLY when moving forward and beyond Step 1 (UX improvement)
     useEffect(() => {
         if (step !== prevStepRef.current) {
-            if (step > 1) {
+            // Only scroll if we are moving forward to a new step that is not the first one
+            // This prevents unexpected jumps when scrolling within step 1 or when navigating back
+            if (step > 1 && step > prevStepRef.current) {
                 window.scrollTo({ top: 0, behavior: 'instant' });
             }
             prevStepRef.current = step;
@@ -1021,6 +1042,11 @@ const BusinessBookingPage = () => {
                 return;
             }
 
+            if (errData?.code === "SAME_SESSION_BOOKING") {
+                setIsSingleSpotModalOpen(true);
+                return;
+            }
+
             toast.error(errData?.message || t('booking.form.toasts.error_desc'));
         } finally {
             setIsSubmitting(false);
@@ -1499,9 +1525,9 @@ const BusinessBookingPage = () => {
                                     </div>
                                     <CardTitle className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black uppercase italic tracking-tighter leading-tight sm:leading-none dark:text-white">
                                         ELIGE TU <span className="text-primary italic">{
-                                            business?.resourceConfig?.resourceLabel?.toUpperCase() === 'B'
+                                            (activeResourceConfig?.resourceLabel || business?.resourceConfig?.resourceLabel)?.toUpperCase() === 'B'
                                                 ? 'BICI'
-                                                : (business?.resourceConfig?.resourceLabel || 'LUGAR')
+                                                : (activeResourceConfig?.resourceLabel || business?.resourceConfig?.resourceLabel || 'LUGAR')
                                         }</span>
                                     </CardTitle>
                                     <CardDescription className="text-sm sm:text-base font-medium italic opacity-70">Selecciona profesional o espacio</CardDescription>
@@ -1530,6 +1556,7 @@ const BusinessBookingPage = () => {
                                     return (
                                         <ResourceSelector
                                             businessId={businessId!}
+                                            serviceId={selectedServiceId}
                                             scheduledAt={scheduledAt}
                                             selectedId={selectedResourceId}
                                             sessionId={bookingSessionId}
@@ -2369,12 +2396,15 @@ const BusinessBookingPage = () => {
 
     return (
         <div
-            className="booking-root min-h-screen transition-colors duration-300 max-w-full overflow-x-hidden"
+            className="booking-root min-h-screen transition-all duration-300 max-w-full overflow-x-hidden relative flex flex-col pb-12 sm:pb-24"
             style={{
                 ...(theme === 'custom' && business.settings?.secondaryColor ? {
-                    backgroundColor: business.settings.secondaryColor + '10'
+                    backgroundColor: business.settings.secondaryColor.startsWith('#')
+                        ? (business.settings.secondaryColor.length === 4
+                            ? `#${business.settings.secondaryColor[1]}${business.settings.secondaryColor[1]}${business.settings.secondaryColor[2]}${business.settings.secondaryColor[2]}${business.settings.secondaryColor[3]}${business.settings.secondaryColor[3]}15`
+                            : `${business.settings.secondaryColor}15`)
+                        : business.settings.secondaryColor
                 } : {}),
-                transition: 'background-color 0.5s ease-in-out'
             }}
         >
             <div
@@ -2433,26 +2463,7 @@ const BusinessBookingPage = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-0.5 sm:gap-2 shrink-0">
-                        {user && (
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => {
-                                    logout();
-                                    toast.success(t('auth.logout_success') || 'Sesión cerrada exitosamente');
-                                    navigate('/');
-                                }}
-                                className="ios-btn h-8 w-8 sm:h-10 sm:w-10"
-                                title={t('auth.logout') || 'Cerrar sesión'}
-                                style={theme === 'custom' && business.settings?.primaryColor ? {
-                                    borderColor: isColorDark(business.settings.primaryColor) ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
-                                    color: isColorDark(business.settings.primaryColor) ? '#ffffff' : '#000000'
-                                } : {}}
-                            >
-                                <LogOut className="h-4 w-4 sm:h-[1.2rem] sm:w-[1.2rem]" />
-                                <span className="sr-only">{t('auth.logout') || 'Cerrar sesión'}</span>
-                            </Button>
-                        )}
+
                         {!showDashboard && (
                             <Button
                                 variant="ghost"
@@ -2662,15 +2673,15 @@ const BusinessBookingPage = () => {
                                                                                                     <div className="space-y-2 flex-1">
                                                                                                         <div className="flex items-center justify-between gap-2">
                                                                                                             <h4 className="text-base sm:text-lg font-black uppercase italic tracking-tighter leading-none group-hover:text-primary transition-colors">
-                                                                                                                {service?.name || booking.serviceName || "Servicio"}
+                                                                                                                {booking.serviceName || service?.name || "Servicio"}
                                                                                                             </h4>
-                                                                                                            <span className="text-sm font-black italic text-primary shrink-0">${service?.price || 0}</span>
+                                                                                                            <span className="text-sm font-black italic text-primary shrink-0">${booking.servicePrice ?? service?.price ?? 0}</span>
                                                                                                         </div>
 
                                                                                                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] sm:text-xs text-muted-foreground font-medium italic">
                                                                                                             <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-100 dark:border-slate-800">
                                                                                                                 <Clock className="w-3 h-3 text-primary" />
-                                                                                                                <span>{format(new Date(booking.scheduledAt), "HH:mm")} ({service?.durationMinutes || 0} min)</span>
+                                                                                                                <span>{format(new Date(booking.scheduledAt), "HH:mm")} ({booking.serviceDuration ?? service?.durationMinutes ?? 0} min)</span>
                                                                                                             </div>
 
                                                                                                             {booking.resourceId && (
@@ -2771,9 +2782,9 @@ const BusinessBookingPage = () => {
                                                                                     <div className="space-y-2 flex-1">
                                                                                         <div className="flex items-center justify-between gap-2">
                                                                                             <h4 className="text-base font-bold uppercase italic tracking-tighter leading-none">
-                                                                                                {service?.name || booking.serviceName || "Servicio"}
+                                                                                                {booking.serviceName || service?.name || "Servicio"}
                                                                                             </h4>
-                                                                                            <span className="text-xs font-black italic text-muted-foreground shrink-0">${service?.price || 0}</span>
+                                                                                            <span className="text-xs font-black italic text-muted-foreground shrink-0">${booking.servicePrice ?? service?.price ?? 0}</span>
                                                                                         </div>
 
                                                                                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] text-muted-foreground font-medium italic">
@@ -3012,70 +3023,51 @@ const BusinessBookingPage = () => {
 
             </div>
 
-            {/* Social Media Footer */}
-            {
-                (business.settings?.facebook || business.settings?.instagram || business.settings?.twitter || business.settings?.website) && (
-                    <div className="max-w-5xl mx-auto px-4 py-8 mt-8 border-t">
-                        <div className="flex flex-col items-center gap-4">
-                            <h3 className="text-sm font-semibold text-muted-foreground">Síguenos</h3>
-                            <div className="flex gap-4">
-                                {business.settings?.facebook && (
-                                    <a
-                                        href={business.settings.facebook}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-muted-foreground hover:text-primary transition-colors"
-                                        aria-label="Facebook"
-                                    >
-                                        <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                                        </svg>
-                                    </a>
-                                )}
-                                {business.settings?.instagram && (
-                                    <a
-                                        href={business.settings.instagram}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-muted-foreground hover:text-primary transition-colors"
-                                        aria-label="Instagram"
-                                    >
-                                        <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                                        </svg>
-                                    </a>
-                                )}
-                                {business.settings?.twitter && (
-                                    <a
-                                        href={business.settings.twitter}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-muted-foreground hover:text-primary transition-colors"
-                                        aria-label="Twitter"
-                                    >
-                                        <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                                        </svg>
-                                    </a>
-                                )}
-                                {business.settings?.website && (
-                                    <a
-                                        href={business.settings.website}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-muted-foreground hover:text-primary transition-colors"
-                                        aria-label="Website"
-                                    >
-                                        <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                                        </svg>
-                                    </a>
-                                )}
-                            </div>
+
+
+            {/* Footer Section */}
+            {(business.settings?.facebook || business.settings?.instagram || business.settings?.twitter || business.settings?.website) ? (
+                <div className="max-w-5xl w-full mx-auto px-4 py-8 sm:py-12 mt-auto border-t border-slate-200 dark:border-slate-800/50">
+                    <div className="flex flex-col items-center gap-6">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">Síguenos</h3>
+                        <div className="flex gap-6">
+                            {business.settings?.facebook && (
+                                <a href={business.settings.facebook} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-all hover:scale-110" aria-label="Facebook">
+                                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+                                </a>
+                            )}
+                            {business.settings?.instagram && (
+                                <a href={business.settings.instagram} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-all hover:scale-110" aria-label="Instagram">
+                                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" /></svg>
+                                </a>
+                            )}
+                            {business.settings?.twitter && (
+                                <a href={business.settings.twitter} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-all hover:scale-110" aria-label="Twitter">
+                                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+                                </a>
+                            )}
+                            {business.settings?.website && (
+                                <a href={business.settings.website} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-all hover:scale-110" aria-label="Website">
+                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
+                                </a>
+                            )}
+                        </div>
+                        <div className="pt-8 flex flex-col items-center gap-2 opacity-30">
+                            <div className="h-px w-8 bg-muted-foreground/30"></div>
+                            <p className="text-[9px] font-black uppercase tracking-[0.4em] italic text-muted-foreground">BookPro Systems</p>
                         </div>
                     </div>
-                )
-            }
+                </div>
+            ) : (
+                <div className="max-w-5xl w-full mx-auto px-4 py-12 mt-auto border-t border-slate-200/30 dark:border-slate-800/20">
+                    <div className="flex flex-col items-center gap-2 opacity-20">
+                        <div className="h-px w-12 bg-muted-foreground/30 mb-2"></div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground italic">
+                            BookPro <span className="text-primary italic">Systems</span>
+                        </p>
+                    </div>
+                </div>
+            )}
             <OtpVerificationModal
                 isOpen={isOtpModalOpen}
                 onClose={() => setIsOtpModalOpen(false)}
@@ -3099,76 +3091,88 @@ const BusinessBookingPage = () => {
             />
 
             <AlertDialog open={isRequestingDashboard} onOpenChange={setIsRequestingDashboard}>
-                <AlertDialogContent className="rounded-[1.5rem] sm:rounded-[2rem] border-2 border-slate-100 dark:border-slate-800 shadow-2xl overflow-hidden p-0 max-w-[95%] sm:max-w-[400px] mx-4">
-                    <div className="bg-primary/5 p-4 sm:p-6 md:p-8 border-b border-primary/10 relative">
-                        <div className="absolute top-4 right-4 h-8 w-8 sm:h-12 sm:w-12 bg-primary/10 rounded-full blur-xl animate-pulse"></div>
-                        <div className="h-10 w-10 sm:h-12 sm:w-12 md:h-16 md:w-16 rounded-xl sm:rounded-2xl bg-primary flex items-center justify-center text-white mb-3 sm:mb-4 shadow-lg shadow-primary/20">
-                            <Receipt className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" />
-                        </div>
-                        <AlertDialogHeader className="text-left space-y-1 sm:space-y-2">
-                            <AlertDialogTitle className="text-xl sm:text-2xl md:text-3xl font-black uppercase italic tracking-tighter leading-none">
-                                Mis <span className="text-primary italic">Reservas</span>
-                            </AlertDialogTitle>
-                            <AlertDialogDescription className="text-xs sm:text-sm font-medium italic opacity-70 leading-relaxed">
-                                Ingresa tu correo para ver tus citas y paquetes. Te enviaremos un código de seguridad.
-                            </AlertDialogDescription>
-                        </AlertDialogHeader>
-                    </div>
+                <AlertDialogContent className="rounded-[2rem] sm:rounded-[2.5rem] border-0 shadow-[0_20px_50px_rgba(0,0,0,0.1)] overflow-hidden p-0 max-w-[92%] sm:max-w-[420px] mx-auto bg-white dark:bg-slate-950 max-h-[90vh] overflow-y-auto flex flex-col">
+                    <div className="p-6 sm:p-10 text-center relative flex-1">
+                        {/* Gradient Background Effect */}
+                        <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-slate-50 to-transparent dark:from-slate-900/50 -z-10"></div>
 
-                    <div className="p-4 sm:p-6 md:p-8 space-y-3 sm:space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Tu Correo Electrónico</label>
-                            <div className="relative group">
-                                <Mail className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                                <Input
-                                    value={dashboardEmail}
-                                    onChange={(e) => setDashboardEmail(e.target.value)}
-                                    placeholder="tu@email.com"
-                                    className="h-12 sm:h-14 pl-10 sm:pl-12 rounded-xl border-2 border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 font-bold italic focus:ring-primary/20 transition-all text-sm"
-                                    onKeyDown={async (e) => {
-                                        if (e.key === 'Enter' && dashboardEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dashboardEmail)) {
-                                            try {
-                                                const purpose = 'CLIENT_ACCESS';
-                                                const res = await requestOtp(dashboardEmail, businessId!, purpose);
-                                                if (res.requiresOtp) {
-                                                    setOtpPurpose(purpose);
-                                                    setIsOtpModalOpen(true);
+                        <div className="flex flex-col items-center">
+                            {/* Icon Container - Dark and Premium */}
+                            <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-[#0f172a] flex items-center justify-center text-white mb-4 sm:mb-6 shadow-xl shadow-slate-200 dark:shadow-none transition-transform hover:scale-105 duration-300">
+                                <Ticket className="w-6 h-6 sm:w-8 sm:h-8" />
+                            </div>
+
+                            <AlertDialogHeader className="space-y-2 sm:space-y-3">
+                                <AlertDialogTitle className="text-xl sm:text-3xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white leading-tight">
+                                    Mis Reservas
+                                </AlertDialogTitle>
+                                <AlertDialogDescription className="text-[11px] sm:text-sm font-medium italic text-slate-500 dark:text-slate-400 leading-relaxed max-w-[260px] sm:max-w-[280px] mx-auto">
+                                    Ingresa tu correo para ver tus citas y paquetes. Te enviaremos un código de seguridad.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                        </div>
+
+                        <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6 text-left border-t border-slate-100 dark:border-slate-800 pt-6 sm:pt-8">
+                            <div className="space-y-2 sm:space-y-3">
+                                <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 ml-1">
+                                    Tu Correo Electrónico
+                                </label>
+                                <div className="relative group">
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-300 group-focus-within:text-primary transition-colors" />
+                                    <Input
+                                        value={dashboardEmail}
+                                        onChange={(e) => setDashboardEmail(e.target.value)}
+                                        placeholder="tu@email.com"
+                                        className="h-12 sm:h-14 pl-11 sm:pl-12 rounded-xl border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 font-bold italic focus:ring-primary/20 transition-all text-sm border-2 focus:border-primary/30"
+                                        onKeyDown={async (e) => {
+                                            if (e.key === 'Enter' && dashboardEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dashboardEmail)) {
+                                                try {
+                                                    const purpose = 'CLIENT_ACCESS';
+                                                    const res = await requestOtp(dashboardEmail, businessId!, purpose);
+                                                    if (res.requiresOtp) {
+                                                        setOtpPurpose(purpose);
+                                                        setIsOtpModalOpen(true);
+                                                    }
+                                                } catch (err) {
+                                                    toast.error("Error al solicitar el código. Por favor intenta de nuevo.");
                                                 }
-                                            } catch (err) {
-                                                toast.error("Error al solicitar el código. Por favor intenta de nuevo.");
                                             }
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2 sm:gap-3">
+                                <Button
+                                    disabled={!dashboardEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dashboardEmail)}
+                                    onClick={async () => {
+                                        try {
+                                            const purpose = 'CLIENT_ACCESS';
+                                            const res = await requestOtp(dashboardEmail, businessId!, purpose);
+                                            if (res.requiresOtp) {
+                                                setOtpPurpose(purpose);
+                                                setIsOtpModalOpen(true);
+                                            }
+                                        } catch (err) {
+                                            toast.error("Error al solicitar el código. Por favor intenta de nuevo.");
                                         }
                                     }}
-                                />
+                                    className="h-12 sm:h-14 rounded-xl font-black uppercase italic tracking-widest text-[10px] sm:text-[11px] shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
+                                    style={{
+                                        backgroundColor: business?.settings?.primaryColor || '#94a3b8',
+                                        color: isColorDark(business?.settings?.primaryColor || '#94a3b8') ? 'white' : 'black'
+                                    }}
+                                >
+                                    Enviar Código <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-2" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => setIsRequestingDashboard(false)}
+                                    className="h-10 sm:h-12 rounded-xl font-black uppercase italic tracking-widest text-[9px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                                >
+                                    Cancelar
+                                </Button>
                             </div>
-                        </div>
-
-                        <div className="flex flex-col gap-2 pt-1 sm:pt-2">
-                            <Button
-                                disabled={!dashboardEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dashboardEmail)}
-                                onClick={async () => {
-                                    try {
-                                        const purpose = 'CLIENT_ACCESS';
-                                        const res = await requestOtp(dashboardEmail, businessId!, purpose);
-                                        if (res.requiresOtp) {
-                                            setOtpPurpose(purpose);
-                                            setIsOtpModalOpen(true);
-                                        }
-                                    } catch (err) {
-                                        toast.error("Error al solicitar el código. Por favor intenta de nuevo.");
-                                    }
-                                }}
-                                className="h-12 sm:h-14 rounded-xl font-black uppercase italic tracking-widest text-[10px] sm:text-[11px] shadow-xl shadow-primary/20"
-                            >
-                                Enviar Código <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-2" />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                onClick={() => setIsRequestingDashboard(false)}
-                                className="h-10 rounded-xl font-black uppercase italic tracking-widest text-[9px] text-muted-foreground"
-                            >
-                                Cancelar
-                            </Button>
                         </div>
                     </div>
                 </AlertDialogContent>
@@ -3254,6 +3258,41 @@ const BusinessBookingPage = () => {
                             Cambiar Fecha
                         </AlertDialogAction>
                     </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Modal para restricción de un lugar por clase */}
+            <AlertDialog open={isSingleSpotModalOpen} onOpenChange={setIsSingleSpotModalOpen}>
+                <AlertDialogContent className="rounded-[2rem] border-2 border-slate-100 dark:border-slate-800 p-0 overflow-hidden max-w-[90vw] sm:max-w-md">
+                    <div className="bg-primary/5 p-8 flex flex-col items-center text-center">
+                        <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 animate-bounce">
+                            <Info className="h-8 w-8 text-primary" />
+                        </div>
+                        <h3 className="text-2xl font-black uppercase italic tracking-tighter leading-tight mb-4">
+                            ¡Un momento! <br />
+                            <span className="text-primary">Ya tienes un lugar</span>
+                        </h3>
+                        <p className="text-sm font-medium italic text-muted-foreground leading-relaxed">
+                            Solo se permite reservar <span className="text-foreground font-bold">un lugar por persona</span> en cada clase. Si quieres ir con alguien más, esa persona debe realizar su propia reserva con su cuenta.
+                        </p>
+                    </div>
+                    <div className="p-6 bg-white dark:bg-slate-950 flex flex-col gap-3">
+                        <AlertDialogAction
+                            onClick={() => {
+                                setIsSingleSpotModalOpen(false);
+                                goToStepType('SERVICE');
+                            }}
+                            className="h-12 rounded-xl font-black uppercase italic tracking-widest text-xs text-white"
+                        >
+                            Entendido
+                        </AlertDialogAction>
+                        <AlertDialogCancel
+                            onClick={() => setIsSingleSpotModalOpen(false)}
+                            className="h-10 border-0 font-bold uppercase tracking-widest text-[9px] opacity-50"
+                        >
+                            Cerrar
+                        </AlertDialogCancel>
+                    </div>
                 </AlertDialogContent>
             </AlertDialog>
         </div >

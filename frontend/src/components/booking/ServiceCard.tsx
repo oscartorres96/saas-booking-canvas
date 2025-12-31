@@ -66,35 +66,42 @@ export const ServiceCard = ({ service, primaryColor, onBook, isSelected, applica
         </div>
 
         <CardContent className="flex-grow flex flex-col p-4 sm:p-6 space-y-3 sm:space-y-4">
-          <div className="space-y-1.5 sm:space-y-2">
-            <h4 className="text-xl sm:text-2xl font-black uppercase italic tracking-tighter leading-tight group-hover:text-primary transition-colors">
-              {service.name}
-            </h4>
-            {service.description && (
-              <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium leading-relaxed line-clamp-2">
-                {service.description}
-              </p>
+          <div className="flex-1 space-y-3 sm:space-y-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <h4 className="text-xl sm:text-2xl font-black uppercase italic tracking-tighter leading-tight group-hover:text-primary transition-colors">
+                {service.name}
+              </h4>
+              {service.description && (
+                <p className="text-[10px] sm:text-[11px] text-muted-foreground font-medium leading-relaxed line-clamp-2 min-h-[2.5em]">
+                  {service.description}
+                </p>
+              )}
+            </div>
+
+
+            {applicablePackages && applicablePackages.length > 0 ? (
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 min-h-[26px]">
+                <div className="flex items-center gap-1 shrink-0 bg-secondary/30 px-1.5 py-0.5 rounded-md border border-secondary/50">
+                  <Package className="h-2.5 w-2.5 text-purple-600 dark:text-purple-400" />
+                  <span className="text-[7px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-300">Pack:</span>
+                </div>
+
+                <div className="flex items-center gap-1 flex-nowrap">
+                  {applicablePackages.map(pkg => (
+                    <Badge
+                      key={pkg.id}
+                      variant="secondary"
+                      className="shrink-0 bg-transparent border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 text-[7px] font-black uppercase tracking-wider h-4 px-1.5 shadow-sm whitespace-nowrap"
+                    >
+                      {pkg.name}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="min-h-[26px]" aria-hidden="true"></div>
             )}
           </div>
-
-
-          {applicablePackages && applicablePackages.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              <div className="w-full flex items-center gap-1 mb-1">
-                <Package className="h-3 w-3 text-purple-500" />
-                <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Disponible en paquetes:</span>
-              </div>
-              {applicablePackages.map(pkg => (
-                <Badge
-                  key={pkg.id}
-                  variant="secondary"
-                  className="bg-purple-50 text-purple-700 border border-purple-100 hover:bg-purple-100 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800 text-[8px] font-bold uppercase tracking-wide h-5 px-1.5"
-                >
-                  {pkg.name}
-                </Badge>
-              ))}
-            </div>
-          )}
 
           <div className="mt-auto pt-4 sm:pt-6 space-y-4 sm:space-y-6">
             <div className="flex items-center gap-4 sm:gap-6 border-t border-slate-100 dark:border-slate-800/50 pt-4 sm:pt-6">
@@ -131,7 +138,7 @@ export const ServiceCard = ({ service, primaryColor, onBook, isSelected, applica
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </motion.div >
   );
 };
 

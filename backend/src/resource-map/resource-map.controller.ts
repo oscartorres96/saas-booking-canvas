@@ -9,18 +9,28 @@ export class ResourceMapController {
     @Get(':businessId/availability')
     async getAvailability(
         @Param('businessId') businessId: string,
+        @Query('serviceId') serviceId: string,
         @Query('scheduledAt') scheduledAt: string,
         @Query('sessionId') sessionId?: string,
     ) {
-        return this.resourceMapService.getAvailability(businessId, new Date(scheduledAt), sessionId);
+        return this.resourceMapService.getAvailability(businessId, serviceId, new Date(scheduledAt), sessionId);
+    }
+
+    @Get(':businessId/:serviceId/config')
+    async getConfig(
+        @Param('businessId') businessId: string,
+        @Param('serviceId') serviceId: string,
+    ) {
+        return this.resourceMapService.getConfig(businessId, serviceId);
     }
 
     @Post('hold')
     async createHold(
-        @Body() body: { businessId: string; resourceId: string; scheduledAt: string; sessionId?: string },
+        @Body() body: { businessId: string; serviceId: string; resourceId: string; scheduledAt: string; sessionId?: string },
     ) {
         return this.resourceMapService.createHold(
             body.businessId,
+            body.serviceId,
             body.resourceId,
             new Date(body.scheduledAt),
             body.sessionId,
@@ -35,11 +45,12 @@ export class ResourceMapController {
     }
 
     @UseGuards(JwtAuthGuard)
-    @Put(':businessId/config')
+    @Put(':businessId/:serviceId/config')
     async updateConfig(
         @Param('businessId') businessId: string,
+        @Param('serviceId') serviceId: string,
         @Body() config: any,
     ) {
-        return this.resourceMapService.updateConfig(businessId, config);
+        return this.resourceMapService.updateConfig(businessId, serviceId, config);
     }
 }

@@ -13,12 +13,15 @@ import { OtpController } from './otp/otp.controller';
 import { OtpVerification, OtpVerificationSchema } from './schemas/otp-verification.schema';
 import { ResourceHold, ResourceHoldSchema } from '../resource-map/schemas/resource-hold.schema';
 
+import { ResourceMap, ResourceMapSchema } from '../resource-map/schemas/resource-map.schema';
+
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Booking.name, schema: BookingSchema },
       { name: Service.name, schema: ServiceSchema },
       { name: Business.name, schema: BusinessSchema },
+      { name: ResourceMap.name, schema: ResourceMapSchema },
       { name: OtpVerification.name, schema: OtpVerificationSchema },
       { name: ResourceHold.name, schema: ResourceHoldSchema },
     ]),

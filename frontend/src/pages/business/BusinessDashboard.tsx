@@ -620,7 +620,6 @@ const BusinessDashboard = () => {
                                         <TabsTrigger value="catalog" className="premium-tab-trigger">{t('dashboard.tabs.catalog', 'Oferta')}</TabsTrigger>
                                         <TabsTrigger value="settings" className="premium-tab-trigger">{t('dashboard.tabs.settings')}</TabsTrigger>
                                         <TabsTrigger value="billing" className="premium-tab-trigger">{t('dashboard.tabs.billing')}</TabsTrigger>
-                                        <TabsTrigger value="resource-map" className="premium-tab-trigger">{t('dashboard.tabs.resource_map', 'Mapa de Recursos')}</TabsTrigger>
                                     </TabsList>
                                 </div>
                             </div>
@@ -918,20 +917,6 @@ const BusinessDashboard = () => {
                             <Billing businessId={businessId!} />
                         </TabsContent>
 
-                        <TabsContent value="resource-map">
-                            <ResourceMapEditor
-                                businessId={businessId!}
-                                initialConfig={business.resourceConfig ? {
-                                    enabled: Boolean(business.resourceConfig.enabled),
-                                    resourceType: String(business.resourceConfig.resourceType || "Bici"),
-                                    resourceLabel: String(business.resourceConfig.resourceLabel || "B"),
-                                    layoutType: String(business.resourceConfig.layoutType || "spinning"),
-                                    rows: Number(business.resourceConfig.rows || 4),
-                                    cols: Number(business.resourceConfig.cols || 6),
-                                    resources: business.resourceConfig.resources || []
-                                } : undefined}
-                            />
-                        </TabsContent>
                     </Tabs>
 
                     {/* QR Code Dialog */}

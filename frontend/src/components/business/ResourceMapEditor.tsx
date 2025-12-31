@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { updateBusinessResourceConfig } from "@/api/businessesApi";
+import { updateResourceConfig, getResourceConfig } from "@/api/resourceMapApi";
 import { Grid3X3, Save, RefreshCw, MousePointer2, Settings2, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -40,10 +41,11 @@ interface ResourceConfig {
 
 interface ResourceMapEditorProps {
     businessId: string;
+    serviceId?: string;
     initialConfig?: ResourceConfig;
 }
 
-export const ResourceMapEditor = ({ businessId, initialConfig }: ResourceMapEditorProps) => {
+export const ResourceMapEditor = ({ businessId, serviceId, initialConfig }: ResourceMapEditorProps) => {
     const [config, setConfig] = useState<ResourceConfig>(initialConfig || {
         enabled: false,
         resourceType: "Bici",
@@ -55,6 +57,27 @@ export const ResourceMapEditor = ({ businessId, initialConfig }: ResourceMapEdit
     });
 
     const [isLoading, setIsLoading] = useState(false);
+    const [isGlobalFallback, setIsGlobalFallback] = useState(false);
+
+    useEffect(() => {
+        if (serviceId && !initialConfig) {
+            const fetchConfig = async () => {
+                try {
+                    setIsLoading(true);
+                    const data: any = await getResourceConfig(businessId, serviceId);
+                    if (data) {
+                        setConfig(data as ResourceConfig);
+                        setIsGlobalFallback(data.isGlobalFallback || false);
+                    }
+                } catch (error) {
+                    console.error("Error fetching resource map config:", error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            fetchConfig();
+        }
+    }, [businessId, serviceId, initialConfig]);
 
     const generateResources = useCallback((forceScale: boolean = false) => {
         const newResources: Resource[] = [];
@@ -74,14 +97,14 @@ export const ResourceMapEditor = ({ businessId, initialConfig }: ResourceMapEdit
             }
         }
         setConfig(prev => ({ ...prev, resources: newResources }));
-    }, [config.rows, config.cols, config.resourceLabel]);
+    }, [config.rows, config.cols, config.resourceLabel, config.resources]);
 
     useEffect(() => {
         const hasDimensionChange = config.resources.length !== (config.rows * config.cols);
         if (hasDimensionChange) {
             generateResources();
         }
-    }, [config.rows, config.cols, generateResources]);
+    }, [config.rows, config.cols, generateResources, config.resources.length]);
 
     useEffect(() => {
         setConfig(prev => ({
@@ -105,7 +128,11 @@ export const ResourceMapEditor = ({ businessId, initialConfig }: ResourceMapEdit
     const handleSave = async () => {
         try {
             setIsLoading(true);
-            await updateBusinessResourceConfig(businessId, config);
+            if (serviceId) {
+                await updateResourceConfig(businessId, serviceId, config);
+            } else {
+                await updateBusinessResourceConfig(businessId, config);
+            }
             toast.success("Configuración del mapa guardada");
         } catch (error) {
             toast.error("Error al guardar la configuración");
@@ -118,6 +145,17 @@ export const ResourceMapEditor = ({ businessId, initialConfig }: ResourceMapEdit
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {isGlobalFallback && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-2xl flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 text-amber-800 dark:text-amber-500">
+                        <Settings2 className="h-5 w-5 shrink-0" />
+                        <div>
+                            <p className="text-xs font-black uppercase tracking-widest">Configuración Global Activa</p>
+                            <p className="text-[10px] font-bold italic opacity-80">Este servicio está usando el mapa de sala general del negocio. Al guardar cambios aquí, se creará una configuración específica para este servicio.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
             <Card className="border-none shadow-xl bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm overflow-hidden">
                 <CardHeader className="border-b bg-slate-50/50 dark:bg-slate-900/50 pb-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

@@ -6,10 +6,13 @@ import { ResourceHold, ResourceHoldSchema } from './schemas/resource-hold.schema
 import { Booking, BookingSchema } from '../bookings/schemas/booking.schema';
 import { Business, BusinessSchema } from '../businesses/schemas/business.schema';
 
+import { ResourceMap, ResourceMapSchema } from './schemas/resource-map.schema';
+
 @Module({
     imports: [
         MongooseModule.forFeature([
             { name: ResourceHold.name, schema: ResourceHoldSchema },
+            { name: ResourceMap.name, schema: ResourceMapSchema },
             { name: Booking.name, schema: BookingSchema },
             { name: Business.name, schema: BusinessSchema },
         ]),

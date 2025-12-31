@@ -4,28 +4,39 @@ import { Model } from 'mongoose';
 import { ResourceHold, ResourceHoldDocument } from './schemas/resource-hold.schema';
 import { Booking, BookingDocument, BookingStatus } from '../bookings/schemas/booking.schema';
 import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
+import { ResourceMap, ResourceMapDocument } from './schemas/resource-map.schema';
 
 @Injectable()
 export class ResourceMapService {
     constructor(
         @InjectModel(ResourceHold.name) private resourceHoldModel: Model<ResourceHoldDocument>,
+        @InjectModel(ResourceMap.name) private resourceMapModel: Model<ResourceMapDocument>,
         @InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
         @InjectModel(Business.name) private businessModel: Model<BusinessDocument>,
     ) { }
 
-    async getAvailability(businessId: string, scheduledAt: Date, sessionId?: string) {
-        const business = await this.businessModel.findById(businessId).lean();
-        if (!business || !business.resourceConfig?.enabled) {
+    async getAvailability(businessId: string, serviceId: string, scheduledAt: Date, sessionId?: string) {
+        // First look for a service-specific map
+        let resourceConfig = await this.resourceMapModel.findOne({ businessId, serviceId }).lean();
+
+        // Backward compatibility: If no service map, check business global config
+        if (!resourceConfig) {
+            const business = await this.businessModel.findById(businessId).lean();
+            if (business?.resourceConfig?.enabled) {
+                resourceConfig = business.resourceConfig as any;
+            }
+        }
+
+        if (!resourceConfig || !resourceConfig.enabled) {
             return null;
         }
 
-        // Define time window (e.g., 1 hour from scheduledAt, or service duration)
-        // For simplicity, let's say resources are locked for the exact start time 
-        // (Actual implementation should consider service duration)
         const start = new Date(scheduledAt);
         const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour window
 
         // Find confirmed bookings for this time
+        // Note: We currently filter by businessId and resourceId.
+        // If resourceIds are unique per business, this works even if they are in different service maps.
         const bookings = await this.bookingModel.find({
             businessId,
             scheduledAt: { $gte: start, $lt: end },
@@ -48,15 +59,15 @@ export class ResourceMapService {
         const userHoldResourceId = sessionId ? holds.find(h => h.sessionId === sessionId)?.resourceId : null;
 
         return {
-            resourceConfig: business.resourceConfig,
+            resourceConfig,
             occupiedResourceIds,
             userHoldResourceId,
         };
     }
 
-    async createHold(businessId: string, resourceId: string, scheduledAt: Date, sessionId?: string) {
+    async createHold(businessId: string, serviceId: string, resourceId: string, scheduledAt: Date, sessionId?: string) {
         // Check if already occupied
-        const availability = await this.getAvailability(businessId, scheduledAt, sessionId);
+        const availability = await this.getAvailability(businessId, serviceId, scheduledAt, sessionId);
         if (availability && availability.occupiedResourceIds.includes(resourceId)) {
             throw new BadRequestException('Resource already occupied or held');
         }
@@ -100,13 +111,40 @@ export class ResourceMapService {
         });
     }
 
-    async updateConfig(businessId: string, config: any) {
-        const business = await this.businessModel.findByIdAndUpdate(
-            businessId,
-            { $set: { resourceConfig: config } },
-            { new: true }
-        );
-        if (!business) throw new NotFoundException('Business not found');
-        return business.resourceConfig;
+    async updateConfig(businessId: string, serviceId: string, config: any) {
+        try {
+            // Sanitize config to avoid potential Mongoose/MongoDB errors with immutable or internal fields
+            // Also strip UI-only fields like isGlobalFallback
+            const { _id, __v, createdAt, updatedAt, businessId: bId, serviceId: sId, isGlobalFallback, ...sanitizedConfig } = config;
+
+            const resourceMap = await this.resourceMapModel.findOneAndUpdate(
+                { businessId, serviceId },
+                { $set: { ...sanitizedConfig, businessId, serviceId } },
+                { new: true, upsert: true, runValidators: true }
+            );
+            return resourceMap;
+        } catch (error) {
+            console.error(`Error updating resource map config for business ${businessId}, service ${serviceId}:`, error);
+            throw error;
+        }
+    }
+
+    async getConfig(businessId: string, serviceId: string) {
+        try {
+            let resourceConfig = await this.resourceMapModel.findOne({ businessId, serviceId }).lean();
+
+            // Fallback for UI configuration
+            if (!resourceConfig) {
+                const business = await this.businessModel.findById(businessId).lean();
+                if (business?.resourceConfig) {
+                    return { ...business.resourceConfig, isGlobalFallback: true };
+                }
+            }
+
+            return resourceConfig;
+        } catch (error) {
+            console.error(`Error getting resource map config for business ${businessId}, service ${serviceId}:`, error);
+            throw error;
+        }
     }
 }
