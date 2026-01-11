@@ -24,7 +24,9 @@
         "optional": "(Optional)",
         "coming_soon": "This feature will be available soon.",
         "back_to_home": "Back to home",
-        "retry": "Retry"
+        "retry": "Retry",
+        "today": "Today",
+        "saving": "Saving..."
     },
     "auth": {
         "logout": "Log out",
@@ -616,6 +618,21 @@
                 "error_reject": "Error rejecting payment"
             }
         },
+        "availability": {
+            "title": "Weekly Availability",
+            "description": "Adjust your schedules for specific weeks, block days or copy the configuration from the previous week.",
+            "week_of": "Week of",
+            "copy_previous": "Copy previous",
+            "save": "Save Schedule",
+            "no_intervals": "No intervals defined",
+            "toasts": {
+                "saved": "Availability saved successfully",
+                "error": "Error saving availability",
+                "week_copied": "Previous week copied",
+                "no_previous_data": "No data from previous week",
+                "copy_error": "Error copying week"
+            }
+        },
         "qr": {
             "dialog_title": "Get More Clients",
             "title": "Make booking easier",
@@ -678,7 +695,34 @@
             "description": "Basic details of your business visible to clients.",
             "name": "Business Name",
             "short_desc": "Short Description",
-            "default_duration": "Default Service Duration (min)",
+            "capacity": {
+                "title": "Booking Capacity per Slot",
+                "description": "Define how many bookings can exist at the same time in a slot",
+                "mode_label": "How many bookings do you allow per slot?",
+                "single_radio": "Only one booking per slot",
+                "single_desc": "Recommended for 1-on-1 consultations (dentist, nutritionist, private sessions)",
+                "multiple_radio": "Multiple bookings in the same slot",
+                "multiple_desc": "Ideal for group classes, parallel sessions or events (cycling, yoga, workshops)",
+                "max_label": "Maximum number of bookings per slot",
+                "max_placeholder": "Ex: 10",
+                "max_helper": "Example: 10 people in a cycling class, 20 in a yoga session",
+                "validation_min": "You must allow at least 2 simultaneous bookings",
+                "tooltip_single": "Each slot can only have 1 client",
+                "tooltip_multiple": "Multiple clients can book the same slot"
+            },
+            "experience": {
+                "title": "Booking Experience",
+                "description": "Configure how your clients view and book their appointments.",
+                "view_mode": "View Mode",
+                "calendar": "Classic Calendar",
+                "week": "Weekly View (Quick)",
+                "horizon": "Days to show",
+                "horizon_desc": "How many days ahead the client can see.",
+                "week_start": "View start",
+                "start_current": "Current Day",
+                "start_monday": "Next Monday",
+                "start_desc": "Where the list of days begins."
+            },
             "logo": "Business Logo"
         },
         "branding": {

@@ -98,6 +98,7 @@ import { getBusinessById, type Business } from "@/api/businessesApi";
 import { getServicesByBusiness, createService, updateService, deleteService, type Service } from "@/api/servicesApi";
 import { getBookingsByBusiness, updateBooking, resendConfirmation, type Booking } from "@/api/bookingsApi";
 import { getProductsByBusiness, type Product } from "@/api/productsApi";
+import { WeeklyAvailabilityPlanner } from "@/components/business/WeeklyAvailabilityPlanner";
 import { getByBusiness as getCustomerAssetsByBusiness, type CustomerAsset } from "@/api/customerAssetsApi";
 import { getPaymentsByBusiness } from "@/api/stripeApi";
 import { ExpirationBanner } from "@/components/ExpirationBanner";
@@ -618,6 +619,7 @@ const BusinessDashboard = () => {
                                     <TabsList className="premium-tabs-list">
                                         <TabsTrigger value="dashboard" className="premium-tab-trigger">{t('dashboard.tabs.dashboard')}</TabsTrigger>
                                         <TabsTrigger value="catalog" className="premium-tab-trigger">{t('dashboard.tabs.catalog', 'Oferta')}</TabsTrigger>
+                                        <TabsTrigger value="availability" className="premium-tab-trigger">{t('dashboard.tabs.availability', 'Disponibilidad')}</TabsTrigger>
                                         <TabsTrigger value="settings" className="premium-tab-trigger">{t('dashboard.tabs.settings')}</TabsTrigger>
                                         <TabsTrigger value="billing" className="premium-tab-trigger">{t('dashboard.tabs.billing')}</TabsTrigger>
                                     </TabsList>
@@ -904,6 +906,22 @@ const BusinessDashboard = () => {
                                         services={services}
                                         products={products}
                                         onDataUpdate={() => loadData(false)}
+                                    />
+                                </CardContent>
+                            </DashboardSection>
+                        </TabsContent>
+
+                        <TabsContent value="availability" className="space-y-6">
+                            <DashboardSection>
+                                <SectionHeader
+                                    title={t('dashboard.availability.title', 'Disponibilidad Semanal')}
+                                    description={t('dashboard.availability.description', 'Ajusta tus horarios para semanas específicas, bloquea días o copia la configuración de la semana anterior.')}
+                                    icon={CalendarIcon}
+                                />
+                                <CardContent className="p-0 sm:p-6">
+                                    <WeeklyAvailabilityPlanner
+                                        businessId={businessId!}
+                                        businessHours={business?.settings?.businessHours}
                                     />
                                 </CardContent>
                             </DashboardSection>

@@ -66,8 +66,8 @@ export const generateSlots = (
     existingBookings: ExistingBooking[],
     maxCapacity: number = 1
 ): { time: string, isAvailable: boolean }[] => {
-    // Use Spanish locale to match stored day names (e.g., "Lunes", "Martes")
-    const dayName = format(date, 'EEEE', { locale: es }).toLowerCase();
+    // Use default (English) locale to match stored day names (e.g., "monday", "tuesday")
+    const dayName = format(date, 'eeee').toLowerCase();
     console.log(`[generateSlots] Detecting day for date ${date}: "${dayName}"`);
 
     const todaySchedule = businessHours.find((h) => h.day.toLowerCase() === dayName);

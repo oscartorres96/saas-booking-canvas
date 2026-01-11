@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { BusinessHoursForm, daysOfWeek } from "./BusinessHoursForm";
@@ -27,7 +28,7 @@ import {
     AdminLabel,
     InnerCard
 } from "@/components/dashboard/DashboardBase";
-import { Settings, Save, Globe, Palette, Clock, CreditCard, ShieldCheck, Building2, Zap, Check, AlertCircle, RefreshCw } from "lucide-react";
+import { Settings, Save, Globe, Palette, Clock, CreditCard, ShieldCheck, Building2, Zap, Check, AlertCircle, RefreshCw, Calendar, Layout } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const intervalSchema = (t: any) => z.object({
@@ -59,6 +60,9 @@ const createFormSchema = (t: any) => z.object({
     paymentMode: z.enum(["BOOKPRO_COLLECTS", "DIRECT_TO_BUSINESS"]).default("BOOKPRO_COLLECTS"),
     stripeConnectAccountId: z.string().optional(),
     taxId: z.string().optional(),
+    bookingViewMode: z.enum(['CALENDAR', 'WEEK']).default('WEEK'),
+    weekHorizonDays: z.coerce.number().min(1).max(30).default(14),
+    weekStart: z.enum(['current', 'monday']).default('current'),
     businessHours: z.array(z.object({
         day: z.string(),
         isOpen: z.boolean(),
@@ -137,6 +141,9 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
             paymentMode: "BOOKPRO_COLLECTS",
             stripeConnectAccountId: "",
             taxId: "",
+            bookingViewMode: "CALENDAR",
+            weekHorizonDays: 14,
+            weekStart: "current",
             businessHours: daysOfWeek.map(d => ({
                 day: d.key,
                 isOpen: true,
@@ -199,6 +206,9 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     paymentMode: business.paymentMode || "BOOKPRO_COLLECTS",
                     stripeConnectAccountId: business.stripeConnectAccountId || "",
                     taxId: business.taxConfig?.taxId || "",
+                    bookingViewMode: business.bookingConfig?.bookingViewMode || "CALENDAR",
+                    weekHorizonDays: business.bookingConfig?.weekHorizonDays || 14,
+                    weekStart: business.bookingConfig?.weekStart || "current",
                     businessHours: business.settings?.businessHours?.length
                         ? business.settings.businessHours.map((bh) => ({
                             day: bh.day,
@@ -294,12 +304,14 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     bookingConfig: {
                         allowMultipleBookingsPerDay: Boolean(values.allowMultipleBookingsPerDay),
                         cancellationWindowHours: Number(values.cancellationWindowHours) || 0,
+                        bookingViewMode: values.bookingViewMode, // Added
+                        weekHorizonDays: Number(values.weekHorizonDays), // Added
+                        weekStart: values.weekStart, // Added
                     },
                     bookingCapacityConfig: {
                         mode: values.bookingCapacityMode,
                         maxBookingsPerSlot: values.bookingCapacityMode === 'MULTIPLE'
-                            ? Number(values.maxBookingsPerSlot) || null
-                            : null,
+                            ? Number(values.maxBookingsPerSlot) : 1, // Changed from || null to : 1
                     }
                 };
                 console.log('[DEBUG] Saving booking config:', dataToSubmit);
@@ -864,6 +876,100 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                                     </FormItem>
                                                 )}
                                             />
+                                        )}
+                                    </div>
+                                </InnerCard>
+
+                                <InnerCard>
+                                    <AdminLabel icon={Layout}>Experiencia de Reserva</AdminLabel>
+                                    <p className="text-sm text-muted-foreground mt-1 mb-4">
+                                        Configura cómo tus clientes ven y reservan sus citas.
+                                    </p>
+
+                                    <div className="space-y-6">
+                                        <FormField
+                                            control={form.control}
+                                            name="bookingViewMode"
+                                            render={({ field }) => (
+                                                <FormItem className="space-y-3">
+                                                    <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Modo de visualización</FormLabel>
+                                                    <FormControl>
+                                                        <RadioGroup
+                                                            onValueChange={field.onChange}
+                                                            value={field.value}
+                                                            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                                                        >
+                                                            <FormItem>
+                                                                <FormControl>
+                                                                    <RadioGroupItem value="CALENDAR" id="calendar-mode" className="peer sr-only" />
+                                                                </FormControl>
+                                                                <Label
+                                                                    htmlFor="calendar-mode"
+                                                                    className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 transition-all hover:bg-muted/50 cursor-pointer ${field.value === 'CALENDAR' ? 'border-primary bg-primary/5' : 'border-muted'}`}
+                                                                    onClick={() => field.onChange('CALENDAR')}
+                                                                >
+                                                                    <Calendar className="mb-3 h-6 w-6" />
+                                                                    <span className="font-bold uppercase italic tracking-tighter text-[10px]">Calendario Clásico</span>
+                                                                </Label>
+                                                            </FormItem>
+                                                            <FormItem>
+                                                                <FormControl>
+                                                                    <RadioGroupItem value="WEEK" id="week-mode" className="peer sr-only" />
+                                                                </FormControl>
+                                                                <Label
+                                                                    htmlFor="week-mode"
+                                                                    className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 transition-all hover:bg-muted/50 cursor-pointer ${field.value === 'WEEK' ? 'border-primary bg-primary/5' : 'border-muted'}`}
+                                                                    onClick={() => field.onChange('WEEK')}
+                                                                >
+                                                                    <Zap className="mb-3 h-6 w-6 text-primary" />
+                                                                    <span className="font-bold uppercase italic tracking-tighter text-[10px]">Vista Semanal (Rápida)</span>
+                                                                </Label>
+                                                            </FormItem>
+                                                        </RadioGroup>
+                                                    </FormControl>
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        {form.watch('bookingViewMode') === 'WEEK' && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 animate-in fade-in slide-in-from-top-2">
+                                                <FormField
+                                                    control={form.control}
+                                                    name="weekHorizonDays"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Días a mostrar</FormLabel>
+                                                            <FormControl>
+                                                                <Input type="number" {...field} className="rounded-xl h-10" />
+                                                            </FormControl>
+                                                            <div className="text-[10px] text-muted-foreground mt-1 italic">Cuántos días puede ver el cliente hacia adelante.</div>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={form.control}
+                                                    name="weekStart"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Inicio de vista</FormLabel>
+                                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                                <FormControl>
+                                                                    <SelectTrigger className="rounded-xl h-10 bg-white dark:bg-slate-950">
+                                                                        <SelectValue placeholder="Selecciona inicio" />
+                                                                    </SelectTrigger>
+                                                                </FormControl>
+                                                                <SelectContent>
+                                                                    <SelectItem value="current" className="font-bold text-xs uppercase italic tracking-tighter">Día actual</SelectItem>
+                                                                    <SelectItem value="monday" className="font-bold text-xs uppercase italic tracking-tighter">Próximo Lunes</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <div className="text-[10px] text-muted-foreground mt-1 italic">Desde dónde comienza la lista de días.</div>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </div>
                                         )}
                                     </div>
                                 </InnerCard>

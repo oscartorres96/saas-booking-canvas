@@ -85,6 +85,9 @@ export interface Business {
       enabled: boolean;
       paymentTiming: 'BEFORE_BOOKING';
     };
+    bookingViewMode?: 'CALENDAR' | 'WEEK';
+    weekHorizonDays?: number;
+    weekStart?: 'current' | 'monday';
   };
   taxConfig?: {
     enabled: boolean;

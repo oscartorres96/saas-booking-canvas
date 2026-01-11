@@ -25,7 +25,9 @@
     "optional": "(Opcional)",
     "coming_soon": "Esta funcionalidad estará disponible próximamente.",
     "back_to_home": "Volver al inicio",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "today": "Hoy",
+    "saving": "Guardando..."
   },
   "auth": {
     "logout": "Cerrar sesión",
@@ -640,6 +642,21 @@
         "error_reject": "Error al rechazar pago"
       }
     },
+    "availability": {
+      "title": "Disponibilidad Semanal",
+      "description": "Ajusta tus horarios para semanas específicas, bloquea días o copia la configuración de la semana anterior.",
+      "week_of": "Semana del",
+      "copy_previous": "Copiar anterior",
+      "save": "Guardar Agenda",
+      "no_intervals": "No hay horarios definidos",
+      "toasts": {
+        "saved": "Disponibilidad guardada correctamente",
+        "error": "Error al guardar la disponibilidad",
+        "week_copied": "Semana anterior copiada",
+        "no_previous_data": "No hay datos de la semana anterior",
+        "copy_error": "Error al copiar semana"
+      }
+    },
     "qr": {
       "dialog_title": "Consigue Más Clientes",
       "title": "Haz que reservar sea más fácil",
@@ -702,6 +719,19 @@
         "validation_min": "Debes permitir al menos 2 reservas simultáneas",
         "tooltip_single": "Cada horario solo puede tener 1 cliente",
         "tooltip_multiple": "Múltiples clientes pueden reservar el mismo horario"
+      },
+      "experience": {
+        "title": "Experiencia de Reserva",
+        "description": "Configura cómo tus clientes ven y reservan sus citas.",
+        "view_mode": "Modo de visualización",
+        "calendar": "Calendario Clásico",
+        "week": "Vista Semanal (Rápida)",
+        "horizon": "Días a mostrar",
+        "horizon_desc": "Cuántos días puede ver el cliente hacia adelante.",
+        "week_start": "Inicio de vista",
+        "start_current": "Día actual",
+        "start_monday": "Próximo Lunes",
+        "start_desc": "Desde dónde comienza la lista de días."
       }
     },
     "save": "Guardar Cambios",
