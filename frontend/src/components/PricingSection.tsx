@@ -134,7 +134,7 @@ export function PricingSection() {
                             <CardTitle className="text-3xl font-black tracking-tight bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
                                 {isAnnual ? t('pricing.plan.name_annual') : t('pricing.plan.name')}
                             </CardTitle>
-                            <CardDescription className="mt-4 space-y-2">
+                            <div className="mt-4 space-y-2 text-sm text-muted-foreground">
                                 <div className="flex items-baseline justify-center gap-1">
                                     <span className="text-6xl font-black text-foreground tracking-tighter italic">
                                         ${displayPrice.toLocaleString()}
@@ -149,11 +149,11 @@ export function PricingSection() {
                                     </div>
                                 </div>
                                 {isAnnual && (
-                                    <span className="inline-block text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full mt-2 uppercase tracking-widest">
+                                    <span className="inline-block text-xs font-bold text-primary bg-primary/10 px-3 py-1 rounded-full mt-2 uppercase tracking-widest text-center w-full">
                                         {t('pricing.plan.annual_savings')}
                                     </span>
                                 )}
-                            </CardDescription>
+                            </div>
                         </CardHeader>
 
                         <CardContent className="pt-6 relative z-10">

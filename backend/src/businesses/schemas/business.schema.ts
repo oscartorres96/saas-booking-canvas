@@ -113,7 +113,10 @@ export class Business {
       packages: {
         enabled: { type: Boolean, default: false },
         paymentTiming: { type: String, default: 'BEFORE_BOOKING' }
-      }
+      },
+      bookingViewMode: { type: String, enum: ['CALENDAR', 'WEEK'], default: 'CALENDAR' },
+      weekHorizonDays: { type: Number, enum: [7, 14, 21], default: 14 },
+      weekStart: { type: String, enum: ['CURRENT', 'NEXT'], default: 'CURRENT' }
     }
   })
   bookingConfig?: {
@@ -128,6 +131,9 @@ export class Business {
       enabled: boolean;
       paymentTiming: 'BEFORE_BOOKING';
     };
+    bookingViewMode: 'CALENDAR' | 'WEEK';
+    weekHorizonDays: 7 | 14 | 21;
+    weekStart: 'CURRENT' | 'NEXT';
   };
 
   @Prop({

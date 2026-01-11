@@ -28,7 +28,9 @@ import {
     CheckCircle2,
     Info,
     Store,
-    QrCode
+    QrCode,
+    Layout,
+    Clock
 } from 'lucide-react';
 
 const UserManual = () => {
@@ -86,6 +88,7 @@ const UserManual = () => {
         { id: 'configuracion', label: t('manual.sections.config.title'), icon: Settings },
         { id: 'servicios', label: t('manual.sections.services.title'), icon: Package },
         { id: 'reservas', label: t('manual.sections.bookings.title'), icon: Calendar },
+        { id: 'horarios-disponibilidad', label: t('manual.sections.availability.title'), icon: Layout },
         { id: 'pagina-publica', label: t('manual.sections.public_page.title'), icon: Store },
         { id: 'estrategia-qr', label: t('manual.sections.qr_marketing.title'), icon: QrCode },
         { id: 'pagos', label: t('manual.sections.payments.title'), icon: CreditCard },
@@ -356,6 +359,184 @@ const UserManual = () => {
                                         <p className="font-bold text-sm md:text-base leading-snug">{type}</p>
                                     </div>
                                 ))}
+                            </div>
+                        </section>
+
+                        {/* Section: Availability & Weekly Planning */}
+                        <section id="horarios-disponibilidad" className="scroll-mt-32">
+                            <SectionHeader
+                                title={t('manual.sections.availability.title')}
+                                desc={t('manual.sections.availability.desc')}
+                                icon={Layout}
+                                color="bg-violet-600"
+                            />
+
+                            <div className="mt-12 space-y-16">
+                                {/* Sub-section 1: Modes */}
+                                <div className="space-y-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-xl bg-violet-600/10 flex items-center justify-center text-violet-600">
+                                            <Globe className="h-5 w-5" />
+                                        </div>
+                                        <h3 className="text-2xl font-black italic tracking-tighter uppercase">{t('manual.sections.availability.modes.title')}</h3>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <Card className="rounded-[2rem] border-none shadow-xl bg-white dark:bg-slate-900 overflow-hidden hover:shadow-2xl transition-all group">
+                                            <div className="p-6 md:p-8 space-y-4">
+                                                <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-none px-3 py-0.5 rounded-full text-[10px] uppercase font-black tracking-widest">Tradicional</Badge>
+                                                <h4 className="text-lg font-black italic uppercase tracking-tighter">Calendario Mensual</h4>
+                                                <p className="text-sm text-muted-foreground leading-relaxed">{t('manual.sections.availability.modes.calendar')}</p>
+                                            </div>
+                                        </Card>
+                                        <Card className="rounded-[2rem] border-none shadow-xl bg-primary text-primary-foreground overflow-hidden hover:shadow-2xl transition-all group relative">
+                                            <div className="absolute top-0 right-0 p-4">
+                                                <Zap className="h-6 w-6 text-white/50 animate-pulse" />
+                                            </div>
+                                            <div className="p-6 md:p-8 space-y-4">
+                                                <Badge className="bg-white/20 text-white border-none px-3 py-0.5 rounded-full text-[10px] uppercase font-black tracking-widest">Nuevo & Rápido</Badge>
+                                                <h4 className="text-lg font-black italic uppercase tracking-tighter">Vista Semanal</h4>
+                                                <p className="text-white/80 text-sm leading-relaxed">{t('manual.sections.availability.modes.week')}</p>
+                                            </div>
+                                        </Card>
+                                    </div>
+
+                                    {/* Comparison Table */}
+                                    <div className="rounded-[2rem] overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm transition-all duration-300">
+                                        <div className="grid grid-cols-3 bg-slate-50 dark:bg-slate-900/50 p-4 border-b border-slate-100 dark:border-slate-800">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Característica</div>
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-center">{t('manual.sections.availability.modes.comparison.calendar')}</div>
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-center text-primary">{t('manual.sections.availability.modes.comparison.week')}</div>
+                                        </div>
+                                        {[1, 2, 3].map((i) => {
+                                            const [feat, cal, week] = (t(`manual.sections.availability.modes.comparison.item${i}`) as string).split('|');
+                                            return (
+                                                <div key={i} className="grid grid-cols-3 p-4 border-b border-slate-50 dark:border-slate-800 last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
+                                                    <div className="text-xs font-bold text-muted-foreground">{feat.split(':')[0]}</div>
+                                                    <div className="text-xs text-center font-medium">{cal}</div>
+                                                    <div className="text-xs text-center font-black text-primary italic tracking-tighter">{week}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div className="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex items-start gap-4">
+                                        <Info className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                                        <p className="text-sm font-medium text-amber-700 dark:text-amber-400">{t('manual.sections.availability.modes.note')}</p>
+                                    </div>
+                                </div>
+
+                                {/* Sub-section 2: Choosing Mode */}
+                                <div className="space-y-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-xl bg-violet-600/10 flex items-center justify-center text-violet-600">
+                                            <Settings className="h-5 w-5" />
+                                        </div>
+                                        <h3 className="text-2xl font-black italic tracking-tighter uppercase">{t('manual.sections.availability.choosing.title')}</h3>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                        {(t('manual.sections.availability.choosing.steps', { returnObjects: true }) as string[]).map((step, idx) => (
+                                            <div key={idx} className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:border-violet-600/30 transition-all group">
+                                                <div className="text-[10px] font-black uppercase tracking-widest text-violet-600/40 mb-3 group-hover:text-violet-600 transition-colors">Paso 0{idx + 1}</div>
+                                                <p className="text-xs font-bold leading-relaxed">{step}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Sub-section 3: Base Schedule */}
+                                <div className="space-y-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-xl bg-violet-600/10 flex items-center justify-center text-violet-600">
+                                            <Calendar className="h-5 w-5" />
+                                        </div>
+                                        <h3 className="text-2xl font-black italic tracking-tighter uppercase">{t('manual.sections.availability.base_schedule.title')}</h3>
+                                    </div>
+                                    <Card className="rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800 p-8 md:p-12 text-center space-y-6 bg-transparent">
+                                        <div className="mx-auto h-20 w-20 rounded-[2rem] bg-violet-600/10 flex items-center justify-center text-violet-600 shadow-inner">
+                                            <Clock className="h-10 w-10" />
+                                        </div>
+                                        <div className="space-y-4 max-w-lg mx-auto">
+                                            <p className="text-base text-muted-foreground font-medium leading-relaxed">{t('manual.sections.availability.base_schedule.desc')}</p>
+                                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-600/5 border border-violet-600/10 text-violet-600 text-[10px] font-black uppercase tracking-widest">
+                                                Ejemplo: Lunes a Viernes, 9:00 - 13:00 y 14:00 - 18:00
+                                            </div>
+                                        </div>
+                                        <p className="text-sm italic text-muted-foreground opacity-60">{t('manual.sections.availability.base_schedule.note')}</p>
+                                    </Card>
+                                </div>
+
+                                {/* Sub-section 4: Weekly Planning */}
+                                <div className="space-y-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-xl bg-violet-600/10 flex items-center justify-center text-violet-600">
+                                            <Zap className="h-5 w-5" />
+                                        </div>
+                                        <h3 className="text-2xl font-black italic tracking-tighter uppercase">{t('manual.sections.availability.weekly_planning.title')}</h3>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                        <div className="space-y-4">
+                                            <p className="text-base text-muted-foreground font-medium mb-6">{t('manual.sections.availability.weekly_planning.desc')}</p>
+                                            {(t('manual.sections.availability.weekly_planning.actions', { returnObjects: true }) as string[]).map((action, idx) => (
+                                                <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 hover:shadow-lg transition-all group">
+                                                    <div className="h-8 w-8 rounded-lg bg-violet-600/10 flex items-center justify-center text-violet-600 group-hover:bg-violet-600 group-hover:text-white transition-all">
+                                                        <CheckCircle2 className="h-5 w-5" />
+                                                    </div>
+                                                    <span className="text-sm font-bold">{action}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <Card className="rounded-[3rem] bg-slate-900 overflow-hidden relative group">
+                                            <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 to-transparent" />
+                                            <div className="p-10 relative z-10 h-full flex flex-col justify-center gap-6">
+                                                <div className="h-16 w-16 rounded-[1.5rem] bg-white/10 flex items-center justify-center text-white backdrop-blur-md">
+                                                    <Users className="h-8 w-8" />
+                                                </div>
+                                                <div className="space-y-3">
+                                                    <h4 className="text-xl font-black italic uppercase tracking-tighter text-white">Casos de Uso Comunes</h4>
+                                                    <ul className="text-sm text-slate-400 space-y-2 font-medium">
+                                                        <li>&bull; Vacaciones y días festivos</li>
+                                                        <li>&bull; Citas médicas personales</li>
+                                                        <li>&bull; Horarios reducidos temporales</li>
+                                                        <li>&bull; Semanas de eventos especiales</li>
+                                                    </ul>
+                                                </div>
+                                                <div className="pt-4 flex items-center gap-3 text-primary font-black italic uppercase tracking-tighter text-xs">
+                                                    <Zap className="h-4 w-4 fill-primary" />
+                                                    {t('manual.sections.availability.weekly_planning.top_tip')}
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    </div>
+                                </div>
+
+                                {/* Sub-section 5: Client Experience */}
+                                <div className="space-y-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-xl bg-violet-600/10 flex items-center justify-center text-violet-600">
+                                            <Users className="h-5 w-5" />
+                                        </div>
+                                        <h3 className="text-2xl font-black italic tracking-tighter uppercase">{t('manual.sections.availability.client_experience.title')}</h3>
+                                    </div>
+                                    <div className="p-8 md:p-12 rounded-[3.5rem] bg-violet-600/5 border border-violet-600/10 space-y-10">
+                                        <p className="text-lg font-medium text-center max-w-2xl mx-auto">{t('manual.sections.availability.client_experience.desc')}</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                                            {(t('manual.sections.availability.client_experience.steps', { returnObjects: true }) as string[]).map((step, idx) => (
+                                                <div key={idx} className="space-y-4 text-center">
+                                                    <div className="mx-auto h-12 w-12 rounded-full bg-violet-600 text-white flex items-center justify-center font-black shadow-lg shadow-violet-600/20">
+                                                        {idx + 1}
+                                                    </div>
+                                                    <p className="text-sm font-bold text-muted-foreground px-2">{step}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="pt-6 border-t border-violet-600/10 text-center">
+                                            <Badge className="bg-emerald-500/10 text-emerald-600 border-none px-4 py-1 rounded-full text-[10px] uppercase font-black tracking-[0.2em]">
+                                                {t('manual.sections.availability.client_experience.reassurance')}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </section>
 

@@ -13,6 +13,7 @@ import { LeadsModule } from './leads/leads.module';
 import { ResourceMapModule } from './resource-map/resource-map.module';
 import { ProductsModule } from './products/products.module';
 import { CustomerAssetsModule } from './customer-assets/customer-assets.module';
+import { AvailabilityModule } from './availability/availability.module';
 // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
 // import { WhatsappModule } from './whatsapp/whatsapp.module';
 
@@ -34,6 +35,7 @@ import { CustomerAssetsModule } from './customer-assets/customer-assets.module';
     ResourceMapModule,
     ProductsModule,
     CustomerAssetsModule,
+    AvailabilityModule,
     // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
     // WhatsappModule,
   ],
