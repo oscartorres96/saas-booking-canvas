@@ -430,6 +430,9 @@
     },
     "resource": {
       "layout_label": "Distribución real de la sala"
+    },
+    "week_view": {
+      "best_times": "Tus mejores opciones"
     }
   },
   "days": {
@@ -1039,6 +1042,66 @@
           "Verificación de pagos manuales: Si aceptas transferencia bancaria o efectivo, BookPro permite que el cliente suba comprobante. Tú revisas y validas manualmente desde el panel antes de confirmar la cita.",
           "Control de duplicados: El sistema evita por defecto que un cliente reserve dos veces el mismo día para evitar errores. Puedes desactivar esta restricción en Configuración > Políticas si tu negocio permite múltiples sesiones diarias."
         ]
+      },
+      "availability": {
+        "title": "Gestión de disponibilidad y horarios",
+        "desc": "Controla con precisión cuándo recibes citas. Aprende la diferencia entre los modos de visualización y cómo planificar semanas específicas.",
+        "modes": {
+          "title": "¿Cómo ven tus clientes tu agenda?",
+          "desc": "Elige la forma más cómoda para que tus clientes descubran tus horarios disponibles.",
+          "calendar": "Modo Calendario: Vista tradicional mes a mes. Ideal para servicios 1-a-1 donde la fecha es lo más importante.",
+          "week": "Modo Semanal: Vista moderna enfocada en disponibilidad inmediata. Muestra múltiples días al mismo tiempo. Perfecto para clases grupales y estudios.",
+          "benefits": [
+            "Reserva más rápida en dispositivos móviles.",
+            "Visualización clara de múltiples opciones de horario.",
+            "Mejor control de la ocupación real del negocio."
+          ],
+          "note": "Puedes cambiar el modo en cualquier momento desde Configuración > Políticas.",
+          "comparison": {
+            "calendar": "Calendario",
+            "week": "Semanal",
+            "item1": "Visualización: Mensual | Próximos días",
+            "item2": "Velocidad: Normal | Muy rápida",
+            "item3": "Ideal para: Consultas médicas | Clases y estudios"
+          }
+        },
+        "choosing": {
+          "title": "Elegir el modo de reservas",
+          "steps": [
+            "Ve a Configuración > Pestaña 'Reserva' (Booking).",
+            "Busca la sección 'Experiencia de Reserva'.",
+            "Selecciona entre 'Calendario Mensual' o 'Vista Semanal'.",
+            "Ajusta los días visibles (en modo semanal) y si prefieres mostrar la semana actual o la siguiente."
+          ]
+        },
+        "base_schedule": {
+          "title": "Horario Base",
+          "desc": "Tu horario base funciona como una plantilla recurrente. Define tu disponibilidad general (Ej: Lunes a Viernes de 9 a 17hs).",
+          "note": "Este horario se puede ajustar cada semana si lo necesitas sin afectar tu configuración permanente."
+        },
+        "weekly_planning": {
+          "title": "Planificación semana por semana",
+          "desc": "La potencia de BookPro reside en su flexibilidad. Ajusta tu agenda según lo que pase en el mundo real.",
+          "actions": [
+            "Activar/Desactivar días completos: Útil para feriados o descansos.",
+            "Modificar turnos específicos: Agrega o quita horas en días puntuales.",
+            "Bloquear rangos: Evita reservas en horas de comida o citas personales.",
+            "Copiar semana anterior: Ahorra tiempo replicando el diseño de la semana previa.",
+            "Reiniciar a plantilla: Vuelve rápidamente a tu horario base definido."
+          ],
+          "top_tip": "Puedes gestionar todo esto fácilmente desde tu celular mientras vas de camino al trabajo."
+        },
+        "client_experience": {
+          "title": "Lo que ven tus clientes",
+          "desc": "En el modo semanal, tus clientes experimentan una flujo de reserva simplificado:",
+          "steps": [
+            "Navegan por los días de la semana con desplazamientos laterales.",
+            "Ven los mejores horarios disponibles resaltados.",
+            "Seleccionan hora y confirman en segundos.",
+            "Optimizado 100% para celular, sin necesidad de abrir calendarios complejos."
+          ],
+          "reassurance": "Tus clientes solo ven los horarios que tú has habilitado como disponibles."
+        }
       },
       "public_page": {
         "title": "Página Pública y Crecimiento",

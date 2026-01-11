@@ -64,6 +64,22 @@ export class BusinessesController {
     return this.businessesService.getSlots(id, date, serviceId);
   }
 
+  @Get(':id/booking-settings')
+  async getBookingSettings(@Param('id') id: string, @Req() req: any) {
+    const business = await this.businessesService.findOne(id, req.user ?? { role: 'public' });
+    return {
+      bookingViewMode: business.bookingConfig?.bookingViewMode || 'CALENDAR',
+      weekHorizonDays: business.bookingConfig?.weekHorizonDays || 14,
+      weekStart: business.bookingConfig?.weekStart || 'CURRENT',
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put(':id/booking-settings')
+  async updateBookingSettings(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+    return this.businessesService.updateSettings(id, { bookingConfig: body }, req.user);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Put(':id/payment-config')
   updatePaymentConfig(@Param('id') id: string, @Body() body: any, @Req() req: any) {

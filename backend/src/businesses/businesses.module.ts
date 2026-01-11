@@ -7,6 +7,7 @@ import { UsersModule } from '../users/users.module';
 import { ServicesModule } from '../services/services.module';
 import { BookingsModule } from '../bookings/bookings.module';
 import { UploadsModule } from '../uploads/uploads.module';
+import { AvailabilityModule } from '../availability/availability.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { UploadsModule } from '../uploads/uploads.module';
     UsersModule,
     forwardRef(() => ServicesModule),
     forwardRef(() => BookingsModule),
+    forwardRef(() => AvailabilityModule),
     UploadsModule,
   ],
   controllers: [BusinessesController],

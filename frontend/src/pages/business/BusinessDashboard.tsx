@@ -93,6 +93,7 @@ import { BusinessSettings } from "@/components/business/BusinessSettings";
 import { Billing } from "@/components/business/Billing";
 import { BusinessThemeToggle } from "@/components/BusinessThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { WeeklyAvailabilityPlanner } from "@/components/business/WeeklyAvailabilityPlanner";
 import useAuth from "@/auth/useAuth";
 import { getBusinessById, type Business } from "@/api/businessesApi";
 import { getServicesByBusiness, createService, updateService, deleteService, type Service } from "@/api/servicesApi";
@@ -618,6 +619,7 @@ const BusinessDashboard = () => {
                                     <TabsList className="premium-tabs-list">
                                         <TabsTrigger value="dashboard" className="premium-tab-trigger">{t('dashboard.tabs.dashboard')}</TabsTrigger>
                                         <TabsTrigger value="catalog" className="premium-tab-trigger">{t('dashboard.tabs.catalog', 'Oferta')}</TabsTrigger>
+                                        <TabsTrigger value="availability" className="premium-tab-trigger">{t('dashboard.tabs.availability', 'Disponibilidad')}</TabsTrigger>
                                         <TabsTrigger value="settings" className="premium-tab-trigger">{t('dashboard.tabs.settings')}</TabsTrigger>
                                         <TabsTrigger value="billing" className="premium-tab-trigger">{t('dashboard.tabs.billing')}</TabsTrigger>
                                     </TabsList>
@@ -907,6 +909,10 @@ const BusinessDashboard = () => {
                                     />
                                 </CardContent>
                             </DashboardSection>
+                        </TabsContent>
+
+                        <TabsContent value="availability" className="space-y-6">
+                            <WeeklyAvailabilityPlanner businessId={businessId!} />
                         </TabsContent>
 
                         <TabsContent value="settings">

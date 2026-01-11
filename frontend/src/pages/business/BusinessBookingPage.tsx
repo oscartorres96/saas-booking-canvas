@@ -102,6 +102,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PackageQRModal } from "@/components/booking/PackageQRModal";
 import { generateBookingSteps, StepType, BookingEngineContext } from "@/utils/bookingEngine";
 import { OtpVerificationModal } from "@/components/booking/OtpVerificationModal";
+import { BookingWeekView } from "@/components/booking/BookingWeekView";
 import { requestOtp, verifyOtp, getDashboardData, logoutDashboard, OtpPurpose, ClientDashboardData } from "@/api/otpApi";
 
 const bookingFormSchema = z.object({
@@ -1405,113 +1406,133 @@ const BusinessBookingPage = () => {
                             </div>
                         </CardHeader>
                         <CardContent className="px-2 sm:px-3 md:px-8 pb-6 sm:pb-10">
-                            <div className="flex flex-col lg:grid lg:grid-cols-[1fr_400px] gap-4 sm:gap-6 md:gap-8 max-w-full">
-                                {/* Left: Calendar */}
-                                <div className="space-y-3 sm:space-y-4 md:space-y-6 w-full">
-                                    <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] p-3 sm:p-4 md:p-6 lg:p-8 border border-slate-200 dark:border-slate-800 shadow-inner w-full">
-                                        <Calendar
-                                            mode="single"
-                                            selected={selectedDate}
-                                            onSelect={(date) => {
-                                                if (date) {
-                                                    form.setValue("date", date);
-                                                    form.setValue("time", "");
-                                                }
-                                            }}
-                                            disabled={isDateDisabled}
-                                            className="rounded-2xl sm:rounded-3xl border-0 shadow-none bg-transparent w-full mx-auto p-0"
-                                            classNames={{
-                                                months: "flex flex-col space-y-2 sm:space-y-4 w-full",
-                                                month: "space-y-3 sm:space-y-4 md:space-y-6 w-full",
-                                                caption: "flex justify-center pt-1 relative items-center mb-2 sm:mb-3 md:mb-4",
-                                                caption_label: "text-base sm:text-lg md:text-xl lg:text-2xl font-black uppercase italic tracking-tighter",
-                                                nav: "flex items-center gap-1 sm:gap-2",
-                                                nav_button: "h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-11 lg:w-11 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700/50 rounded-xl sm:rounded-2xl flex items-center justify-center hover:bg-primary hover:text-white transition-all duration-300 text-sm sm:text-base",
-                                                table: "w-full border-collapse space-y-1",
-                                                head_row: "grid grid-cols-7 mb-2 sm:mb-3 md:mb-4 w-full",
-                                                head_cell: "text-muted-foreground w-full font-black text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-wider sm:tracking-widest text-center flex items-center justify-center",
-                                                row: "grid grid-cols-7 w-full mt-1 sm:mt-1.5 md:mt-2",
-                                                cell: "relative p-0 text-center text-xs sm:text-sm focus-within:relative focus-within:z-20 flex items-center justify-center",
-                                                day: "h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-16 lg:w-16 p-0 font-bold aria-selected:opacity-100 rounded-lg sm:rounded-xl md:rounded-2xl transition-all duration-300 hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-xs sm:text-sm md:text-base",
-                                                day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg sm:shadow-xl shadow-primary/20 scale-105 sm:scale-110 rotate-2 sm:rotate-3",
-                                                day_today: "bg-slate-100 dark:bg-slate-800 text-primary border border-primary/20 sm:border-2",
-                                                day_disabled: "text-muted-foreground/20 italic line-through cursor-not-allowed hover:bg-transparent",
-                                                day_outside: "opacity-0",
-                                            }}
-                                        />
-                                    </div>
-                                    <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 bg-primary/5 rounded-xl sm:rounded-2xl border border-primary/10">
-                                        <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
-                                        <p className="text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-wider sm:tracking-widest text-primary/80 leading-tight">
-                                            {selectedDate ? `${format(selectedDate, "d 'de' MMM", { locale: es })}` : 'Selecciona fecha'}
-                                        </p>
-                                    </div>
+                            {business?.bookingConfig?.bookingViewMode === 'WEEK' ? (
+                                <div className="w-full">
+                                    <BookingWeekView
+                                        businessId={businessId!}
+                                        serviceId={selectedServiceId!}
+                                        onSelect={(date, time) => {
+                                            form.setValue("date", date);
+                                            form.setValue("time", time);
+                                            // Automatic next step since we chose date and time
+                                            handleNext();
+                                        }}
+                                        selectedDate={selectedDate}
+                                        selectedTime={selectedTime}
+                                        weekHorizonDays={business.bookingConfig?.weekHorizonDays}
+                                        weekStartType={business.bookingConfig?.weekStart}
+                                        primaryColor={business?.settings?.primaryColor}
+                                    />
                                 </div>
+                            ) : (
+                                <div className="flex flex-col lg:grid lg:grid-cols-[1fr_400px] gap-4 sm:gap-6 md:gap-8 max-w-full">
+                                    {/* Left: Calendar */}
+                                    <div className="space-y-3 sm:space-y-4 md:space-y-6 w-full">
+                                        <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] p-3 sm:p-4 md:p-6 lg:p-8 border border-slate-200 dark:border-slate-800 shadow-inner w-full">
+                                            <Calendar
+                                                mode="single"
+                                                selected={selectedDate}
+                                                onSelect={(date) => {
+                                                    if (date) {
+                                                        form.setValue("date", date);
+                                                        form.setValue("time", "");
+                                                    }
+                                                }}
+                                                disabled={isDateDisabled}
+                                                className="rounded-2xl sm:rounded-3xl border-0 shadow-none bg-transparent w-full mx-auto p-0"
+                                                classNames={{
+                                                    months: "flex flex-col space-y-2 sm:space-y-4 w-full",
+                                                    month: "space-y-3 sm:space-y-4 md:space-y-6 w-full",
+                                                    caption: "flex justify-center pt-1 relative items-center mb-2 sm:mb-3 md:mb-4",
+                                                    caption_label: "text-base sm:text-lg md:text-xl lg:text-2xl font-black uppercase italic tracking-tighter",
+                                                    nav: "flex items-center gap-1 sm:gap-2",
+                                                    nav_button: "h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 lg:h-11 lg:w-11 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700/50 rounded-xl sm:rounded-2xl flex items-center justify-center hover:bg-primary hover:text-white transition-all duration-300 text-sm sm:text-base",
+                                                    table: "w-full border-collapse space-y-1",
+                                                    head_row: "grid grid-cols-7 mb-2 sm:mb-3 md:mb-4 w-full",
+                                                    head_cell: "text-muted-foreground w-full font-black text-[8px] sm:text-[9px] md:text-[10px] uppercase tracking-wider sm:tracking-widest text-center flex items-center justify-center",
+                                                    row: "grid grid-cols-7 w-full mt-1 sm:mt-1.5 md:mt-2",
+                                                    cell: "relative p-0 text-center text-xs sm:text-sm focus-within:relative focus-within:z-20 flex items-center justify-center",
+                                                    day: "h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 lg:h-16 lg:w-16 p-0 font-bold aria-selected:opacity-100 rounded-lg sm:rounded-xl md:rounded-2xl transition-all duration-300 hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-xs sm:text-sm md:text-base",
+                                                    day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg sm:shadow-xl shadow-primary/20 scale-105 sm:scale-110 rotate-2 sm:rotate-3",
+                                                    day_today: "bg-slate-100 dark:bg-slate-800 text-primary border border-primary/20 sm:border-2",
+                                                    day_disabled: "text-muted-foreground/20 italic line-through cursor-not-allowed hover:bg-transparent",
+                                                    day_outside: "opacity-0",
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 bg-primary/5 rounded-xl sm:rounded-2xl border border-primary/10">
+                                            <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
+                                            <p className="text-[9px] sm:text-[10px] md:text-[11px] font-bold uppercase tracking-wider sm:tracking-widest text-primary/80 leading-tight">
+                                                {selectedDate ? `${format(selectedDate, "d 'de' MMM", { locale: es })}` : 'Selecciona fecha'}
+                                            </p>
+                                        </div>
+                                    </div>
 
-                                {/* Right: Slots & Resource */}
-                                <div className="space-y-3 sm:space-y-4 md:space-y-6 flex flex-col w-full">
-                                    <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-10 duration-1000">
-                                        <h3 className="text-[10px] sm:text-xs font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-muted-foreground mb-2 sm:mb-3 md:mb-4 pl-1">Horarios</h3>
-                                        <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-3 sm:p-4 md:p-6 flex-1 min-h-[300px] sm:min-h-[350px] md:min-h-[400px] w-full">
-                                            {isLoadingSlots ? (
-                                                <div className="h-full flex flex-col items-center justify-center gap-3 sm:gap-4 opacity-50">
-                                                    <div className="h-8 w-8 sm:h-10 sm:w-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                                                    <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider sm:tracking-widest italic">Cargando...</p>
-                                                </div>
-                                            ) : timeSlots.length > 0 ? (
-                                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 sm:gap-3">
-                                                    {(timeSlots as Slot[]).map((slot) => (
-                                                        <motion.button
-                                                            key={slot.time}
-                                                            type="button"
-                                                            whileHover={slot.isAvailable ? { scale: 1.05 } : {}}
-                                                            whileTap={slot.isAvailable ? { scale: 0.95 } : {}}
-                                                            disabled={!slot.isAvailable}
-                                                            onClick={() => {
-                                                                form.setValue("time", slot.time);
-                                                                setTimeout(() => handleNext(), 300);
-                                                            }}
-                                                            className={cn(
-                                                                "h-10 sm:h-12 md:h-14 rounded-xl sm:rounded-2xl border-2 font-black transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 group relative overflow-hidden",
-                                                                selectedTime === slot.time
-                                                                    ? "bg-primary border-primary text-white shadow-lg shadow-primary/20"
-                                                                    : !slot.isAvailable
-                                                                        ? "bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed opacity-70"
-                                                                        : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700/50 hover:border-primary/50"
-                                                            )}
-                                                        >
-                                                            {slot.isAvailable && (
-                                                                <div className={cn(
-                                                                    "h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full transition-all duration-300",
-                                                                    selectedTime === slot.time ? "bg-white scale-150 animate-pulse" : "bg-slate-300 dark:bg-slate-600 group-hover:bg-primary"
-                                                                )}></div>
-                                                            )}
-                                                            <span className="text-sm sm:text-base italic">
-                                                                {slot.time}
-                                                            </span>
-                                                            {!slot.isAvailable && (
-                                                                <span className="absolute -right-2 top-0 bg-slate-200 dark:bg-slate-700 text-[6px] sm:text-[8px] px-2 py-0.5 rounded-bl-lg font-black uppercase tracking-tighter opacity-50">
-                                                                    LLENO
-                                                                </span>
-                                                            )}
-                                                        </motion.button>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <div className="h-full flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 text-center bg-white/50 dark:bg-slate-800/50 rounded-2xl sm:rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
-                                                    <div className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center mb-3 sm:mb-4 md:mb-6">
-                                                        <Clock className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-slate-300" />
+                                    {/* Right: Slots & Resource */}
+                                    <div className="space-y-3 sm:space-y-4 md:space-y-6 flex flex-col w-full">
+                                        <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-10 duration-1000">
+                                            <h3 className="text-[10px] sm:text-xs font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-muted-foreground mb-2 sm:mb-3 md:mb-4 pl-1">Horarios</h3>
+                                            <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-3 sm:p-4 md:p-6 flex-1 min-h-[300px] sm:min-h-[350px] md:min-h-[400px] w-full">
+                                                {isLoadingSlots ? (
+                                                    <div className="h-full flex flex-col items-center justify-center gap-3 sm:gap-4 opacity-50">
+                                                        <div className="h-8 w-8 sm:h-10 sm:w-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                                        <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider sm:tracking-widest italic">Cargando...</p>
                                                     </div>
-                                                    <p className="text-sm sm:text-base font-bold italic text-muted-foreground mb-1 sm:mb-2">No disponible</p>
-                                                    <p className="text-[9px] sm:text-[10px] uppercase font-black tracking-wider sm:tracking-widest text-slate-400">Prueba otra fecha</p>
-                                                </div>
-                                            )}
+                                                ) : timeSlots.length > 0 ? (
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2 sm:gap-3">
+                                                        {(timeSlots as Slot[]).map((slot) => (
+                                                            <motion.button
+                                                                key={slot.time}
+                                                                type="button"
+                                                                whileHover={slot.isAvailable ? { scale: 1.05 } : {}}
+                                                                whileTap={slot.isAvailable ? { scale: 0.95 } : {}}
+                                                                disabled={!slot.isAvailable}
+                                                                onClick={() => {
+                                                                    form.setValue("time", slot.time);
+                                                                    setTimeout(() => handleNext(), 300);
+                                                                }}
+                                                                className={cn(
+                                                                    "h-10 sm:h-12 md:h-14 rounded-xl sm:rounded-2xl border-2 font-black transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 group relative overflow-hidden",
+                                                                    selectedTime === slot.time
+                                                                        ? "bg-primary border-primary text-white shadow-lg shadow-primary/20"
+                                                                        : !slot.isAvailable
+                                                                            ? "bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed opacity-70"
+                                                                            : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700/50 hover:border-primary/50"
+                                                                )}
+                                                            >
+                                                                {slot.isAvailable && (
+                                                                    <div className={cn(
+                                                                        "h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full transition-all duration-300",
+                                                                        selectedTime === slot.time ? "bg-white scale-150 animate-pulse" : "bg-slate-300 dark:bg-slate-600 group-hover:bg-primary"
+                                                                    )}></div>
+                                                                )}
+                                                                <span className="text-sm sm:text-base italic">
+                                                                    {slot.time}
+                                                                </span>
+                                                                {!slot.isAvailable && (
+                                                                    <span className="absolute -right-2 top-0 bg-slate-200 dark:bg-slate-700 text-[6px] sm:text-[8px] px-2 py-0.5 rounded-bl-lg font-black uppercase tracking-tighter opacity-50">
+                                                                        LLENO
+                                                                    </span>
+                                                                )}
+                                                            </motion.button>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="h-full flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 text-center bg-white/50 dark:bg-slate-800/50 rounded-2xl sm:rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                                        <div className="h-12 w-12 sm:h-16 sm:w-16 md:h-20 md:w-20 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center mb-3 sm:mb-4 md:mb-6">
+                                                            <Clock className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10 text-slate-300" />
+                                                        </div>
+                                                        <p className="text-sm sm:text-base font-bold italic text-muted-foreground mb-1 sm:mb-2">No disponible</p>
+                                                        <p className="text-[9px] sm:text-[10px] uppercase font-black tracking-wider sm:tracking-widest text-slate-400">Prueba otra fecha</p>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </CardContent>
-                    </Card>
+                    </Card >
                 );
             case 'RESOURCE':
                 return (

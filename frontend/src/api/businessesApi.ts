@@ -77,6 +77,9 @@ export interface Business {
     allowMultipleBookingsPerDay: boolean;
     cancellationWindowHours: number;
     confirmationType: 'automatic' | 'manual';
+    bookingViewMode?: 'CALENDAR' | 'WEEK';
+    weekHorizonDays?: number;
+    weekStart?: 'CURRENT' | 'NEXT';
     services: {
       enabled: boolean;
       paymentTiming: 'NONE' | 'BEFORE_BOOKING';
