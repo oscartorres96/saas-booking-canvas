@@ -83,14 +83,18 @@ export function WeeklyAvailabilityPlanner({ businessId, entityType = 'BUSINESS',
             for (let i = 0; i < 7; i++) {
                 const date = addDays(monday, i);
                 const dateStr = format(date, 'yyyy-MM-dd');
-                const existing = week?.days.find(d => d.date === dateStr);
+                const existing = week?.days?.find(d => d.date === dateStr);
 
                 if (existing) {
-                    days.push({ ...existing });
+                    days.push({
+                        ...existing,
+                        blocks: existing.blocks ? existing.blocks.map(b => ({ ...b })) : [],
+                        blockedRanges: (existing.blockedRanges || []).map(r => ({ ...r }))
+                    });
                 } else {
                     // Fallback to template or closed
                     const dayOfWeek = (date.getDay() + 6) % 7;
-                    const rule = tmpl?.weeklyRules.find(r => r.dayOfWeek === dayOfWeek);
+                    const rule = tmpl?.weeklyRules?.find(r => r.dayOfWeek === dayOfWeek);
                     days.push({
                         date: dateStr,
                         enabled: rule?.enabled ?? false,
@@ -103,6 +107,19 @@ export function WeeklyAvailabilityPlanner({ businessId, entityType = 'BUSINESS',
         } catch (error) {
             console.error(error);
             toast.error(t('availability.error_loading', 'Error al cargar disponibilidad'));
+
+            // Populate with 7 empty days to avoid crashes
+            const emptyDays: DayOverride[] = [];
+            for (let i = 0; i < 7; i++) {
+                const date = addDays(monday, i);
+                emptyDays.push({
+                    date: format(date, 'yyyy-MM-dd'),
+                    enabled: false,
+                    blocks: [],
+                    blockedRanges: []
+                });
+            }
+            setLocalDays(emptyDays);
         } finally {
             setLoading(false);
         }
@@ -252,6 +269,7 @@ export function WeeklyAvailabilityPlanner({ businessId, entityType = 'BUSINESS',
 
                 {currentWeekDates.map((date, idx) => {
                     const day = localDays[idx];
+                    if (!day) return null;
                     const isToday = isSameDay(date, new Date());
 
                     return (

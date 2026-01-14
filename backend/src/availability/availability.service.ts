@@ -19,7 +19,7 @@ export class AvailabilityService {
         @InjectModel(AvailabilityWeekOverride.name) private overrideModel: Model<AvailabilityWeekOverrideDocument>,
         @Inject(forwardRef(() => BookingsService)) private bookingsService: BookingsService,
         @Inject(forwardRef(() => BusinessesService)) private businessesService: BusinessesService,
-        @Inject(forwardRef(() => ServicesService)) private servicesService: ServicesService,
+        private readonly servicesService: ServicesService,
         @InjectModel(ResourceMap.name) private resourceMapModel: Model<ResourceMapDocument>,
     ) { }
 
@@ -144,7 +144,7 @@ export class AvailabilityService {
         // 5. Compute slots for each day
         const result = [];
         let currentDay = start;
-        while (isBefore(currentDay, end) || format(currentDay, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd')) {
+        while (isBefore(currentDay, end) || format(currentDay, 'yyyy-MM-dd') === endDate) {
             const dateStr = format(currentDay, 'yyyy-MM-dd');
             const dayOfWeek = (currentDay.getDay() + 6) % 7; // 0=Mon, 6=Sun
             const weekStartStr = format(startOfWeek(currentDay, { weekStartsOn: 1 }), 'yyyy-MM-dd');
