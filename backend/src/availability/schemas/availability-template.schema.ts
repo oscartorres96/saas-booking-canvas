@@ -1,43 +1,43 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
-
-export type AvailabilityTemplateDocument = AvailabilityTemplate & Document;
+import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class AvailabilityTemplate {
-    @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Business', required: true })
-    businessId!: string;
+    @Prop({ required: true, type: Types.ObjectId, ref: 'Business' })
+    businessId!: Types.ObjectId;
 
-    @Prop({ default: 'BUSINESS' })
-    entityType?: string; // BUSINESS, SERVICE, etc.
+    @Prop({ required: true, enum: ['BUSINESS', 'RESOURCE', 'PROVIDER'], default: 'BUSINESS' })
+    entityType!: string;
 
-    @Prop()
+    @Prop({ type: String }) // Optional if business-level
     entityId?: string;
 
-    @Prop({ default: 'UTC' })
-    timezone?: string;
+    @Prop({ required: true, default: 'UTC' })
+    timezone!: string;
 
-    @Prop({ default: 30 })
-    slotDuration?: number;
+    @Prop({ required: true, default: 30 })
+    slotDurationMinutes!: number;
 
     @Prop({ default: 0 })
-    bufferBetweenSlots?: number;
+    bufferMinutes!: number;
 
     @Prop({
         type: [{
-            day: { type: String, enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] },
-            enabled: { type: Boolean, default: true },
-            intervals: [{
-                startTime: String,
-                endTime: String,
+            dayOfWeek: Number, // 0-6 (0=Sunday, 1=Monday...)
+            enabled: Boolean,
+            blocks: [{
+                start: String, // 'HH:mm'
+                end: String    // 'HH:mm'
             }]
         }]
     })
-    weeklyRules?: {
-        day: string;
+    weeklyRules!: {
+        dayOfWeek: number;
         enabled: boolean;
-        intervals: { startTime: string; endTime: string; }[];
+        blocks: { start: string; end: string }[];
     }[];
 }
 
+export type AvailabilityTemplateDocument = AvailabilityTemplate & Document;
 export const AvailabilityTemplateSchema = SchemaFactory.createForClass(AvailabilityTemplate);
+AvailabilityTemplateSchema.index({ businessId: 1, entityType: 1, entityId: 1 });

@@ -1,57 +1,59 @@
-import { Controller, Get, Post, Body, Query, Param, UseGuards } from '@nestjs/common';
-import { AvailabilityService } from './availability.service';
+import { Body, Controller, Get, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt.guard';
+import { AvailabilityService } from './availability.service';
 
 @Controller('availability')
 export class AvailabilityController {
     constructor(private readonly availabilityService: AvailabilityService) { }
 
     @UseGuards(JwtAuthGuard)
-    @Get('template/:businessId')
-    async getTemplate(@Param('businessId') businessId: string) {
-        return this.availabilityService.getTemplate(businessId);
+    @Get('template')
+    getTemplate(
+        @Query('businessId') businessId: string,
+        @Query('entityType') entityType: string,
+        @Query('entityId') entityId?: string,
+    ) {
+        return this.availabilityService.getTemplate(businessId, entityType, entityId);
     }
 
     @UseGuards(JwtAuthGuard)
-    @Post('template/:businessId')
-    async upsertTemplate(@Param('businessId') businessId: string, @Body() data: any) {
-        return this.availabilityService.upsertTemplate(businessId, data);
+    @Put('template')
+    upsertTemplate(@Body() body: any) {
+        return this.availabilityService.upsertTemplate(body);
     }
 
     @UseGuards(JwtAuthGuard)
-    @Get('override/:businessId')
-    async getOverride(
-        @Param('businessId') businessId: string,
-        @Query('weekStart') weekStart: string
+    @Get('week')
+    getWeekOverride(
+        @Query('businessId') businessId: string,
+        @Query('entityType') entityType: string,
+        @Query('weekStartDate') weekStartDate: string,
+        @Query('entityId') entityId?: string,
     ) {
-        return this.availabilityService.getWeekOverride(businessId, new Date(weekStart));
+        return this.availabilityService.getWeekOverride(businessId, entityType, entityId, weekStartDate);
     }
 
     @UseGuards(JwtAuthGuard)
-    @Post('override/:businessId')
-    async upsertOverride(
-        @Param('businessId') businessId: string,
-        @Body() body: { weekStart: string; data: any }
-    ) {
-        return this.availabilityService.upsertWeekOverride(businessId, new Date(body.weekStart), body.data);
+    @Put('week')
+    upsertWeekOverride(@Body() body: any) {
+        return this.availabilityService.upsertWeekOverride(body);
     }
 
     @UseGuards(JwtAuthGuard)
-    @Post('copy-previous/:businessId')
-    async copyPrevious(
-        @Param('businessId') businessId: string,
-        @Body() body: { currentWeekStart: string }
-    ) {
-        return this.availabilityService.copyPreviousWeek(businessId, new Date(body.currentWeekStart));
+    @Post('week/copy')
+    copyWeek(@Body() body: any) {
+        return this.availabilityService.copyWeek(body);
     }
 
-    @Get('slots/:businessId')
-    async getSlots(
-        @Param('businessId') businessId: string,
-        @Query('start') start: string,
-        @Query('end') end: string,
-        @Query('serviceId') serviceId?: string
+    @Get('slots')
+    getSlots(
+        @Query('businessId') businessId: string,
+        @Query('startDate') startDate: string,
+        @Query('endDate') endDate: string,
+        @Query('serviceId') serviceId: string,
+        @Query('entityType') entityType?: string,
+        @Query('entityId') entityId?: string,
     ) {
-        return this.availabilityService.getSlotsInRange(businessId, new Date(start), new Date(end), serviceId);
+        return this.availabilityService.getSlotsInRange(businessId, startDate, endDate, serviceId, entityType, entityId);
     }
 }

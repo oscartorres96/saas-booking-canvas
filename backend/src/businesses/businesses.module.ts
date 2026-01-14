@@ -15,6 +15,7 @@ import { AvailabilityModule } from '../availability/availability.module';
     UsersModule,
     forwardRef(() => ServicesModule),
     forwardRef(() => BookingsModule),
+    forwardRef(() => AvailabilityModule),
     UploadsModule,
     forwardRef(() => AvailabilityModule),
   ],

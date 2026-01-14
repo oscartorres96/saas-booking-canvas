@@ -102,8 +102,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PackageQRModal } from "@/components/booking/PackageQRModal";
 import { generateBookingSteps, StepType, BookingEngineContext } from "@/utils/bookingEngine";
 import { OtpVerificationModal } from "@/components/booking/OtpVerificationModal";
-import { requestOtp, verifyOtp, getDashboardData, logoutDashboard, OtpPurpose, ClientDashboardData } from "@/api/otpApi";
 import { BookingWeekView } from "@/components/booking/BookingWeekView";
+import { requestOtp, verifyOtp, getDashboardData, logoutDashboard, OtpPurpose, ClientDashboardData } from "@/api/otpApi";
 
 const bookingFormSchema = z.object({
     serviceId: z.string().optional(),
@@ -1407,20 +1407,21 @@ const BusinessBookingPage = () => {
                         </CardHeader>
                         <CardContent className="px-2 sm:px-3 md:px-8 pb-6 sm:pb-10">
                             {business?.bookingConfig?.bookingViewMode === 'WEEK' ? (
-                                <div className="mt-8">
+                                <div className="w-full">
                                     <BookingWeekView
                                         businessId={businessId!}
                                         serviceId={selectedServiceId!}
-                                        selectedSlot={selectedDate && selectedTime ? {
-                                            date: format(selectedDate, 'yyyy-MM-dd'),
-                                            time: selectedTime
-                                        } : undefined}
-                                        onSlotSelect={(date, time) => {
-                                            form.setValue("date", new Date(date + 'T00:00:00'));
+                                        onSelect={(date, time) => {
+                                            form.setValue("date", date);
                                             form.setValue("time", time);
-                                            setTimeout(() => handleNext(), 300);
+                                            // Automatic next step since we chose date and time
+                                            handleNext();
                                         }}
-                                        horizonDays={business?.bookingConfig?.weekHorizonDays || 14}
+                                        selectedDate={selectedDate}
+                                        selectedTime={selectedTime}
+                                        weekHorizonDays={business.bookingConfig?.weekHorizonDays}
+                                        weekStartType={business.bookingConfig?.weekStart}
+                                        primaryColor={business?.settings?.primaryColor}
                                     />
                                 </div>
                             ) : (
@@ -1531,7 +1532,7 @@ const BusinessBookingPage = () => {
                                 </div>
                             )}
                         </CardContent>
-                    </Card>
+                    </Card >
                 );
             case 'RESOURCE':
                 return (

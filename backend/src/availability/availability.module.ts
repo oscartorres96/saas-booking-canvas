@@ -1,11 +1,12 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { AvailabilityService } from './availability.service';
 import { AvailabilityController } from './availability.controller';
+import { AvailabilityService } from './availability.service';
 import { AvailabilityTemplate, AvailabilityTemplateSchema } from './schemas/availability-template.schema';
 import { AvailabilityWeekOverride, AvailabilityWeekOverrideSchema } from './schemas/availability-week-override.schema';
-import { BusinessesModule } from '../businesses/businesses.module';
 import { BookingsModule } from '../bookings/bookings.module';
+import { BusinessesModule } from '../businesses/businesses.module';
+import { ServicesModule } from '../services/services.module';
 
 @Module({
     imports: [
@@ -13,11 +14,12 @@ import { BookingsModule } from '../bookings/bookings.module';
             { name: AvailabilityTemplate.name, schema: AvailabilityTemplateSchema },
             { name: AvailabilityWeekOverride.name, schema: AvailabilityWeekOverrideSchema },
         ]),
+        forwardRef(() => BookingsModule),
         forwardRef(() => BusinessesModule),
-        BookingsModule,
+        forwardRef(() => ServicesModule),
     ],
-    providers: [AvailabilityService],
     controllers: [AvailabilityController],
+    providers: [AvailabilityService],
     exports: [AvailabilityService],
 })
 export class AvailabilityModule { }

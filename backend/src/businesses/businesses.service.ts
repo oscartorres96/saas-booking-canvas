@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { forwardRef, Inject, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { UserDocument, UserRole } from '../users/schemas/user.schema';
@@ -53,13 +53,8 @@ export class BusinessesService {
     private readonly usersService: UsersService,
     private readonly servicesService: ServicesService,
     private readonly bookingsService: BookingsService,
-    @Inject(forwardRef(() => AvailabilityService))
-    private readonly availabilityService: AvailabilityService,
+    @Inject(forwardRef(() => AvailabilityService)) private readonly availabilityService: AvailabilityService,
   ) { }
-
-  async findById(id: string): Promise<BusinessDocument | null> {
-    return this.businessModel.findById(id).exec();
-  }
 
   private assertAccess(authUser: AuthUser, business: BusinessDocument) {
     if (!authUser?.role || authUser.role === 'public') return;
@@ -332,9 +327,7 @@ export class BusinessesService {
   }
 
   async getSlots(businessId: string, date: string, serviceId: string) {
-    const startDate = new Date(date);
-    const endDate = new Date(date);
-    const results = await this.availabilityService.getSlotsInRange(businessId, startDate, endDate, serviceId);
+    const results = await this.availabilityService.getSlotsInRange(businessId, date, date, serviceId);
     return results[0]?.slots || [];
   }
 

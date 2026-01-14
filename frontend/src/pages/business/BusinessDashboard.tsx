@@ -93,12 +93,12 @@ import { BusinessSettings } from "@/components/business/BusinessSettings";
 import { Billing } from "@/components/business/Billing";
 import { BusinessThemeToggle } from "@/components/BusinessThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { WeeklyAvailabilityPlanner } from "@/components/business/WeeklyAvailabilityPlanner";
 import useAuth from "@/auth/useAuth";
 import { getBusinessById, type Business } from "@/api/businessesApi";
 import { getServicesByBusiness, createService, updateService, deleteService, type Service } from "@/api/servicesApi";
 import { getBookingsByBusiness, updateBooking, resendConfirmation, type Booking } from "@/api/bookingsApi";
 import { getProductsByBusiness, type Product } from "@/api/productsApi";
-import { WeeklyAvailabilityPlanner } from "@/components/business/WeeklyAvailabilityPlanner";
 import { getByBusiness as getCustomerAssetsByBusiness, type CustomerAsset } from "@/api/customerAssetsApi";
 import { getPaymentsByBusiness } from "@/api/stripeApi";
 import { ExpirationBanner } from "@/components/ExpirationBanner";
@@ -912,19 +912,7 @@ const BusinessDashboard = () => {
                         </TabsContent>
 
                         <TabsContent value="availability" className="space-y-6">
-                            <DashboardSection>
-                                <SectionHeader
-                                    title={t('dashboard.availability.title', 'Disponibilidad Semanal')}
-                                    description={t('dashboard.availability.description', 'Ajusta tus horarios para semanas específicas, bloquea días o copia la configuración de la semana anterior.')}
-                                    icon={CalendarIcon}
-                                />
-                                <CardContent className="p-0 sm:p-6">
-                                    <WeeklyAvailabilityPlanner
-                                        businessId={businessId!}
-                                        businessHours={business?.settings?.businessHours}
-                                    />
-                                </CardContent>
-                            </DashboardSection>
+                            <WeeklyAvailabilityPlanner businessId={businessId!} />
                         </TabsContent>
 
                         <TabsContent value="settings">

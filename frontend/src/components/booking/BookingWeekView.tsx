@@ -1,151 +1,192 @@
-import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
-import { es } from 'date-fns/locale';
-import {
-    ChevronLeft,
-    ChevronRight,
-    Clock,
-    Calendar as CalendarIcon,
-    Zap,
-    Check
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { availabilityApi } from '@/api/availabilityApi';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from "react";
+import { format, addDays, startOfToday, isSameDay, parseISO } from "date-fns";
+import { es, enUS } from "date-fns/locale";
+import { ChevronLeft, ChevronRight, Clock, Loader2, Calendar as CalendarIcon, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { getAvailableSlots } from "@/api/availabilityApi";
+import { Slot } from "@/api/businessesApi";
+import { useTranslation } from "react-i18next";
 
 interface BookingWeekViewProps {
     businessId: string;
     serviceId: string;
-    onSlotSelect: (date: string, time: string) => void;
-    selectedSlot?: { date: string; time: string };
-    horizonDays?: number;
+    onSelect: (date: Date, time: string) => void;
+    selectedDate?: Date;
+    selectedTime?: string;
+    weekHorizonDays?: number;
+    weekStartType?: 'CURRENT' | 'NEXT';
+    primaryColor?: string;
 }
 
-export const BookingWeekView: React.FC<BookingWeekViewProps> = ({
+export function BookingWeekView({
     businessId,
     serviceId,
-    onSlotSelect,
-    selectedSlot,
-    horizonDays = 14
-}) => {
-    const { t } = useTranslation();
-    const [currentDate, setCurrentDate] = useState(new Date());
-    const [availableData, setAvailableData] = useState<{ date: string; slots: { time: string; isAvailable: boolean }[] }[]>([]);
+    onSelect,
+    selectedDate,
+    selectedTime,
+    weekHorizonDays = 14,
+    weekStartType = 'CURRENT',
+    primaryColor
+}: BookingWeekViewProps) {
+    const { t, i18n } = useTranslation();
     const [loading, setLoading] = useState(true);
+    const [daysData, setDaysData] = useState<Array<{ date: string, slots: Slot[] }>>([]);
+    const [startDate, setStartDate] = useState(() => {
+        let date = startOfToday();
+        if (weekStartType === 'NEXT') {
+            // Find next Monday
+            const day = date.getDay();
+            const diff = (day === 0 ? 1 : 8 - day);
+            date = addDays(date, diff);
+        }
+        return date;
+    });
+
+    const locale = i18n.language === 'en' ? enUS : es;
 
     useEffect(() => {
-        fetchSlots();
-    }, [currentDate, businessId, serviceId]);
+        loadSlots();
+    }, [startDate, serviceId]);
 
-    const fetchSlots = async () => {
+    const loadSlots = async () => {
         setLoading(true);
         try {
-            const start = format(currentDate, 'yyyy-MM-dd');
-            const end = format(addDays(currentDate, 6), 'yyyy-MM-dd');
-            const response = await availabilityApi.getAvailableSlots(businessId, start, end, serviceId);
-            setAvailableData(response.data);
+            const endDate = addDays(startDate, weekHorizonDays - 1);
+            const data = await getAvailableSlots({
+                businessId,
+                serviceId,
+                startDate: format(startDate, 'yyyy-MM-dd'),
+                endDate: format(endDate, 'yyyy-MM-dd')
+            });
+            setDaysData(data);
         } catch (error) {
-            console.error('Error fetching slots:', error);
+            console.error("Error loading slots:", error);
         } finally {
             setLoading(false);
         }
     };
 
-    const navigate = (days: number) => {
-        setCurrentDate(prev => addDays(prev, days));
+    const handlePrev = () => {
+        const newStart = addDays(startDate, -7);
+        if (newStart < startOfToday()) {
+            setStartDate(startOfToday());
+        } else {
+            setStartDate(newStart);
+        }
     };
+
+    const handleNext = () => setStartDate(addDays(startDate, 7));
+
+    if (loading && daysData.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                <p className="text-muted-foreground font-medium">{t('common.loading', 'Buscando horarios disponibles...')}</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between px-2">
-                <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1 flex items-center gap-2">
-                        <Zap className="h-3 w-3 fill-primary" />
-                        Agenda rápida
-                    </span>
-                    <h3 className="text-xl font-black italic tracking-tighter uppercase leading-none">
-                        {format(currentDate, 'MMMM yyyy', { locale: es })}
-                    </h3>
-                </div>
+            <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={() => navigate(-7)} className="rounded-full h-10 w-10 border-2 transition-transform hover:scale-105">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handlePrev}
+                        disabled={startDate <= startOfToday()}
+                        className="rounded-xl h-10 w-10 border-2"
+                    >
                         <ChevronLeft className="h-5 w-5" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={() => navigate(7)} className="rounded-full h-10 w-10 border-2 transition-transform hover:scale-105">
+                    <div className="px-4 py-2 bg-slate-50 dark:bg-slate-900 rounded-xl border-2 border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4 text-primary" />
+                        <span className="text-xs font-black uppercase italic tracking-tighter">
+                            {format(startDate, "d MMM", { locale })} - {format(addDays(startDate, weekHorizonDays - 1), "d MMM", { locale })}
+                        </span>
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleNext}
+                        className="rounded-xl h-10 w-10 border-2"
+                    >
                         <ChevronRight className="h-5 w-5" />
                     </Button>
                 </div>
+
+                <div className="hidden md:flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                    <Sparkles className="h-3 w-3 text-primary" />
+                    {t('booking.week_view.best_times', 'Tus mejores opciones')}
+                </div>
             </div>
 
-            <ScrollArea className="w-full whitespace-nowrap pb-4">
-                <div className="flex gap-4 min-p-1">
-                    {availableData.map((day, idx) => {
-                        const date = new Date(day.date + 'T00:00:00');
-                        const isToday = isSameDay(date, new Date());
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4">
+                {daysData.map((day) => {
+                    const dateObj = parseISO(day.date);
+                    const isSelectedDay = selectedDate && isSameDay(dateObj, selectedDate);
+                    const availableSlots = day.slots.filter(s => s.isAvailable);
 
-                        return (
-                            <div key={day.date} className="flex-shrink-0 w-[140px] flex flex-col gap-3">
-                                <div className={`p-4 rounded-3xl border text-center space-y-1 transition-all flex flex-col items-center justify-center ${isToday ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 scale-105' : 'bg-white dark:bg-slate-900'}`}>
-                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">
-                                        {format(date, 'EEE', { locale: es })}
-                                    </span>
-                                    <span className="text-2xl font-black italic tracking-tighter leading-none">
-                                        {format(date, 'dd')}
-                                    </span>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <AnimatePresence mode="wait">
-                                        {loading ? (
-                                            [1, 2, 3].map(i => (
-                                                <div key={i} className="h-10 w-full animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl" />
-                                            ))
-                                        ) : day.slots.length > 0 ? (
-                                            day.slots.map(slot => {
-                                                const isSelected = selectedSlot?.date === day.date && selectedSlot?.time === slot.time;
-                                                return (
-                                                    <motion.button
-                                                        key={slot.time}
-                                                        onClick={() => slot.isAvailable && onSlotSelect(day.date, slot.time)}
-                                                        whileHover={slot.isAvailable ? { scale: 1.05 } : {}}
-                                                        whileTap={slot.isAvailable ? { scale: 0.95 } : {}}
-                                                        className={`w-full group relative h-12 flex items-center justify-center rounded-2xl font-bold text-sm transition-all border-2 overflow-hidden
-                              ${!slot.isAvailable
-                                                                ? 'bg-slate-50 dark:bg-slate-950/20 text-slate-300 dark:text-slate-800 border-transparent cursor-not-allowed line-through'
-                                                                : isSelected
-                                                                    ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 z-10'
-                                                                    : 'bg-white dark:bg-slate-900 text-foreground border-slate-100 dark:border-slate-800 hover:border-primary/50'
-                                                            }
-                            `}
-                                                    >
-                                                        <span className="relative z-10">{slot.time}</span>
-                                                        {isSelected && (
-                                                            <motion.div
-                                                                layoutId="check-icon"
-                                                                className="absolute right-2"
-                                                            >
-                                                                <Check className="h-3 w-3" strokeWidth={4} />
-                                                            </motion.div>
-                                                        )}
-                                                    </motion.button>
-                                                );
-                                            })
-                                        ) : (
-                                            <div className="h-12 flex items-center justify-center text-[10px] font-black uppercase tracking-widest opacity-30 italic">
-                                                Sin citas
-                                            </div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
+                    return (
+                        <div key={day.date} className={cn(
+                            "flex flex-col rounded-[1.5rem] border-2 transition-all duration-300 overflow-hidden bg-white dark:bg-slate-900/50",
+                            isSelectedDay ? "border-primary ring-2 ring-primary/10 bg-primary/5" : "border-slate-100 dark:border-slate-800/50",
+                            availableSlots.length === 0 && "opacity-60 grayscale-[0.5]"
+                        )}>
+                            {/* Day Header */}
+                            <div className={cn(
+                                "p-3 text-center border-b-2 flex flex-col items-center",
+                                isSelectedDay ? "bg-primary text-white border-primary" : "bg-slate-50 dark:bg-slate-800/80 border-transparent"
+                            )}>
+                                <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-0.5">
+                                    {format(dateObj, "EEE", { locale })}
+                                </span>
+                                <span className="text-lg font-black tracking-tighter uppercase italic leading-none">
+                                    {format(dateObj, "d MMM", { locale })}
+                                </span>
                             </div>
-                        );
-                    })}
+
+                            {/* Slots Container */}
+                            <div className="p-2 gap-1.5 flex flex-col max-h-[300px] overflow-y-auto premium-scrollbar">
+                                {availableSlots.length === 0 ? (
+                                    <div className="py-8 flex flex-col items-center justify-center text-center px-4">
+                                        <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-2">
+                                            <Clock className="h-4 w-4 text-slate-400" />
+                                        </div>
+                                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Sin Horarios</p>
+                                    </div>
+                                ) : (
+                                    availableSlots.map(slot => {
+                                        const isSelected = isSelectedDay && selectedTime === slot.time;
+                                        return (
+                                            <button
+                                                key={slot.time}
+                                                onClick={() => onSelect(dateObj, slot.time)}
+                                                className={cn(
+                                                    "w-full py-2 px-3 rounded-xl text-[11px] font-black uppercase italic tracking-tighter transition-all duration-200 text-center",
+                                                    isSelected
+                                                        ? "bg-primary text-white shadow-lg shadow-primary/20 scale-105"
+                                                        : "bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-primary/50 hover:bg-primary/5"
+                                                )}
+                                            >
+                                                {slot.time}
+                                            </button>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {loading && daysData.length > 0 && (
+                <div className="flex items-center justify-center gap-2 text-primary font-bold animate-pulse text-xs uppercase tracking-widest">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {t('common.updating', 'Actualizando...')}
                 </div>
-                <ScrollBar orientation="horizontal" className="hidden" />
-            </ScrollArea>
+            )}
         </div>
     );
-};
+}

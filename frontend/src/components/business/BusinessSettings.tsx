@@ -15,7 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { BusinessHoursForm, daysOfWeek } from "./BusinessHoursForm";
@@ -28,7 +27,7 @@ import {
     AdminLabel,
     InnerCard
 } from "@/components/dashboard/DashboardBase";
-import { Settings, Save, Globe, Palette, Clock, CreditCard, ShieldCheck, Building2, Zap, Check, AlertCircle, RefreshCw, Calendar, Layout } from "lucide-react";
+import { Settings, Save, Globe, Palette, Clock, CreditCard, ShieldCheck, Building2, Zap, Check, AlertCircle, RefreshCw, Layout, Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const intervalSchema = (t: any) => z.object({
@@ -56,13 +55,13 @@ const createFormSchema = (t: any) => z.object({
     bookingCapacityMode: z.enum(['SINGLE', 'MULTIPLE']).default('SINGLE'),
     maxBookingsPerSlot: z.coerce.number().min(2, t('settings.booking.capacity.validation_min')).optional().nullable(),
     paymentPolicy: z.enum(['RESERVE_ONLY', 'PAY_BEFORE_BOOKING', 'PACKAGE_OR_PAY']).default('RESERVE_ONLY'),
+    bookingViewMode: z.enum(['CALENDAR', 'WEEK']).default('CALENDAR'),
+    weekHorizonDays: z.coerce.number().default(14),
+    weekStart: z.enum(['CURRENT', 'NEXT']).default('CURRENT'),
     allowCash: z.boolean().default(false),
     paymentMode: z.enum(["BOOKPRO_COLLECTS", "DIRECT_TO_BUSINESS"]).default("BOOKPRO_COLLECTS"),
     stripeConnectAccountId: z.string().optional(),
     taxId: z.string().optional(),
-    bookingViewMode: z.enum(['CALENDAR', 'WEEK']).default('WEEK'),
-    weekHorizonDays: z.coerce.number().min(1).max(30).default(14),
-    weekStart: z.enum(['current', 'monday']).default('current'),
     businessHours: z.array(z.object({
         day: z.string(),
         isOpen: z.boolean(),
@@ -137,13 +136,13 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
             bookingCapacityMode: "SINGLE",
             maxBookingsPerSlot: null,
             paymentPolicy: "RESERVE_ONLY",
+            bookingViewMode: "CALENDAR",
+            weekHorizonDays: 14,
+            weekStart: "CURRENT",
             allowCash: false,
             paymentMode: "BOOKPRO_COLLECTS",
             stripeConnectAccountId: "",
             taxId: "",
-            bookingViewMode: "CALENDAR",
-            weekHorizonDays: 14,
-            weekStart: "current",
             businessHours: daysOfWeek.map(d => ({
                 day: d.key,
                 isOpen: true,
@@ -202,13 +201,13 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     bookingCapacityMode: business.bookingCapacityConfig?.mode || "SINGLE",
                     maxBookingsPerSlot: business.bookingCapacityConfig?.maxBookingsPerSlot || null,
                     paymentPolicy: (business.paymentConfig?.paymentPolicy === 'PAY_BEFORE_BOOKING' ? 'PACKAGE_OR_PAY' : business.paymentConfig?.paymentPolicy) || "RESERVE_ONLY",
+                    bookingViewMode: business.bookingConfig?.bookingViewMode || "CALENDAR",
+                    weekHorizonDays: business.bookingConfig?.weekHorizonDays || 14,
+                    weekStart: business.bookingConfig?.weekStart || "CURRENT",
                     allowCash: business.paymentConfig?.allowCash ?? false,
                     paymentMode: business.paymentMode || "BOOKPRO_COLLECTS",
                     stripeConnectAccountId: business.stripeConnectAccountId || "",
                     taxId: business.taxConfig?.taxId || "",
-                    bookingViewMode: business.bookingConfig?.bookingViewMode || "CALENDAR",
-                    weekHorizonDays: business.bookingConfig?.weekHorizonDays || 14,
-                    weekStart: business.bookingConfig?.weekStart || "current",
                     businessHours: business.settings?.businessHours?.length
                         ? business.settings.businessHours.map((bh) => ({
                             day: bh.day,
@@ -255,6 +254,9 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                 "allowMultipleBookingsPerDay",
                 "cancellationWindowHours",
                 "bookingCapacityMode",
+                "bookingViewMode",
+                "weekHorizonDays",
+                "weekStart",
                 ...(values.bookingCapacityMode === 'MULTIPLE' ? ["maxBookingsPerSlot"] as const : [])
             ]);
         } else if (activeTab === "payments") {
@@ -304,14 +306,15 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                     bookingConfig: {
                         allowMultipleBookingsPerDay: Boolean(values.allowMultipleBookingsPerDay),
                         cancellationWindowHours: Number(values.cancellationWindowHours) || 0,
-                        bookingViewMode: values.bookingViewMode, // Added
-                        weekHorizonDays: Number(values.weekHorizonDays), // Added
-                        weekStart: values.weekStart, // Added
+                        bookingViewMode: values.bookingViewMode,
+                        weekHorizonDays: Number(values.weekHorizonDays),
+                        weekStart: values.weekStart,
                     },
                     bookingCapacityConfig: {
                         mode: values.bookingCapacityMode,
                         maxBookingsPerSlot: values.bookingCapacityMode === 'MULTIPLE'
-                            ? Number(values.maxBookingsPerSlot) : 1, // Changed from || null to : 1
+                            ? Number(values.maxBookingsPerSlot) || null
+                            : null,
                     }
                 };
                 console.log('[DEBUG] Saving booking config:', dataToSubmit);
@@ -880,10 +883,11 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                     </div>
                                 </InnerCard>
 
+                                {/* NUEVA SECCIÓN: Experiencia de Reserva */}
                                 <InnerCard>
-                                    <AdminLabel icon={Layout}>Experiencia de Reserva</AdminLabel>
+                                    <AdminLabel icon={Layout}>{t('settings.booking.experience.title', 'Experiencia de Reserva')}</AdminLabel>
                                     <p className="text-sm text-muted-foreground mt-1 mb-4">
-                                        Configura cómo tus clientes ven y reservan sus citas.
+                                        {t('settings.booking.experience.description', 'Personaliza cómo tus clientes ven y reservan tus servicios.')}
                                     </p>
 
                                     <div className="space-y-6">
@@ -891,39 +895,60 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                             control={form.control}
                                             name="bookingViewMode"
                                             render={({ field }) => (
-                                                <FormItem className="space-y-3">
-                                                    <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Modo de visualización</FormLabel>
+                                                <FormItem>
+                                                    <FormLabel className="text-base font-semibold">
+                                                        {t('settings.booking.experience.view_mode', 'Modo de Vista')}
+                                                    </FormLabel>
                                                     <FormControl>
                                                         <RadioGroup
                                                             onValueChange={field.onChange}
                                                             value={field.value}
-                                                            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                                                            className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2"
                                                         >
                                                             <FormItem>
                                                                 <FormControl>
-                                                                    <RadioGroupItem value="CALENDAR" id="calendar-mode" className="peer sr-only" />
+                                                                    <RadioGroupItem value="CALENDAR" className="peer sr-only" />
                                                                 </FormControl>
-                                                                <Label
-                                                                    htmlFor="calendar-mode"
-                                                                    className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 transition-all hover:bg-muted/50 cursor-pointer ${field.value === 'CALENDAR' ? 'border-primary bg-primary/5' : 'border-muted'}`}
+                                                                <div
+                                                                    className={`
+                                                                        cursor-pointer rounded-xl border-2 p-4 transition-all hover:bg-muted/50
+                                                                        peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5
+                                                                        ${field.value === 'CALENDAR' ? 'border-primary bg-primary/5' : 'border-muted'}
+                                                                    `}
                                                                     onClick={() => field.onChange('CALENDAR')}
                                                                 >
-                                                                    <Calendar className="mb-3 h-6 w-6" />
-                                                                    <span className="font-bold uppercase italic tracking-tighter text-[10px]">Calendario Clásico</span>
-                                                                </Label>
+                                                                    <div className="font-semibold text-sm flex items-center gap-2">
+                                                                        <CalendarIcon className="h-4 w-4" />
+                                                                        {t('settings.booking.experience.view_calendar', 'Calendario Mensual')}
+                                                                        {field.value === 'CALENDAR' && <Check className="h-4 w-4 text-primary" />}
+                                                                    </div>
+                                                                    <div className="text-xs text-muted-foreground mt-1">
+                                                                        {t('settings.booking.experience.view_calendar_desc', 'Vista clásica de calendario para elegir día y luego hora.')}
+                                                                    </div>
+                                                                </div>
                                                             </FormItem>
+
                                                             <FormItem>
                                                                 <FormControl>
-                                                                    <RadioGroupItem value="WEEK" id="week-mode" className="peer sr-only" />
+                                                                    <RadioGroupItem value="WEEK" className="peer sr-only" />
                                                                 </FormControl>
-                                                                <Label
-                                                                    htmlFor="week-mode"
-                                                                    className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 transition-all hover:bg-muted/50 cursor-pointer ${field.value === 'WEEK' ? 'border-primary bg-primary/5' : 'border-muted'}`}
+                                                                <div
+                                                                    className={`
+                                                                        cursor-pointer rounded-xl border-2 p-4 transition-all hover:bg-muted/50
+                                                                        peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5
+                                                                        ${field.value === 'WEEK' ? 'border-primary bg-primary/5' : 'border-muted'}
+                                                                    `}
                                                                     onClick={() => field.onChange('WEEK')}
                                                                 >
-                                                                    <Zap className="mb-3 h-6 w-6 text-primary" />
-                                                                    <span className="font-bold uppercase italic tracking-tighter text-[10px]">Vista Semanal (Rápida)</span>
-                                                                </Label>
+                                                                    <div className="font-semibold text-sm flex items-center gap-2">
+                                                                        <Clock className="h-4 w-4" />
+                                                                        {t('settings.booking.experience.view_week', 'Agenda Semanal')}
+                                                                        {field.value === 'WEEK' && <Check className="h-4 w-4 text-primary" />}
+                                                                    </div>
+                                                                    <div className="text-xs text-muted-foreground mt-1">
+                                                                        {t('settings.booking.experience.view_week_desc', 'Muestra los horarios disponibles de toda la semana de un vistazo.')}
+                                                                    </div>
+                                                                </div>
                                                             </FormItem>
                                                         </RadioGroup>
                                                     </FormControl>
@@ -931,40 +956,52 @@ export function BusinessSettings({ businessId }: { businessId: string }) {
                                             )}
                                         />
 
-                                        {form.watch('bookingViewMode') === 'WEEK' && (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 animate-in fade-in slide-in-from-top-2">
+                                        {form.watch("bookingViewMode") === "WEEK" && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2">
                                                 <FormField
                                                     control={form.control}
                                                     name="weekHorizonDays"
                                                     render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Días a mostrar</FormLabel>
-                                                            <FormControl>
-                                                                <Input type="number" {...field} className="rounded-xl h-10" />
-                                                            </FormControl>
-                                                            <div className="text-[10px] text-muted-foreground mt-1 italic">Cuántos días puede ver el cliente hacia adelante.</div>
+                                                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                                                                {t('settings.booking.experience.week_horizon', 'Días a mostrar')}
+                                                            </FormLabel>
+                                                            <Select onValueChange={field.onChange} value={field.value.toString()}>
+                                                                <FormControl>
+                                                                    <SelectTrigger className="rounded-xl border-muted bg-white dark:bg-slate-950">
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                </FormControl>
+                                                                <SelectContent>
+                                                                    <SelectItem value="7">7 {t('common.days', 'días')}</SelectItem>
+                                                                    <SelectItem value="14">14 {t('common.days', 'días')}</SelectItem>
+                                                                    <SelectItem value="21">21 {t('common.days', 'días')}</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )}
                                                 />
+
                                                 <FormField
                                                     control={form.control}
                                                     name="weekStart"
                                                     render={({ field }) => (
                                                         <FormItem>
-                                                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Inicio de vista</FormLabel>
+                                                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                                                                {t('settings.booking.experience.week_start', 'Inicio de Agenda')}
+                                                            </FormLabel>
                                                             <Select onValueChange={field.onChange} value={field.value}>
                                                                 <FormControl>
-                                                                    <SelectTrigger className="rounded-xl h-10 bg-white dark:bg-slate-950">
-                                                                        <SelectValue placeholder="Selecciona inicio" />
+                                                                    <SelectTrigger className="rounded-xl border-muted bg-white dark:bg-slate-950">
+                                                                        <SelectValue />
                                                                     </SelectTrigger>
                                                                 </FormControl>
                                                                 <SelectContent>
-                                                                    <SelectItem value="current" className="font-bold text-xs uppercase italic tracking-tighter">Día actual</SelectItem>
-                                                                    <SelectItem value="monday" className="font-bold text-xs uppercase italic tracking-tighter">Próximo Lunes</SelectItem>
+                                                                    <SelectItem value="CURRENT">{t('settings.booking.experience.current_week', 'Semana Actual')}</SelectItem>
+                                                                    <SelectItem value="NEXT">{t('settings.booking.experience.next_week', 'Próxima Semana')}</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
-                                                            <div className="text-[10px] text-muted-foreground mt-1 italic">Desde dónde comienza la lista de días.</div>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )}

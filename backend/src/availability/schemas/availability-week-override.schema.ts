@@ -1,42 +1,48 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
-
-export type AvailabilityWeekOverrideDocument = AvailabilityWeekOverride & Document;
+import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class AvailabilityWeekOverride {
-    @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Business', required: true })
-    businessId!: string;
+    @Prop({ required: true, type: Types.ObjectId, ref: 'Business' })
+    businessId!: Types.ObjectId;
 
-    @Prop({ default: 'BUSINESS' })
-    entityType?: string; // BUSINESS, SERVICE, etc.
+    @Prop({ required: true, enum: ['BUSINESS', 'RESOURCE', 'PROVIDER'] })
+    entityType!: string;
 
-    @Prop()
+    @Prop({ type: String })
     entityId?: string;
 
     @Prop({ required: true })
-    weekStartDate!: Date; // Always a Monday
+    weekStartDate!: string; // YYYY-MM-DD (Monday)
 
     @Prop({
-        type: Map,
-        of: {
-            enabled: { type: Boolean, default: true },
-            intervals: [{
-                startTime: String,
-                endTime: String,
+        type: [{
+            date: String, // YYYY-MM-DD
+            enabled: Boolean,
+            blocks: [{
+                start: String,
+                end: String
+            }],
+            blockedRanges: [{
+                start: String,
+                end: String
             }]
-        }
+        }]
     })
-    dailyOverrides?: Record<string, {
+    days!: {
+        date: string;
         enabled: boolean;
-        intervals: { startTime: string; endTime: string; }[];
-    }>;
+        blocks: { start: string; end: string }[];
+        blockedRanges: { start: string; end: string }[];
+    }[];
 
     @Prop()
-    notes?: string;
+    note?: string;
 
-    @Prop({ default: 'manual' })
-    source?: string; // manual, external_sync, etc.
+    @Prop({ enum: ['MANUAL', 'COPY_PREV', 'RESET_BASE'], default: 'MANUAL' })
+    source!: string;
 }
 
+export type AvailabilityWeekOverrideDocument = AvailabilityWeekOverride & Document;
 export const AvailabilityWeekOverrideSchema = SchemaFactory.createForClass(AvailabilityWeekOverride);
+AvailabilityWeekOverrideSchema.index({ businessId: 1, entityType: 1, entityId: 1, weekStartDate: 1 }, { unique: true });

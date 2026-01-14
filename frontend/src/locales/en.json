@@ -1033,6 +1033,66 @@
                     "Duplicate control: The system defaults to preventing a client from booking twice on the same day to avoid errors. You can disable this restriction in Settings > Policies if your business allows multiple daily sessions."
                 ]
             },
+            "availability": {
+                "title": "Availability and schedule management",
+                "desc": "Precisely control when you receive appointments. Learn the difference between view modes and how to plan specific weeks.",
+                "modes": {
+                    "title": "How do your clients see your availability?",
+                    "desc": "Choose the most convenient way for your clients to discover your available slots.",
+                    "calendar": "Calendar Mode: Traditional month-to-month view. Ideal for 1-on-1 services where the date is most important.",
+                    "week": "Weekly Mode: Modern view focused on immediate availability. Shows multiple days at once. Perfect for group classes and studios.",
+                    "benefits": [
+                        "Faster booking on mobile devices.",
+                        "Clear visualization of multiple time options.",
+                        "Better control of real business occupancy."
+                    ],
+                    "note": "You can switch modes at any time in Settings > Policies.",
+                    "comparison": {
+                        "calendar": "Calendar",
+                        "week": "Weekly",
+                        "item1": "Visualization: Monthly | Next few days",
+                        "item2": "Speed: Normal | Very fast",
+                        "item3": "Ideal for: Medical consultations | Classes and studios"
+                    }
+                },
+                "choosing": {
+                    "title": "Choosing your booking mode",
+                    "steps": [
+                        "Go to Settings > 'Booking' tab.",
+                        "Look for the 'Booking Experience' section.",
+                        "Select between 'Monthly Calendar' or 'Weekly View'.",
+                        "Adjust visible days (in weekly mode) and if you prefer to show the current or next week."
+                    ]
+                },
+                "base_schedule": {
+                    "title": "Base schedule",
+                    "desc": "Your base schedule works as a recurring template. Define your general availability (e.g., Monday to Friday, 9:00 AM – 5:00 PM).",
+                    "note": "This schedule can be adjusted week by week if needed without affecting your permanent settings."
+                },
+                "weekly_planning": {
+                    "title": "Weekly planning",
+                    "desc": "The power of BookPro lies in its flexibility. Adjust your schedule based on what's happening in the real world.",
+                    "actions": [
+                        "Enable/Disable full days: Useful for holidays or breaks.",
+                        "Modify specific shifts: Add or remove hours on specific days.",
+                        "Block ranges: Avoid bookings during lunch hours or personal appointments.",
+                        "Copy previous week: Save time by replicating the previous week's layout.",
+                        "Reset to template: Quickly return to your defined base schedule."
+                    ],
+                    "top_tip": "You can manage all of this easily from your phone on the go."
+                },
+                "client_experience": {
+                    "title": "What your clients see",
+                    "desc": "In weekly mode, your clients experience a simplified booking flow:",
+                    "steps": [
+                        "Navigate through the days of the week with lateral scrolls.",
+                        "See the best available times highlighted.",
+                        "Select a time and confirm in seconds.",
+                        "100% optimized for mobile, no need to open complex calendars."
+                    ],
+                    "reassurance": "Clients only see available times."
+                }
+            },
             "public_page": {
                 "title": "Public Page and Growth",
                 "desc": "Your booking page is your 24/7 salesperson. It works without you being present: clients enter, select the service, choose date and time, pay (if applicable), and receive automatic confirmation. Now powered with smart marketing tools.",
