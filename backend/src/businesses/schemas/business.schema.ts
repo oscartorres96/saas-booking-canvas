@@ -84,6 +84,7 @@ export class Business {
     primaryColor?: string;
     secondaryColor?: string;
     description?: string;
+    timezone?: string;
     language?: string;
     defaultServiceDuration?: number;
     facebook?: string;

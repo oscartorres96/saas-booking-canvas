@@ -313,6 +313,13 @@ export class BusinessesService {
       };
     }
 
+    if (settings.bookingCapacityConfig) {
+      business.bookingCapacityConfig = {
+        ...business.bookingCapacityConfig,
+        ...settings.bookingCapacityConfig,
+      };
+    }
+
     return business.save();
   }
 

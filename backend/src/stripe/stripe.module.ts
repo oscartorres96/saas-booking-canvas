@@ -15,12 +15,13 @@ import { StripeSyncCronService } from './stripe-sync.cron';
 import { CustomerAssetsModule } from '../customer-assets/customer-assets.module';
 import { Product, ProductSchema } from '../products/schemas/product.schema';
 import { Service, ServiceSchema } from '../services/schemas/service.schema';
-import { NotificationService } from '../services/notification.service';
 import { BookingsModule } from '../bookings/bookings.module';
 import { ProductsModule } from '../products/products.module';
 import { forwardRef } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { JwtAuthGuard } from '../auth/jwt.guard';
+import { ServicesModule } from '../services/services.module';
+import { AvailabilityTemplate, AvailabilityTemplateSchema } from '../availability/schemas/availability-template.schema';
 
 @Module({
     imports: [
@@ -34,14 +35,16 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
             { name: Service.name, schema: ServiceSchema },
             { name: Product.name, schema: ProductSchema },
             { name: StripeEvent.name, schema: StripeEventSchema },
+            { name: AvailabilityTemplate.name, schema: AvailabilityTemplateSchema },
         ]),
         CustomerAssetsModule,
         forwardRef(() => ProductsModule),
         forwardRef(() => BookingsModule),
+        forwardRef(() => ServicesModule),
         AuthModule,
     ],
     controllers: [StripeController],
-    providers: [StripeService, NotificationService, PayoutService, StripeSyncService, StripeSyncCronService, JwtAuthGuard],
+    providers: [StripeService, PayoutService, StripeSyncService, StripeSyncCronService, JwtAuthGuard],
     exports: [StripeService, PayoutService, StripeSyncService],
 })
 export class StripeModule { }

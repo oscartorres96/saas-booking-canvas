@@ -1,7 +1,8 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { startOfDay, endOfDay } from 'date-fns';
+import { startOfDay, endOfDay, addDays } from 'date-fns';
+import { toZonedTime, format } from 'date-fns-tz';
 import { ResourceHold, ResourceHoldDocument } from '../resource-map/schemas/resource-hold.schema';
 import { UserRole } from '../users/schemas/user.schema';
 import { Booking, BookingDocument, BookingStatus, PaymentStatus } from './schemas/booking.schema';
@@ -104,11 +105,17 @@ export class BookingsService {
 
     // Business Rule: Double booking prevention (configurable)
     if (!business.bookingConfig?.allowMultipleBookingsPerDay) {
+      const bizTimezone = business.settings?.timezone || 'America/Mexico_City';
+      const zonedDate = toZonedTime(new Date(payload.scheduledAt), bizTimezone);
+      const dateStr = format(zonedDate, 'yyyy-MM-dd');
+
       const sameDayFilter: any = {
         businessId: payload.businessId,
-        scheduledAt: {
-          $gte: startOfDay(payload.scheduledAt),
-          $lte: endOfDay(payload.scheduledAt),
+        $expr: {
+          $eq: [
+            { $dateToString: { format: "%Y-%m-%d", date: "$scheduledAt", timezone: bizTimezone } },
+            dateStr
+          ]
         },
         status: { $ne: BookingStatus.Cancelled },
       };
@@ -196,14 +203,18 @@ export class BookingsService {
 
     // ✅ Validación de capacidad por slot mejorada
     // Buscamos todas las reservas del mismo día para verificar solapamientos
+    const bizTimezone = business.settings?.timezone || 'America/Mexico_City';
     const dayStart = startOfDay(new Date(payload.scheduledAt));
-    const dayEnd = endOfDay(new Date(payload.scheduledAt));
+    const queryRangeStart = new Date(dayStart.getTime() - 24 * 60 * 60000); // 24h before
+    const queryRangeEnd = new Date(dayStart.getTime() + 48 * 60 * 60000); // 48h after (total 72h range)
 
     const dayBookings = await this.bookingModel.find({
       businessId: payload.businessId,
-      scheduledAt: { $gte: dayStart, $lte: dayEnd },
+      scheduledAt: { $gte: queryRangeStart, $lte: queryRangeEnd },
       status: { $ne: BookingStatus.Cancelled },
     }).lean();
+
+    const dateStr = format(toZonedTime(new Date(payload.scheduledAt), bizTimezone), 'yyyy-MM-dd');
 
     // RULE: If there's already a PENDING_PAYMENT booking for this EXACT user/slot/service, just REUSE it
     const myPendingBooking = dayBookings.find(b =>

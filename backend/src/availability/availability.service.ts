@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { AvailabilityTemplate, AvailabilityTemplateDocument } from './schemas/availability-template.schema';
 import { AvailabilityWeekOverride, AvailabilityWeekOverrideDocument } from './schemas/availability-week-override.schema';
+import { ResourceMap, ResourceMapDocument } from '../resource-map/schemas/resource-map.schema';
 import { BookingsService } from '../bookings/bookings.service';
 import { BusinessesService } from '../businesses/businesses.service';
 import { ServicesService } from '../services/services.service';
@@ -19,6 +20,7 @@ export class AvailabilityService {
         @Inject(forwardRef(() => BookingsService)) private bookingsService: BookingsService,
         @Inject(forwardRef(() => BusinessesService)) private businessesService: BusinessesService,
         @Inject(forwardRef(() => ServicesService)) private servicesService: ServicesService,
+        @InjectModel(ResourceMap.name) private resourceMapModel: Model<ResourceMapDocument>,
     ) { }
 
     async getTemplate(businessId: string, entityType: string, entityId?: string) {
@@ -121,9 +123,20 @@ export class AvailabilityService {
         const serviceDurationMap = new Map(allServices.map(s => [s._id.toString(), s.durationMinutes]));
 
         // 4. Determine Capacity
+        let activeResourceConfig = await this.resourceMapModel.findOne({
+            businessId,
+            serviceId
+        }).lean();
+
+        if (!activeResourceConfig) {
+            if (business.resourceConfig?.enabled) {
+                activeResourceConfig = business.resourceConfig as any;
+            }
+        }
+
         let maxCapacity = 1;
-        if (business.resourceConfig?.enabled) {
-            maxCapacity = business.resourceConfig.resources?.filter(r => r.isActive).length || 1;
+        if (activeResourceConfig?.enabled) {
+            maxCapacity = activeResourceConfig.resources?.filter(r => r.isActive).length || 1;
         } else if (business.bookingCapacityConfig?.mode === 'MULTIPLE') {
             maxCapacity = business.bookingCapacityConfig.maxBookingsPerSlot || 1;
         }
