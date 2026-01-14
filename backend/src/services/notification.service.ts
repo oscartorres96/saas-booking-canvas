@@ -20,11 +20,13 @@ import {
 import { generateResourceMapPreview } from '../utils/resource-map-preview';
 import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
 import { Booking } from '../bookings/schemas/booking.schema';
+import { AvailabilityTemplate, AvailabilityTemplateDocument } from '../availability/schemas/availability-template.schema';
 
 @Injectable()
 export class NotificationService {
   constructor(
     @InjectModel(Business.name) private readonly businessModel: Model<BusinessDocument>,
+    @InjectModel(AvailabilityTemplate.name) private readonly templateModel: Model<AvailabilityTemplateDocument>,
     // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
     // private readonly whatsappService: WhatsappService,
   ) { }
@@ -35,16 +37,37 @@ export class NotificationService {
   }
 
   /** Formatea la fecha y hora de la reserva */
-  private formatScheduledDate(date: Date, locale: string = 'es-MX'): string {
-    return new Intl.DateTimeFormat(locale, {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    }).format(new Date(date));
+  private formatScheduledDate(date: Date, locale: string = 'es-MX', timeZone: string = 'America/Mexico_City'): string {
+    try {
+      return new Intl.DateTimeFormat(locale, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: timeZone,
+      }).format(new Date(date));
+    } catch (error) {
+      console.error(`Error formatting date with timezone ${timeZone}:`, error);
+      // Fallback without timezone if it fails
+      return new Intl.DateTimeFormat(locale, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      }).format(new Date(date));
+    }
+  }
+
+  /** Obtiene la zona horaria del negocio desde el template de disponibilidad */
+  private async getBusinessTimezone(businessId: string): Promise<string> {
+    const template = await this.templateModel.findOne({ businessId }).lean();
+    return template?.timezone || 'America/Mexico_City';
   }
 
   /** Verifica si la fecha de la cita es el mismo dia (en la zona del servidor) */
@@ -83,8 +106,9 @@ export class NotificationService {
       const businessName = business?.name || business?.businessName || 'Nuestro Negocio';
       const language = business?.language || 'es';
       const locale = language === 'en' ? 'en-US' : 'es-MX';
+      const timeZone = await this.getBusinessTimezone(booking.businessId?.toString() || '');
       const scheduledDate = new Date(booking.scheduledAt);
-      const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale);
+      const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale, timeZone);
       const showReminder = !this.isSameDay(scheduledDate);
       const resourceLabel = this.getResourceLabel(business, booking.resourceId);
 
@@ -187,7 +211,8 @@ export class NotificationService {
       const businessName = business?.name || business?.businessName || 'Nuestro Negocio';
       const language = business?.language || 'es';
       const locale = language === 'en' ? 'en-US' : 'es-MX';
-      const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale);
+      const timeZone = await this.getBusinessTimezone(booking.businessId?.toString() || '');
+      const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale, timeZone);
       const resourceLabel = this.getResourceLabel(business, booking.resourceId);
 
       const html = clientCancellationTemplate({
@@ -231,7 +256,8 @@ export class NotificationService {
       const businessName = business?.name || business?.businessName || 'Nuestro Negocio';
       const language = business?.language || 'es';
       const locale = language === 'en' ? 'en-US' : 'es-MX';
-      const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale);
+      const timeZone = await this.getBusinessTimezone(booking.businessId?.toString() || '');
+      const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale, timeZone);
       const resourceLabel = this.getResourceLabel(business, booking.resourceId);
 
       const html = appointmentReminderTemplate({
@@ -305,7 +331,8 @@ export class NotificationService {
       const businessName = business?.name || business?.businessName || 'Nuestro Negocio';
       const language = business?.language || 'es';
       const locale = language === 'en' ? 'en-US' : 'es-MX';
-      const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale);
+      const timeZone = await this.getBusinessTimezone(booking.businessId?.toString() || '');
+      const scheduledAt = this.formatScheduledDate(booking.scheduledAt, locale, timeZone);
       const resourceLabel = this.getResourceLabel(business, booking.resourceId);
 
       const html = clientBookingCompletedTemplate({

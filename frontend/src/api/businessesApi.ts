@@ -56,6 +56,7 @@ export interface Business {
     primaryColor?: string;
     secondaryColor?: string;
     description?: string;
+    timezone?: string;
     language?: string;
     defaultServiceDuration?: number;
     facebook?: string;
@@ -88,9 +89,6 @@ export interface Business {
       enabled: boolean;
       paymentTiming: 'BEFORE_BOOKING';
     };
-    bookingViewMode?: 'CALENDAR' | 'WEEK';
-    weekHorizonDays?: number;
-    weekStart?: 'current' | 'monday';
   };
   taxConfig?: {
     enabled: boolean;

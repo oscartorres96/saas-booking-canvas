@@ -7,6 +7,7 @@ import { BookingsService } from '../bookings/bookings.service';
 import { BusinessesService } from '../businesses/businesses.service';
 import { ServicesService } from '../services/services.service';
 import { startOfDay, endOfDay, addDays, format, parse, isBefore, startOfWeek, isSameDay } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { generateSlots } from '../utils/generateSlots';
 import { es } from 'date-fns/locale';
 
@@ -158,7 +159,11 @@ export class AvailabilityService {
                 businessHoursForDay = business.settings?.businessHours || [];
             }
 
-            const dayBookings = bookings.filter(b => isSameDay(new Date(b.scheduledAt), currentDay));
+            const bizTimezone = template?.timezone || 'America/Mexico_City';
+            const dayBookings = bookings.filter(b => {
+                const zonedDate = toZonedTime(new Date(b.scheduledAt), bizTimezone);
+                return format(zonedDate, 'yyyy-MM-dd') === dateStr;
+            });
 
             const slots = generateSlots(
                 currentDay,
@@ -168,7 +173,8 @@ export class AvailabilityService {
                     scheduledAt: b.scheduledAt,
                     durationMinutes: serviceDurationMap.get(b.serviceId?.toString()) || service.durationMinutes
                 })),
-                maxCapacity
+                maxCapacity,
+                template?.timezone || 'America/Mexico_City'
             );
 
             // Apply blockedRanges if they exist in override

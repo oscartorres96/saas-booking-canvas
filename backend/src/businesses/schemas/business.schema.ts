@@ -57,6 +57,7 @@ export class Business {
     type: {
       primaryColor: String,
       secondaryColor: String,
+      timezone: { type: String, default: 'America/Mexico_City' },
       description: String,
       language: { type: String, default: 'es_MX' },
       defaultServiceDuration: { type: Number, default: 30 },

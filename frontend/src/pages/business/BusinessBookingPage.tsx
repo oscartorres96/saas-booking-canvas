@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format, isToday, isTomorrow } from "date-fns";
+import { fromZonedTime } from 'date-fns-tz';
 import { es, enUS } from "date-fns/locale";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
@@ -224,6 +225,7 @@ const BusinessBookingPage = () => {
     const [dashboardSearchTerm, setDashboardSearchTerm] = useState("");
     const [isSingleSpotModalOpen, setIsSingleSpotModalOpen] = useState(false);
     const [activeResourceConfig, setActiveResourceConfig] = useState<any>(null);
+    const [businessTimezone, setBusinessTimezone] = useState<string>('America/Mexico_City');
     const isFetchingDashboardRef = useRef(false);
     const checkAssetsPromiseRef = useRef<Promise<CustomerAsset[]> | null>(null);
 
@@ -719,6 +721,9 @@ const BusinessBookingPage = () => {
 
             const businessData = await getBusinessById(businessId);
             setBusiness(businessData);
+            if (businessData?.settings?.timezone) {
+                setBusinessTimezone(businessData.settings.timezone);
+            }
 
             const servicesData = await getServicesByBusiness(businessId);
             setServices(servicesData.filter(s => s.active !== false));
@@ -729,6 +734,7 @@ const BusinessBookingPage = () => {
             } catch (err) {
                 console.error("Error loading products", err);
             }
+
 
             const emailToFetch = guestEmail || user?.email;
             if (emailToFetch) {
@@ -889,10 +895,9 @@ const BusinessBookingPage = () => {
         try {
             let scheduledAt: string | undefined;
             if (values.date && values.time) {
-                const [hours, minutes] = values.time.split(":").map(Number);
-                const date = new Date(values.date);
-                date.setHours(hours, minutes, 0, 0);
-                scheduledAt = date.toISOString();
+                const dateStr = format(values.date, "yyyy-MM-dd");
+                const scheduledAtDate = fromZonedTime(`${dateStr} ${values.time}`, businessTimezone);
+                scheduledAt = scheduledAtDate.toISOString();
             }
 
             const bookingData: any = {

@@ -1,4 +1,5 @@
-import { addMinutes, format, isBefore, parse, startOfDay } from 'date-fns';
+import { addMinutes, format, isBefore, startOfDay } from 'date-fns';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 
 interface Interval {
@@ -21,42 +22,24 @@ interface ExistingBooking {
 
 /**
  * Normalize time string to HH:mm format (24-hour)
- * Handles formats like:
- * - "09:00" (already 24h)
- * - "09:00 a. m." or "09:00 a.m." (12h AM)
- * - "02:00 p. m." or "02:00 p.m." (12h PM)
  */
 const normalizeTime = (timeStr: string): string => {
-    // Remove extra spaces and dots
     const cleaned = timeStr.trim().replace(/\s+/g, ' ').toLowerCase();
-
-    // Check if it contains AM/PM markers
     const isAM = cleaned.includes('a.m') || cleaned.includes('a. m');
     const isPM = cleaned.includes('p.m') || cleaned.includes('p. m');
 
-    // Extract the time part (HH:mm)
     const timeMatch = cleaned.match(/(\d{1,2}):(\d{2})/);
-    if (!timeMatch) {
-        console.warn(`Invalid time format: ${timeStr}. Using original.`);
-        return timeStr;
-    }
+    if (!timeMatch) return timeStr;
 
     let hours = parseInt(timeMatch[1], 10);
     const minutes = timeMatch[2];
 
-    // Convert to 24-hour format if needed
     if (isAM || isPM) {
-        if (isPM && hours !== 12) {
-            hours += 12;
-        } else if (isAM && hours === 12) {
-            hours = 0;
-        }
+        if (isPM && hours !== 12) hours += 12;
+        else if (isAM && hours === 12) hours = 0;
     }
 
-    // Ensure two-digit format
-    const hoursStr = hours.toString().padStart(2, '0');
-
-    return `${hoursStr}:${minutes}`;
+    return `${hours.toString().padStart(2, '0')}:${minutes}`;
 };
 
 export const generateSlots = (
@@ -64,21 +47,18 @@ export const generateSlots = (
     serviceDurationMinutes: number,
     businessHours: BusinessHour[],
     existingBookings: ExistingBooking[],
-    maxCapacity: number = 1
+    maxCapacity: number = 1,
+    timezone: string = 'America/Mexico_City'
 ): { time: string, isAvailable: boolean }[] => {
-    // Use default (English) locale to match stored day names (e.g., "monday", "tuesday")
+    // Generate day name in English to match stored names (e.g. "monday", "tuesday")
     const dayName = format(date, 'eeee').toLowerCase();
-    console.log(`[generateSlots] Detecting day for date ${date}: "${dayName}"`);
 
     const todaySchedule = businessHours.find((h) => h.day.toLowerCase() === dayName);
-    console.log(`[generateSlots] Found schedule:`, todaySchedule);
 
     if (!todaySchedule || !todaySchedule.isOpen) {
-        console.log(`[generateSlots] Day not found or closed. todaySchedule:`, todaySchedule);
         return [];
     }
 
-    // Normalize intervals and convert to 24-hour format
     let intervals: Interval[] = [];
     if (todaySchedule.intervals && todaySchedule.intervals.length > 0) {
         intervals = todaySchedule.intervals.map(interval => ({
@@ -91,22 +71,25 @@ export const generateSlots = (
             endTime: normalizeTime(todaySchedule.endTime)
         }];
     } else {
-        // Default fallback if open but no times (shouldn't happen ideally)
         intervals = [{ startTime: '09:00', endTime: '18:00' }];
     }
 
     const slots: { time: string, isAvailable: boolean }[] = [];
     const dateString = format(date, 'yyyy-MM-dd');
+    const now = new Date();
 
     intervals.forEach((interval) => {
-        let current = parse(`${dateString} ${interval.startTime}`, 'yyyy-MM-dd HH:mm', new Date());
-        const end = parse(`${dateString} ${interval.endTime}`, 'yyyy-MM-dd HH:mm', new Date());
+        // Create dates as wall-clock time in the business timezone
+        let current = fromZonedTime(`${dateString} ${interval.startTime}`, timezone);
+        const end = fromZonedTime(`${dateString} ${interval.endTime}`, timezone);
 
         while (isBefore(current, end)) {
-            const currentSlotTime = format(current, 'HH:mm');
+            // Get the display time in the business timezone
+            const zonedDate = toZonedTime(current, timezone);
+            const currentSlotTime = format(zonedDate, 'HH:mm');
 
             // Filter out slots in the past
-            if (isBefore(current, new Date())) {
+            if (isBefore(current, now)) {
                 slots.push({ time: currentSlotTime, isAvailable: false });
                 current = addMinutes(current, serviceDurationMinutes);
                 continue;
@@ -115,12 +98,9 @@ export const generateSlots = (
             const slotEnd = addMinutes(current, serviceDurationMinutes);
 
             if (isBefore(slotEnd, end) || slotEnd.getTime() === end.getTime()) {
-                // Check collision based on capacity
                 const overlappingBookings = existingBookings.filter((booking) => {
                     const bookingStart = new Date(booking.scheduledAt);
                     const bookingEnd = addMinutes(bookingStart, booking.durationMinutes || serviceDurationMinutes);
-
-                    // Overlap logic: (StartA < EndB) and (EndA > StartB)
                     return current < bookingEnd && slotEnd > bookingStart;
                 });
 
