@@ -9,6 +9,7 @@ export enum BookingStatus {
   Completed = 'completed',
   Cancelled = 'cancelled',
   PendingPayment = 'pending_payment',
+  NoShow = 'no-show',
 }
 
 export enum PaymentStatus {
@@ -52,6 +53,7 @@ export class Booking {
 
   @Prop()
   accessCode?: string;
+
   @Prop({ enum: PaymentStatus, default: PaymentStatus.None })
   paymentStatus!: PaymentStatus;
 
@@ -80,6 +82,9 @@ export class Booking {
 
   @Prop({ type: Object })
   resourceMapSnapshot?: any;
+
+  @Prop()
+  source?: string;
 }
 
 

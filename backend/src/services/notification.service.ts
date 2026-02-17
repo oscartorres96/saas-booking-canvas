@@ -16,6 +16,7 @@ import {
   DemoRequestData,
   BookingEmailData,
   otpTemplate,
+  customReminderTemplate,
 } from '../utils/email-templates';
 import { generateResourceMapPreview } from '../utils/resource-map-preview';
 import { Business, BusinessDocument } from '../businesses/schemas/business.schema';
@@ -548,6 +549,44 @@ export class NotificationService {
       });
     } catch (error) {
       console.error('Error sending OTP email:', error);
+    }
+  }
+
+  /** Envia un email de recordatorio personalizado */
+  async sendCustomReminderEmail(options: {
+    to: string;
+    businessId: string;
+    clientName: string;
+    message: string;
+    subject?: string;
+    ctaUrl?: string;
+  }): Promise<void> {
+    try {
+      const business = await this.getBusinessInfo(options.businessId);
+      const businessName = business?.name || business?.businessName || 'BookPro';
+      const language = business?.language || 'es';
+
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const defaultCtaUrl = `${frontendUrl}/business/${options.businessId}/booking`;
+
+      const html = customReminderTemplate({
+        businessName,
+        clientName: options.clientName,
+        message: options.message,
+        language: language,
+        ctaUrl: options.ctaUrl || defaultCtaUrl,
+      });
+
+      const subject = options.subject || (language === 'en' ? `Reminder from ${businessName}` : `Recordatorio de ${businessName}`);
+
+      await sendEmail({
+        to: options.to,
+        subject,
+        html,
+      });
+    } catch (error) {
+      console.error('Error sending custom reminder email:', error);
+      throw error;
     }
   }
 }

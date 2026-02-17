@@ -1,10 +1,12 @@
 import { addMinutes, format, isBefore, startOfDay } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
-import { es } from 'date-fns/locale';
+import { es, enUS } from 'date-fns/locale';
 
 interface Interval {
-    startTime: string; // "HH:mm"
-    endTime: string;   // "HH:mm"
+    startTime?: string; // "HH:mm"
+    endTime?: string;   // "HH:mm"
+    start?: string;     // Support 'start' as well
+    end?: string;       // Support 'end' as well
 }
 
 interface BusinessHour {
@@ -24,6 +26,7 @@ interface ExistingBooking {
  * Normalize time string to HH:mm format (24-hour)
  */
 const normalizeTime = (timeStr: string): string => {
+    if (!timeStr) return '00:00';
     const cleaned = timeStr.trim().replace(/\s+/g, ' ').toLowerCase();
     const isAM = cleaned.includes('a.m') || cleaned.includes('a. m');
     const isPM = cleaned.includes('p.m') || cleaned.includes('p. m');
@@ -50,20 +53,24 @@ export const generateSlots = (
     maxCapacity: number = 1,
     timezone: string = 'America/Mexico_City'
 ): { time: string, isAvailable: boolean }[] => {
-    // Generate day name in English to match stored names (e.g. "monday", "tuesday")
-    const dayName = format(date, 'eeee').toLowerCase();
+    // Generate day name in English and Spanish to ensure matching regardless of how it's stored
+    const dayNameEn = format(date, 'eeee', { locale: enUS }).toLowerCase();
+    const dayNameEs = format(date, 'eeee', { locale: es }).toLowerCase();
 
-    const todaySchedule = businessHours.find((h) => h.day.toLowerCase() === dayName);
+    const todaySchedule = businessHours.find((h) => {
+        const storedDay = h.day.toLowerCase();
+        return storedDay === dayNameEn || storedDay === dayNameEs;
+    });
 
     if (!todaySchedule || !todaySchedule.isOpen) {
         return [];
     }
 
-    let intervals: Interval[] = [];
+    let intervals: { startTime: string; endTime: string }[] = [];
     if (todaySchedule.intervals && todaySchedule.intervals.length > 0) {
         intervals = todaySchedule.intervals.map(interval => ({
-            startTime: normalizeTime(interval.startTime),
-            endTime: normalizeTime(interval.endTime)
+            startTime: normalizeTime(interval.startTime || interval.start || '00:00'),
+            endTime: normalizeTime(interval.endTime || interval.end || '00:00')
         }));
     } else if (todaySchedule.startTime && todaySchedule.endTime) {
         intervals = [{

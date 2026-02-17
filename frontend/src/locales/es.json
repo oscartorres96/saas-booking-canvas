@@ -27,7 +27,8 @@
     "back_to_home": "Volver al inicio",
     "retry": "Reintentar",
     "today": "Hoy",
-    "saving": "Guardando..."
+    "saving": "Guardando...",
+    "sending": "Enviando..."
   },
   "auth": {
     "logout": "Cerrar sesión",
@@ -516,6 +517,8 @@
     "tabs": {
       "dashboard": "Dashboard",
       "catalog": "Mi Oferta",
+      "availability": "Disponibilidad",
+      "history": "Historial",
       "settings": "Configuración",
       "billing": "Facturación"
     },
@@ -581,8 +584,11 @@
         "pending": "Pendiente",
         "pending_payment": "Pendiente Pago",
         "completed": "Completada",
-        "cancelled": "Cancelada"
+        "cancelled": "Cancelada",
+        "no_show": "No asistió"
       },
+      "filter_date": "Filtrar por fecha",
+      "new_booking": "Nueva Reserva",
       "table": {
         "client": "Cliente",
         "service": "Servicio",
@@ -595,100 +601,152 @@
         "confirm": "Confirmar",
         "complete": "Marcar como Completada",
         "cancel": "Cancelar",
-        "verify_payment": "Verificar Pago",
-        "reject_payment": "Rechazar Pago",
-        "confirm_receipt": "Confirmar Recibo de Pago"
+        "resend": "Reenviar confirmación"
       },
-      "payment_status": {
-        "none": "Sin Pago",
-        "pending_verification": "Por Verificar",
-        "paid": "Pagado",
-        "rejected": "Rechazado"
+      "attention": {
+        "title": "Requiere atención",
+        "expiring_package": "Paquete por vencer",
+        "expired_package": "Paquete vencido",
+        "pending_booking": "Reserva pendiente",
+        "pending_payment": "Pago por verificar",
+        "expires_in": "Vence en {{days}} días",
+        "expired_days_ago": "Venció hace {{days}} días",
+        "revenue_at_risk": "Ingreso en riesgo: {{amount}}",
+        "last_renewal": "Última renovación: {{date}}",
+        "empty": "Todo al día ✨",
+        "view_all": "Ver todos",
+        "actions": {
+          "contact": "Contactar cliente",
+          "renew": "Renovar paquete",
+          "remind": "Enviar recordatorio",
+          "handle": "Marcar como atendido",
+          "undo": "Deshacer"
+        },
+        "contact": {
+          "title": "Contactar a {{name}}",
+          "whatsapp": "WhatsApp",
+          "email": "Correo",
+          "sms": "SMS",
+          "phone_missing": "Falta teléfono",
+          "template": "Hola {{name}} 👋 Tu paquete está por vencer {{when}}. ¿Te gustaría renovarlo para seguir reservando sin interrupciones?",
+          "email_sent": "Correo enviado con éxito",
+          "email_error": "Error al enviar el correo"
+        },
+        "remind": {
+          "sent": "Recordatorio enviado correctamente",
+          "cooldown": "Espera un momento. Solo puedes enviar un recordatorio cada 24 horas."
+        }
       },
-      "details": {
-        "title": "Detalles de la Cita",
-        "modal_description": "Información completa de la reserva",
-        "client_info": "Información del Cliente",
-        "name": "Nombre",
-        "email": "Email",
-        "phone": "Teléfono",
-        "status": "Estado",
-        "service_info": "Información del Servicio",
-        "service_name": "Servicio",
-        "service_description": "Descripción",
-        "datetime_info": "Fecha y Hora",
-        "date": "Fecha",
-        "time": "Hora",
-        "created_at": "Reserva Creada",
-        "updated_at": "Última Actualización",
-        "notes": "Notas Adicionales",
-        "payment_info": "Información de Pago",
-        "payment_status": "Estatus de Pago",
-        "payment_method": "Método de Pago",
-        "bank_transfer": "Transferencia Bancaria",
-        "holder": "Titular",
-        "clabe": "CLABE",
-        "transfer_date": "Fecha de Transferencia"
-      },
-      "cancel_confirm": {
-        "title": "Confirmar Cancelación",
-        "description": "¿Estás seguro que deseas cancelar esta cita?",
-        "warning": "Esta acción notificará al cliente sobre la cancelación. Esta acción no se puede deshacer.",
-        "confirm_button": "Sí, cancelar cita"
-      },
-      "toasts": {
-        "status_updated": "Cita marcada como {{status}}",
-        "payment_verified": "Pago verificado correctamente",
-        "payment_rejected": "Pago rechazado",
-        "error_update": "Error al actualizar el estado de la cita",
-        "error_verify": "Error al verificar pago",
-        "error_reject": "Error al rechazar pago"
-      }
+      "no_show": "No asistió",
+      "verify_payment": "Verificar Pago",
+      "reject_payment": "Rechazar Pago",
+      "confirm_receipt": "Confirmar Recibo de Pago"
     },
-    "availability": {
-      "title": "Disponibilidad Semanal",
-      "description": "Ajusta tus horarios para semanas específicas, bloquea días o copia la configuración de la semana anterior.",
-      "week_of": "Semana del",
-      "copy_previous": "Copiar anterior",
-      "save": "Guardar Agenda",
-      "no_intervals": "No hay horarios definidos",
-      "toasts": {
-        "saved": "Disponibilidad guardada correctamente",
-        "error": "Error al guardar la disponibilidad",
-        "week_copied": "Semana anterior copiada",
-        "no_previous_data": "No hay datos de la semana anterior",
-        "copy_error": "Error al copiar semana"
-      }
+    "payment_status": {
+      "none": "Sin Pago",
+      "pending_verification": "Por Verificar",
+      "paid": "Pagado",
+      "rejected": "Rechazado"
     },
-    "qr": {
-      "dialog_title": "Consigue Más Clientes",
-      "title": "Haz que reservar sea más fácil",
-      "subtitle": "Crea códigos QR inteligentes que conectan directamente con tus servicios y convierten visitantes en clientes.",
-      "type_label": "¿Qué quieres compartir?",
-      "type_general": "QR General",
-      "type_general_desc": "Lleva a tu página de reservas completa",
-      "type_service": "QR por Servicio",
-      "type_service_desc": "Promociona un servicio específico",
-      "type_package": "QR por Paquete",
-      "type_package_desc": "Impulsa la venta de paquetes",
-      "select_service": "Selecciona el servicio",
-      "select_package": "Selecciona el paquete",
-      "context_label": "¿Dónde lo vas a usar?",
-      "context_instagram": "Instagram / Redes Sociales",
-      "context_flyer": "Flyer Impreso",
-      "context_card": "Tarjeta de Presentación",
-      "context_reception": "Recepción / Mostrador",
-      "context_tip_instagram": "Ideal para historias y posts",
-      "context_tip_flyer": "Optimizado para impresión",
-      "context_tip_card": "Tamaño perfecto para tarjetas",
-      "context_tip_reception": "Visible para clientes en el local",
-      "download": "Descargar QR",
-      "copy_link": "Copiar Enlace",
-      "final_tip": "Coloca este código donde tus clientes puedan verlo fácilmente. Cada escaneo es una oportunidad de venta.",
-      "toast_download": "QR descargado exitosamente",
-      "toast_error": "Error al generar el código QR",
-      "toast_copy": "Enlace copiado al portapapeles"
+    "details": {
+      "title": "Detalles de la Cita",
+      "modal_description": "Información completa de la reserva",
+      "client_info": "Información del Cliente",
+      "name": "Nombre",
+      "email": "Email",
+      "phone": "Teléfono",
+      "status": "Estado",
+      "service_info": "Información del Servicio",
+      "service_name": "Servicio",
+      "service_description": "Descripción",
+      "datetime_info": "Fecha y Hora",
+      "date": "Fecha",
+      "time": "Hora",
+      "created_at": "Reserva Creada",
+      "updated_at": "Última Actualización",
+      "notes": "Notas Adicionales",
+      "payment_info": "Información de Pago",
+      "payment_status": "Estatus de Pago",
+      "payment_method": "Método de Pago",
+      "bank_transfer": "Transferencia Bancaria",
+      "holder": "Titular",
+      "clabe": "CLABE",
+      "transfer_date": "Fecha de Transferencia"
+    },
+    "cancel_confirm": {
+      "title": "Confirmar Cancelación",
+      "description": "¿Estás seguro que deseas cancelar esta cita?",
+      "warning": "Esta acción notificará al cliente sobre la cancelación. Esta acción no se puede deshacer.",
+      "confirm_button": "Sí, cancelar cita"
+    },
+    "toasts": {
+      "status_updated": "Cita marcada como {{status}}",
+      "payment_verified": "Pago verificado correctamente",
+      "payment_rejected": "Pago rechazado",
+      "error_update": "Error al actualizar el estado de la cita",
+      "error_verify": "Error al verificar pago",
+      "error_reject": "Error al rechazar pago"
+    },
+    "manualBooking": {
+      "title": "Nueva Reserva Manual",
+      "description": "Crea una reserva para un cliente que te contactó por fuera de la plataforma.",
+      "client_section": "Información del Cliente",
+      "service_section": "Servicio y Horario",
+      "name": "Nombre del Cliente",
+      "email": "Correo Electrónico",
+      "phone": "Teléfono",
+      "service": "Seleccionar Servicio",
+      "date": "Fecha",
+      "time": "Hora",
+      "notes": "Notas Internas",
+      "submit": "Crear Reserva",
+      "success": "Reserva creada exitosamente",
+      "error": "Error al crear la reserva"
     }
+  },
+  "availability": {
+    "title": "Disponibilidad Semanal",
+    "description": "Ajusta tus horarios para semanas específicas, bloquea días o copia la configuración de la semana anterior.",
+    "week_of": "Semana del",
+    "copy_previous": "Copiar anterior",
+    "save": "Guardar Agenda",
+    "no_intervals": "No hay horarios definidos",
+    "toasts": {
+      "saved": "Disponibilidad guardada correctamente",
+      "error": "Error al guardar la disponibilidad",
+      "week_copied": "Semana anterior copiada",
+      "no_previous_data": "No hay datos de la semana anterior",
+      "copy_error": "Error al copiar semana"
+    }
+  },
+  "qr": {
+    "dialog_title": "Consigue Más Clientes",
+    "title": "Haz que reservar sea más fácil",
+    "subtitle": "Crea códigos QR inteligentes que conectan directamente con tus servicios y convierten visitantes en clientes.",
+    "type_label": "¿Qué quieres compartir?",
+    "type_general": "QR General",
+    "type_general_desc": "Lleva a tu página de reservas completa",
+    "type_service": "QR por Servicio",
+    "type_service_desc": "Promociona un servicio específico",
+    "type_package": "QR por Paquete",
+    "type_package_desc": "Impulsa la venta de paquetes",
+    "select_service": "Selecciona el servicio",
+    "select_package": "Selecciona el paquete",
+    "context_label": "¿Dónde lo vas a usar?",
+    "context_instagram": "Instagram / Redes Sociales",
+    "context_flyer": "Flyer Impreso",
+    "context_card": "Tarjeta de Presentación",
+    "context_reception": "Recepción / Mostrador",
+    "context_tip_instagram": "Ideal para historias y posts",
+    "context_tip_flyer": "Optimizado para impresión",
+    "context_tip_card": "Tamaño perfecto para tarjetas",
+    "context_tip_reception": "Visible para clientes en el local",
+    "download": "Descargar QR",
+    "copy_link": "Copiar Enlace",
+    "final_tip": "Coloca este código donde tus clientes puedan verlo fácilmente. Cada escaneo es una oportunidad de venta.",
+    "toast_download": "QR descargado exitosamente",
+    "toast_error": "Error al generar el código QR",
+    "toast_copy": "Enlace copiado al portapapeles"
   },
   "theme": {
     "light": "Claro",

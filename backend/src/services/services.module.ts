@@ -8,6 +8,7 @@ import { Business, BusinessSchema } from '../businesses/schemas/business.schema'
 import { Booking, BookingSchema } from '../bookings/schemas/booking.schema';
 import { AvailabilityTemplate, AvailabilityTemplateSchema } from '../availability/schemas/availability-template.schema';
 import { NotificationService } from './notification.service';
+import { NotificationsController } from './notifications.controller';
 import { CronService } from './cron.service';
 import { TestEmailController } from './test-email.controller';
 // TODO: Descomentar cuando Meta apruebe los mensajes de WhatsApp
@@ -24,7 +25,7 @@ import { TestEmailController } from './test-email.controller';
     forwardRef(() => import('../stripe/stripe.module').then(m => m.StripeModule)),
     forwardRef(() => import('../bookings/bookings.module').then(m => m.BookingsModule)),
   ],
-  controllers: [ServicesController, TestEmailController],
+  controllers: [ServicesController, TestEmailController, NotificationsController],
   providers: [ServicesService, JwtAuthGuard, NotificationService, CronService],
   exports: [ServicesService, NotificationService, CronService],
 })

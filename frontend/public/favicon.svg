@@ -1,0 +1,12 @@
+<svg width="64" height="64" viewBox="4 4 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#005bea" />
+      <stop offset="100%" stop-color="#00c6fb" />
+    </linearGradient>
+  </defs>
+  <!-- Main Blue Body (Solid) -->
+  <path d="M56 14H50V8C50 5.79 48.21 4 46 4C43.79 4 42 5.79 42 8V14H22V8C22 5.79 20.21 4 18 4C15.79 4 14 5.79 14 8V14H8C5.79 14 4 15.79 4 18V56C4 58.21 5.79 60 8 60H56C58.21 60 60 58.21 60 56V18C60 15.79 58.21 14 56 14Z" fill="url(#blueGradient)"/>
+  <!-- White Checkmark -->
+  <path d="M44.83 24.51L26.83 42.51C26.2 43.14 25.38 43.51 24.51 43.51C23.64 43.51 22.82 43.14 22.19 42.51L15.51 35.83C14.21 34.53 14.21 32.41 15.51 31.11C16.81 29.81 18.93 29.81 20.23 31.11L24.51 35.39L40.11 19.79C41.41 18.49 43.53 18.49 44.83 19.79C46.13 21.09 46.13 23.21 44.83 24.51Z" fill="white"/>
+</svg>

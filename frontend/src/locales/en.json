@@ -26,7 +26,8 @@
         "back_to_home": "Back to home",
         "retry": "Retry",
         "today": "Today",
-        "saving": "Saving..."
+        "saving": "Saving...",
+        "sending": "Sending..."
     },
     "auth": {
         "logout": "Log out",
@@ -495,6 +496,9 @@
         "serviceLinkMessage": "Hi! 👋\n\nBook your appointment for *{{serviceName}}* here: 👇\n{{url}}",
         "tabs": {
             "dashboard": "Dashboard",
+            "catalog": "My Offer",
+            "availability": "Availability",
+            "history": "History",
             "settings": "Settings",
             "billing": "Billing"
         },
@@ -560,8 +564,11 @@
                 "pending": "Pending",
                 "pending_payment": "Pending Payment",
                 "completed": "Completed",
-                "cancelled": "Cancelled"
+                "cancelled": "Cancelled",
+                "no_show": "No-show"
             },
+            "filter_date": "Filter by date",
+            "new_booking": "New Booking",
             "table": {
                 "client": "Client",
                 "service": "Service",
@@ -574,9 +581,44 @@
                 "confirm": "Confirm",
                 "complete": "Mark as Completed",
                 "cancel": "Cancel",
+                "no_show": "No-show",
                 "verify_payment": "Verify Payment",
                 "reject_payment": "Reject Payment",
                 "confirm_receipt": "Confirm Payment Receipt"
+            },
+            "attention": {
+                "title": "Requires attention",
+                "expiring_package": "Package expiring",
+                "expired_package": "Package expired",
+                "pending_booking": "Pending booking",
+                "pending_payment": "Pending payment",
+                "expires_in": "Expires in {{days}} days",
+                "expired_days_ago": "Expired {{days}} days ago",
+                "revenue_at_risk": "Revenue at risk: {{amount}}",
+                "last_renewal": "Last renewal: {{date}}",
+                "empty": "All up to date ✨",
+                "view_all": "View all",
+                "actions": {
+                    "contact": "Contact client",
+                    "renew": "Renew package",
+                    "remind": "Send reminder",
+                    "handle": "Mark as handled",
+                    "undo": "Undo"
+                },
+                "contact": {
+                    "title": "Contact {{name}}",
+                    "whatsapp": "WhatsApp",
+                    "email": "Email",
+                    "sms": "SMS",
+                    "phone_missing": "Phone missing",
+                    "template": "Hi {{name}} 👋 Your package is expiring {{when}}. Would you like to renew it to keep booking without interruptions?",
+                    "email_sent": "Email sent successfully",
+                    "email_error": "Error sending email"
+                },
+                "remind": {
+                    "sent": "Reminder sent successfully",
+                    "cooldown": "Please wait. You can only send one reminder every 24 hours."
+                }
             },
             "payment_status": {
                 "none": "No Payment",
@@ -661,6 +703,22 @@
             "toast_download": "QR downloaded successfully",
             "toast_error": "Error generating QR code",
             "toast_copy": "Link copied to clipboard"
+        },
+        "manualBooking": {
+            "title": "New Manual Booking",
+            "description": "Create a booking for a client who contacted you outside the platform.",
+            "client_section": "Client Information",
+            "service_section": "Service and Schedule",
+            "name": "Client Name",
+            "email": "Email Address",
+            "phone": "Phone",
+            "service": "Select Service",
+            "date": "Date",
+            "time": "Time",
+            "notes": "Internal Notes",
+            "submit": "Create Booking",
+            "success": "Booking created successfully",
+            "error": "Error creating the booking"
         }
     },
     "theme": {

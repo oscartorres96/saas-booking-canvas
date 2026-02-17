@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Req, UseGuards, Query } from '@nestjs/common';
 import { IsDateString, IsOptional, IsString } from 'class-validator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
+import { OptionalJwtAuthGuard } from '../auth/optional-jwt.guard';
 import { BookingsService } from './bookings.service';
 
 class CreateBookingDto {
@@ -60,6 +61,10 @@ class CreateBookingDto {
   @IsOptional()
   @IsString()
   sessionId?: string;
+
+  @IsOptional()
+  @IsString()
+  source?: string;
 }
 
 class UpdateBookingDto {
@@ -145,8 +150,8 @@ export class BookingsController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  findAll(@Req() req: any) {
-    return this.bookingsService.findAll(req.user);
+  findAll(@Req() req: any, @Query() query: any) {
+    return this.bookingsService.findAll(req.user, query);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -155,13 +160,14 @@ export class BookingsController {
     return this.bookingsService.findOne(id, req.user);
   }
 
+  @UseGuards(OptionalJwtAuthGuard)
   @Post()
   create(@Body() body: CreateBookingDto, @Req() req: any) {
     console.log('[DEBUG] Create Booking Body:', JSON.stringify(body));
     return this.bookingsService.create({
       ...body,
       scheduledAt: new Date(body.scheduledAt),
-    }, req.user ?? { role: 'public' });
+    }, req.user || { role: 'public' });
   }
 
   @UseGuards(JwtAuthGuard)

@@ -94,7 +94,10 @@ import { Billing } from "@/components/business/Billing";
 import { BusinessThemeToggle } from "@/components/BusinessThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { WeeklyAvailabilityPlanner } from "@/components/business/WeeklyAvailabilityPlanner";
+import { ManualBookingDialog } from "@/components/business/ManualBookingDialog";
+import { ActivityHistory } from "@/components/business/ActivityHistory";
 import useAuth from "@/auth/useAuth";
+
 import { getBusinessById, type Business } from "@/api/businessesApi";
 import { getServicesByBusiness, createService, updateService, deleteService, type Service } from "@/api/servicesApi";
 import { getBookingsByBusiness, updateBooking, resendConfirmation, type Booking } from "@/api/bookingsApi";
@@ -126,6 +129,16 @@ const serviceFormSchema = z.object({
     requireProduct: z.boolean().default(false),
 });
 
+const manualBookingFormSchema = z.object({
+    clientName: z.string().min(2, { message: "El nombre es requerido" }),
+    clientEmail: z.string().email({ message: "Email inválido" }).optional().or(z.literal("")),
+    clientPhone: z.string().optional(),
+    serviceId: z.string().min(1, { message: "Selecciona un servicio" }),
+    scheduledAt: z.date({ required_error: "Selecciona una fecha y hora" }),
+    notes: z.string().optional(),
+});
+
+
 const BusinessDashboard = () => {
     const { businessId: paramBusinessId } = useParams<{ businessId: string }>();
     const navigate = useNavigate();
@@ -145,6 +158,7 @@ const BusinessDashboard = () => {
     const [customerAssets, setCustomerAssets] = useState<CustomerAsset[]>([]);
     const [payments, setPayments] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
+    const [historySearchTerm, setHistorySearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
     const [isServiceDialogOpen, setIsServiceDialogOpen] = useState(false);
     const [isEditServiceDialogOpen, setIsEditServiceDialogOpen] = useState(false);
@@ -156,7 +170,11 @@ const BusinessDashboard = () => {
     const [bookingToView, setBookingToView] = useState<Booking | null>(null);
     const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
     const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
+    const [isManualBookingDialogOpen, setIsManualBookingDialogOpen] = useState(false);
+    const [isCreatingManualBooking, setIsCreatingManualBooking] = useState(false);
+    const [filterDate, setFilterDate] = useState<Date | undefined>(undefined);
     const [activeTab, setActiveTab] = useState(tabParam === 'settings' ? 'settings' : (tabParam === 'catalog' ? 'catalog' : 'dashboard'));
+
     const { t, i18n } = useTranslation();
 
     const serviceForm = useForm<z.infer<typeof serviceFormSchema>>({
@@ -189,7 +207,9 @@ const BusinessDashboard = () => {
         },
     });
 
+
     useEffect(() => {
+
         // Check authorization
         if (!user) {
             navigate("/login");
@@ -258,7 +278,7 @@ const BusinessDashboard = () => {
         };
     }, []);
 
-    const loadData = async (showLoading = true) => {
+    const loadData = async (showLoading = true, dateFilter?: Date) => {
         if (!businessId) {
             setLoading(false);
             return;
@@ -272,8 +292,13 @@ const BusinessDashboard = () => {
             const servicesData = await getServicesByBusiness(businessId);
             setServices(servicesData);
 
-            const bookingsData = await getBookingsByBusiness(businessId);
+            // Use the date filter if provided
+            const bookingsData = await getBookingsByBusiness(
+                businessId,
+                dateFilter ? format(dateFilter, 'yyyy-MM-dd') : undefined
+            );
             setBookings(bookingsData);
+
 
             // Fetch products for QR Generator
             try {
@@ -310,7 +335,14 @@ const BusinessDashboard = () => {
         }
     };
 
+    const handleFilterDate = (date: Date | undefined) => {
+        setFilterDate(date);
+        loadData(true, date);
+    };
+
     const onCreateService = async (values: z.infer<typeof serviceFormSchema>) => {
+
+
         if (!businessId) return;
 
         try {
@@ -399,7 +431,8 @@ const BusinessDashboard = () => {
 
 
 
-    const onUpdateBookingStatus = async (bookingId: string, newStatus: 'confirmed' | 'completed' | 'cancelled') => {
+    const onUpdateBookingStatus = async (bookingId: string, newStatus: 'confirmed' | 'completed' | 'cancelled' | 'no-show') => {
+
         try {
             await updateBooking(bookingId, { status: newStatus });
             setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, status: newStatus } : b));
@@ -407,6 +440,26 @@ const BusinessDashboard = () => {
         } catch (error) {
             toast.error(t('dashboard.bookings.toasts.error_update'));
             console.error(error);
+        }
+    };
+
+    const handleVerifyPayment = async (bookingId: string) => {
+        try {
+            await updateBooking(bookingId, { paymentStatus: 'paid', status: 'confirmed' });
+            setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, paymentStatus: 'paid', status: 'confirmed' } : b));
+            toast.success(t('dashboard.bookings.toasts.payment_verified', 'Pago verificado correctamente'));
+        } catch (error) {
+            toast.error(t('dashboard.bookings.toasts.error_update'));
+        }
+    };
+
+    const handleRejectPayment = async (bookingId: string) => {
+        try {
+            await updateBooking(bookingId, { paymentStatus: 'none', status: 'cancelled' });
+            setBookings(prev => prev.map(b => b._id === bookingId ? { ...b, paymentStatus: 'none', status: 'cancelled' } : b));
+            toast.success(t('dashboard.bookings.toasts.payment_rejected', 'Pago rechazado'));
+        } catch (error) {
+            toast.error(t('dashboard.bookings.toasts.error_update'));
         }
     };
 
@@ -451,12 +504,19 @@ const BusinessDashboard = () => {
         setIsBookingDetailsDialogOpen(false);
     };
 
+    const handleMarkNoShow = async (bookingId: string) => {
+        await onUpdateBookingStatus(bookingId, 'no-show');
+    };
+
+
     const filteredBookings = bookings.filter(booking =>
         booking.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.clientEmail?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const upcomingBookings = filteredBookings.filter(b => new Date(b.scheduledAt) > new Date());
+    const upcomingBookings = filterDate
+        ? filteredBookings
+        : filteredBookings.filter(b => new Date(b.scheduledAt) > new Date());
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -464,7 +524,9 @@ const BusinessDashboard = () => {
             case "pending": return "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
             case "completed": return "bg-blue-100 text-blue-800 hover:bg-blue-100";
             case "cancelled": return "bg-red-100 text-red-800 hover:bg-red-100";
+            case "no-show": return "bg-slate-100 text-slate-800 hover:bg-slate-100 border-slate-200";
             case "pending_payment": return "bg-amber-100 text-amber-800 hover:bg-amber-100";
+
             default: return "bg-gray-100 text-gray-800";
         }
     };
@@ -580,12 +642,21 @@ const BusinessDashboard = () => {
                                     </Button>
                                     <Button
                                         variant="default"
-                                        className="h-9 md:h-10 text-[10px] md:text-xs px-2 md:px-3 font-semibold col-span-2 md:col-auto order-1 md:order-none shadow-md shadow-primary/20"
+                                        className="h-9 md:h-10 text-[10px] md:text-xs px-2 md:px-3 font-semibold col-span-2 md:col-auto order-1 md:order-none shadow-md shadow-primary/20 bg-primary hover:bg-primary/90"
+                                        onClick={() => setIsManualBookingDialogOpen(true)}
+                                    >
+                                        <Plus className="mr-1.5 h-3.5 w-3.5" />
+                                        {t('dashboard.bookings.new_booking')}
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="h-9 md:h-10 text-[10px] md:text-xs px-2 md:px-3 font-semibold col-span-2 md:col-auto order-1 md:order-none"
                                         onClick={handleCopyInvitation}
                                     >
                                         <Copy className="mr-1.5 h-3.5 w-3.5" />
                                         {t('dashboard.copyInvitation')}
                                     </Button>
+
                                     <Button
                                         variant="outline"
                                         className="h-9 md:h-10 text-[10px] md:text-xs px-2 md:px-3 font-medium order-4 md:order-none"
@@ -620,6 +691,7 @@ const BusinessDashboard = () => {
                                         <TabsTrigger value="dashboard" className="premium-tab-trigger">{t('dashboard.tabs.dashboard')}</TabsTrigger>
                                         <TabsTrigger value="catalog" className="premium-tab-trigger">{t('dashboard.tabs.catalog', 'Oferta')}</TabsTrigger>
                                         <TabsTrigger value="availability" className="premium-tab-trigger">{t('dashboard.tabs.availability', 'Disponibilidad')}</TabsTrigger>
+                                        <TabsTrigger value="history" className="premium-tab-trigger">{t('dashboard.tabs.history', 'Historial')}</TabsTrigger>
                                         <TabsTrigger value="settings" className="premium-tab-trigger">{t('dashboard.tabs.settings')}</TabsTrigger>
                                         <TabsTrigger value="billing" className="premium-tab-trigger">{t('dashboard.tabs.billing')}</TabsTrigger>
                                     </TabsList>
@@ -636,9 +708,12 @@ const BusinessDashboard = () => {
                                 customerAssets={customerAssets}
                                 payments={payments}
                                 onViewBooking={openBookingDetails}
+                                onViewHistory={() => setActiveTab('history')}
+                                setActiveTab={setActiveTab}
                                 onViewCustomer={(email) => {
-                                    setSearchTerm(email);
-                                    // Optionally scroll to table or just filter it
+                                    setHistorySearchTerm(email);
+                                    setActiveTab('history');
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
                                 }}
                             />
 
@@ -659,10 +734,45 @@ const BusinessDashboard = () => {
                                                         onChange={(e) => setSearchTerm(e.target.value)}
                                                     />
                                                 </div>
-                                                <Button variant="outline" size="sm" className="rounded-xl h-9 md:h-10 w-full md:w-auto">
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            variant="outline"
+                                                            className={cn(
+                                                                "h-9 md:h-10 px-3 font-normal rounded-xl w-full md:w-auto",
+                                                                !filterDate && "text-muted-foreground"
+                                                            )}
+                                                        >
+                                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                                            {filterDate ? format(filterDate, "PPP", { locale: i18n.language === 'en' ? enUS : es }) : t('dashboard.bookings.filter_date')}
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="end">
+                                                        <Calendar
+                                                            mode="single"
+                                                            selected={filterDate}
+                                                            onSelect={handleFilterDate}
+                                                            initialFocus
+                                                        />
+                                                        {filterDate && (
+                                                            <div className="p-2 border-t">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="w-full text-xs"
+                                                                    onClick={() => handleFilterDate(undefined)}
+                                                                >
+                                                                    Limpiar filtro
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                    </PopoverContent>
+                                                </Popover>
+                                                <Button variant="outline" size="sm" className="rounded-xl h-9 md:h-10 w-full md:w-auto md:hidden">
                                                     <Filter className="h-4 w-4 mr-2 md:mr-0" />
                                                     <span className="md:hidden">Filtrar</span>
                                                 </Button>
+
                                             </div>
                                         }
                                     />
@@ -790,6 +900,13 @@ const BusinessDashboard = () => {
                                                                                         <Mail className="mr-2 h-4 w-4" />
                                                                                         Reenviar confirmación
                                                                                     </DropdownMenuItem>
+                                                                                    {booking.status !== 'cancelled' && booking.status !== 'completed' && booking.status !== 'no-show' && (
+                                                                                        <DropdownMenuItem className="text-orange-600" onClick={() => handleMarkNoShow(booking._id)}>
+                                                                                            <Info className="mr-2 h-4 w-4" />
+                                                                                            {t('dashboard.bookings.actions.no_show')}
+                                                                                        </DropdownMenuItem>
+                                                                                    )}
+
                                                                                 </DropdownMenuContent>
                                                                             </DropdownMenu>
                                                                         </TableCell>
@@ -909,6 +1026,20 @@ const BusinessDashboard = () => {
                                     />
                                 </CardContent>
                             </DashboardSection>
+                        </TabsContent>
+
+                        <TabsContent value="history" className="space-y-6">
+                            <ActivityHistory
+                                key={historySearchTerm}
+                                business={business}
+                                bookings={bookings}
+                                services={services}
+                                products={products}
+                                customerAssets={customerAssets}
+                                payments={payments}
+                                onViewBooking={openBookingDetails}
+                                initialSearchTerm={historySearchTerm}
+                            />
                         </TabsContent>
 
                         <TabsContent value="availability" className="space-y-6">
@@ -1554,8 +1685,17 @@ const BusinessDashboard = () => {
 
                 </div>
             </div>
+            <ManualBookingDialog
+                isOpen={isManualBookingDialogOpen}
+                onClose={() => setIsManualBookingDialogOpen(false)}
+                businessId={businessId!}
+                services={services}
+                timezone={business.settings?.timezone}
+                onSuccess={() => loadData(false, filterDate)}
+            />
         </div>
     );
 };
+
 
 export default BusinessDashboard;
