@@ -31,7 +31,10 @@ export interface CreateBookingPayload {
   paymentMethod?: string;
   otpToken?: string;
   sessionId?: string;
+  stripeSessionId?: string;
+  stripePaymentIntentId?: string;
   resourceMapSnapshot?: any;
+  source?: string;
 }
 
 export type UpdateBookingPayload = Partial<CreateBookingPayload>;
@@ -178,12 +181,15 @@ export class BookingsService {
     if (service.businessId && payload.businessId && service.businessId.toString() !== payload.businessId.toString()) {
       throw new ForbiddenException('Service does not belong to this business');
     }
-    if (service.active === false) {
+
+    // Permitir reservas manuales incluso si el servicio está inactivo
+    const isAdmin = authUser && (authUser.role === UserRole.Owner || authUser.role === UserRole.Business);
+    if (service.active === false && !isAdmin) {
       throw new ForbiddenException('Service is inactive');
     }
 
     // Business Rule: Ensure product/package is provided if service requires it
-    if (service.requireProduct && !payload.assetId) {
+    if (service.requireProduct && !payload.assetId && !isAdmin) {
       throw new ForbiddenException('Este servicio requiere la compra previa de un pase o paquete.');
     }
 
@@ -301,19 +307,22 @@ export class BookingsService {
         throw new ForbiddenException('Email required for asset usage verification');
       }
 
-      const isVerified = await this.otpService.isTokenValid(
-        payload.clientEmail,
-        payload.otpToken || '',
-        'ASSET_USAGE'
-      );
+      // If it's an admin, we skip the OTP verification for using credits
+      if (!isAdmin) {
+        const isVerified = await this.otpService.isTokenValid(
+          payload.clientEmail,
+          payload.otpToken || '',
+          'ASSET_USAGE'
+        );
 
-      if (!isVerified) {
-        throw new ForbiddenException({
-          message: 'Se requiere verificación por correo para usar tus créditos.',
-          code: 'OTP_REQUIRED',
-          requiresOtp: true,
-          reason: 'ASSET_USAGE'
-        });
+        if (!isVerified) {
+          throw new ForbiddenException({
+            message: 'Se requiere verificación por correo para usar tus créditos.',
+            code: 'OTP_REQUIRED',
+            requiresOtp: true,
+            reason: 'ASSET_USAGE'
+          });
+        }
       }
 
       await this.customerAssetsService.consumeUse(payload.assetId, {
@@ -399,8 +408,16 @@ export class BookingsService {
     }
   }
 
-  async findAll(authUser: AuthUser): Promise<Booking[]> {
-    return this.bookingModel.find(this.buildFilter(authUser)).lean();
+  async findAll(authUser: AuthUser, filterDto?: { date?: string }): Promise<Booking[]> {
+    const filter: any = this.buildFilter(authUser);
+
+    if (filterDto?.date) {
+      const start = startOfDay(new Date(filterDto.date));
+      const end = endOfDay(new Date(filterDto.date));
+      filter.scheduledAt = { $gte: start, $lte: end };
+    }
+
+    return this.bookingModel.find(filter).sort({ scheduledAt: 1 }).lean();
   }
 
   async findOne(id: string, authUser: AuthUser): Promise<Booking> {

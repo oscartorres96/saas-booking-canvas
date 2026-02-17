@@ -2304,17 +2304,17 @@ const BusinessBookingPage = () => {
                                 </div>
 
                                 {/* Right: Detailed Summary Panel */}
-                                <div className="hidden lg:block">
-                                    <div className="sticky top-8 space-y-6">
-                                        <div className="bg-slate-900 dark:bg-slate-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-white/5 relative overflow-hidden h-full branded-summary">
+                                <div className="lg:sticky lg:top-8">
+                                    <div className="space-y-6">
+                                        <div className="bg-slate-900 dark:bg-slate-950 rounded-[2.5rem] p-6 sm:p-8 text-white shadow-2xl border border-white/5 relative branded-summary">
                                             {/* Background glow */}
                                             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -mr-32 -mt-32"></div>
 
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-8 ml-1">Resumen de Orden</h3>
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-4 sm:mb-8 ml-1">Resumen de Orden</h3>
 
-                                            <div className="space-y-8">
+                                            <div className="space-y-4 sm:space-y-6 md:space-y-8">
                                                 {/* The Primary Item */}
-                                                <div className="bg-white/5 rounded-3xl p-6 border border-white/10">
+                                                <div className="bg-white/5 rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-white/10">
                                                     <div className="flex items-center gap-3 mb-4">
                                                         <div className="px-2 py-0.5 bg-primary/20 rounded-md">
                                                             <span className="text-[9px] font-black uppercase tracking-widest text-primary italic">
@@ -2322,7 +2322,7 @@ const BusinessBookingPage = () => {
                                                             </span>
                                                         </div>
                                                     </div>
-                                                    <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none mb-4">
+                                                    <h4 className="text-lg sm:text-xl md:text-2xl font-black uppercase italic tracking-tighter leading-none mb-3 sm:mb-4">
                                                         {selectedProduct?.name || selectedService?.name}
                                                     </h4>
                                                     <div className="flex items-center justify-between">
@@ -2332,7 +2332,7 @@ const BusinessBookingPage = () => {
                                                                 {selectedProduct ? (selectedProduct.isUnlimited ? 'Ilimitado' : `${selectedProduct.totalUses} Usos`) : `${selectedService?.durationMinutes} Minutos`}
                                                             </span>
                                                         </div>
-                                                        <p className="text-xl font-black italic text-primary">${selectedProduct?.price || selectedService?.price}</p>
+                                                        <p className="text-lg sm:text-xl font-black italic text-primary">${selectedProduct?.price || selectedService?.price}</p>
                                                     </div>
                                                 </div>
 
@@ -2351,7 +2351,7 @@ const BusinessBookingPage = () => {
                                                 )}
 
                                                 {/* Client info preview */}
-                                                <div className="bg-white/5 rounded-3xl p-6 border border-white/10 relative overflow-hidden">
+                                                <div className="bg-white/5 rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-white/10 relative overflow-hidden">
                                                     <p className="text-[9px] font-black uppercase tracking-widest opacity-40 mb-4">Datos de Contacto</p>
                                                     <div className="space-y-3">
                                                         <div className="flex items-center gap-3">
@@ -2370,10 +2370,10 @@ const BusinessBookingPage = () => {
                                                 </div>
 
                                                 {/* Total amount big */}
-                                                <div className="pt-8 border-t border-white/10">
+                                                <div className="pt-4 sm:pt-6 md:pt-8 border-t border-white/10">
                                                     <div className="flex items-end justify-between mb-4">
                                                         <p className="text-xs font-black uppercase tracking-widest opacity-60">Total Final</p>
-                                                        <p className="text-5xl font-black italic text-primary tracking-tighter">
+                                                        <p className="text-3xl sm:text-4xl md:text-5xl font-black italic text-primary tracking-tighter">
                                                             {paymentMethod === 'ASSET' ? '$0' : `$${selectedProduct ? selectedProduct.price : (selectedService?.price || 0)}`}
                                                         </p>
                                                     </div>
@@ -2384,7 +2384,7 @@ const BusinessBookingPage = () => {
                                             </div>
                                         </div>
 
-                                        <div className="bg-slate-50 dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 flex items-center gap-4">
+                                        <div className="bg-slate-50 dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200 dark:border-slate-800 flex items-center gap-3 sm:gap-4">
                                             <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center shrink-0">
                                                 <Info className="w-5 h-5 text-muted-foreground" />
                                             </div>
@@ -3406,3 +3406,5 @@ const prioritizeAssets = (assets: CustomerAsset[]): CustomerAsset[] => {
         return 0;
     });
 };
+
+

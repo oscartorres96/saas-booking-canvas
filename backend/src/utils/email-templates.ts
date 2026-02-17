@@ -356,7 +356,9 @@ const translations = {
     otpBody: "Se ha solicitado un código de verificación para usar tus créditos o realizar un pago en",
     otpLabel: "Tu código es",
     otpExpiry: "Este código expirará en 10 minutos.",
-    otpSecurity: "Si no solicitaste este código, puedes ignorar este mensaje."
+    otpSecurity: "Si no solicitaste este código, puedes ignorar este mensaje.",
+    reminderTitle: "Recordatorio importante",
+    renewText: "Renovar ahora"
   },
   en: {
     bookingConfirmed: "Booking Confirmed",
@@ -412,7 +414,9 @@ const translations = {
     otpBody: "A verification code has been requested to use your credits or make a payment at",
     otpLabel: "Your code is",
     otpExpiry: "This code will expire in 10 minutes.",
-    otpSecurity: "If you did not request this code, you can ignore this message."
+    otpSecurity: "If you did not request this code, you can ignore this message.",
+    reminderTitle: "Important Reminder",
+    renewText: "Renew now"
   }
 };
 
@@ -1152,4 +1156,53 @@ export const otpTemplate = (data: { businessName: string; code: string; language
 </body>
 </html>
           `;
+};
+
+export const customReminderTemplate = (data: {
+  businessName: string;
+  clientName: string;
+  message: string;
+  language?: string;
+  ctaUrl?: string;
+}): string => {
+  const lang = (data.language || 'es') as keyof typeof translations;
+  const t = translations[lang];
+
+  return `
+<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <style>${baseStyles}</style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="email-header">
+      <h1>${t.reminderTitle}</h1>
+    </div>
+    <div class="email-body">
+      <h2>${t.hello} ${data.clientName}!</h2>
+      <p style="white-space: pre-line;">${data.message}</p>
+      
+      ${data.ctaUrl ? `
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${data.ctaUrl}" class="button" style="color: #ffffff; margin: 0;">
+          ${t.renewText}
+        </a>
+      </div>
+      ` : ''}
+    </div>
+    <div class="email-footer">
+      <p>${t.thanks} ${data.businessName}</p>
+      <p style="margin-top: 8px;">
+        ${t.autoEmail}
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
 };

@@ -9,7 +9,7 @@ export interface Booking {
     clientEmail?: string;
     clientPhone?: string;
     scheduledAt: string;
-    status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'pending_payment';
+    status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'pending_payment' | 'no-show';
     notes?: string;
     accessCode?: string;
     serviceName?: string;
@@ -24,12 +24,15 @@ export interface Booking {
         transferDate?: string;
         receiptUrl?: string;
     };
+    source?: string;
     createdAt?: string;
     updatedAt?: string;
 }
 
-export const getBookingsByBusiness = async (businessId: string): Promise<Booking[]> => {
-    const { data } = await apiClient.get<Booking[]>(`/bookings?businessId=${businessId}`);
+export const getBookingsByBusiness = async (businessId: string, date?: string): Promise<Booking[]> => {
+    let url = `/bookings?businessId=${businessId}`;
+    if (date) url += `&date=${date}`;
+    const { data } = await apiClient.get<Booking[]>(url);
     return data;
 };
 

@@ -10,7 +10,7 @@ import { ServicesService } from '../services/services.service';
 import { startOfDay, endOfDay, addDays, format, parse, isBefore, startOfWeek, isSameDay } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 import { generateSlots } from '../utils/generateSlots';
-import { es } from 'date-fns/locale';
+import { es, enUS } from 'date-fns/locale';
 
 @Injectable()
 export class AvailabilityService {
@@ -117,8 +117,12 @@ export class AvailabilityService {
 
         const overrideMap = new Map(overrides.map(o => [o.weekStartDate, o]));
 
-        // 3. Load Bookings
-        const bookings = await this.bookingsService.findByDateRange(businessId, startOfDay(start), endOfDay(end));
+        // 3. Load Bookings (Widen range by 24h to handle timezone boundaries)
+        const bookings = await this.bookingsService.findByDateRange(
+            businessId,
+            new Date(startOfDay(start).getTime() - 24 * 60 * 60000),
+            new Date(endOfDay(end).getTime() + 24 * 60 * 60000)
+        );
         const allServices = await this.servicesService.findAll({ role: 'public', userId: 'system' }, businessId);
         const serviceDurationMap = new Map(allServices.map(s => [s._id.toString(), s.durationMinutes]));
 
@@ -152,42 +156,57 @@ export class AvailabilityService {
             const weekOverride = overrideMap.get(weekStartStr);
             const dayOverride = weekOverride?.days.find(d => d.date === dateStr);
             const templateRule = template?.weeklyRules.find(r => r.dayOfWeek === dayOfWeek);
-
             let businessHoursForDay: any[];
+
+            const bizTimezone = template?.timezone || business.settings?.timezone || 'America/Mexico_City';
+            const dayNameEn = format(currentDay, 'eeee', { locale: enUS }).toLowerCase();
+            const dayNameEs = format(currentDay, 'eeee', { locale: es }).toLowerCase();
 
             if (dayOverride) {
                 businessHoursForDay = [{
-                    day: format(currentDay, 'EEEE', { locale: es }).toLowerCase(),
+                    day: dayNameEn,
                     isOpen: dayOverride.enabled,
                     intervals: dayOverride.blocks || []
                 }];
-            } else if (template) {
+            } else if (templateRule) {
+                // If template exists and has a specific rule for this day
                 businessHoursForDay = [{
-                    day: format(currentDay, 'EEEE', { locale: es }).toLowerCase(),
-                    isOpen: templateRule?.enabled ?? false,
-                    intervals: templateRule?.blocks || []
+                    day: dayNameEn,
+                    isOpen: templateRule.enabled,
+                    intervals: templateRule.blocks || []
                 }];
             } else {
-                // Fallback to legacy
-                businessHoursForDay = business.settings?.businessHours || [];
+                // Fallback to legacy business settings if no override or template rule exists
+                // We search in business.settings.businessHours for a matching day name
+                const legacyHours = business.settings?.businessHours?.find(h => {
+                    const d = h.day.toLowerCase();
+                    return d === dayNameEn || d === dayNameEs;
+                });
+
+                if (legacyHours) {
+                    businessHoursForDay = [legacyHours];
+                } else if (template) {
+                    // If template exists but no rule for this day, default to closed
+                    businessHoursForDay = [{
+                        day: dayNameEn,
+                        isOpen: false,
+                        intervals: []
+                    }];
+                } else {
+                    // Total fallback
+                    businessHoursForDay = business.settings?.businessHours || [];
+                }
             }
-
-            const bizTimezone = template?.timezone || 'America/Mexico_City';
-            const dayBookings = bookings.filter(b => {
-                const zonedDate = toZonedTime(new Date(b.scheduledAt), bizTimezone);
-                return format(zonedDate, 'yyyy-MM-dd') === dateStr;
-            });
-
             const slots = generateSlots(
                 currentDay,
                 service.durationMinutes,
                 businessHoursForDay,
-                dayBookings.map(b => ({
+                bookings.map(b => ({
                     scheduledAt: b.scheduledAt,
                     durationMinutes: serviceDurationMap.get(b.serviceId?.toString()) || service.durationMinutes
                 })),
                 maxCapacity,
-                template?.timezone || 'America/Mexico_City'
+                bizTimezone
             );
 
             // Apply blockedRanges if they exist in override

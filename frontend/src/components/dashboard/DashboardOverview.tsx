@@ -1,5 +1,5 @@
-import React from "react";
-import { format, isSameDay, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
+import React, { useState, useMemo } from "react";
+import { format, isSameDay, startOfWeek, endOfWeek, isWithinInterval, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays } from "date-fns";
 import { es, enUS } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import {
@@ -14,7 +14,16 @@ import {
     Search,
     User,
     DollarSign,
-    TrendingUp
+    TrendingUp,
+    Zap,
+    MessageSquare,
+    Target,
+    ChevronRight,
+    Filter,
+    LogOut,
+    ArrowUpRight,
+    MessageCircle,
+    RefreshCw
 } from "lucide-react";
 import {
     DashboardSection,
@@ -22,6 +31,19 @@ import {
     InnerCard,
     AdminLabel
 } from "./DashboardBase";
+import { AttentionItemCard, AttentionType, AttentionItem } from "./AttentionItemCard";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,15 +51,7 @@ import { Booking } from "@/api/bookingsApi";
 import { Service } from "@/api/servicesApi";
 import { Product } from "@/api/productsApi";
 import { CustomerAsset } from "@/api/customerAssetsApi";
-import {
-    startOfDay,
-    endOfDay,
-    startOfMonth,
-    endOfMonth,
-    startOfYear,
-    endOfYear,
-    subDays
-} from "date-fns";
+
 
 interface DashboardOverviewProps {
     business: any;
@@ -48,6 +62,8 @@ interface DashboardOverviewProps {
     payments?: any[];
     onViewBooking: (booking: Booking) => void;
     onViewCustomer?: (email: string) => void;
+    onViewHistory?: () => void;
+    setActiveTab?: (tab: string) => void;
 }
 
 export const DashboardOverview = ({
@@ -58,13 +74,22 @@ export const DashboardOverview = ({
     customerAssets,
     payments = [],
     onViewBooking,
-    onViewCustomer
+    onViewCustomer,
+    onViewHistory,
+    setActiveTab
 }: DashboardOverviewProps) => {
     const { t, i18n } = useTranslation();
     const locale = i18n.language === 'en' ? enUS : es;
-
     const now = new Date();
-    const [revenuePeriod, setRevenuePeriod] = React.useState<'today' | 'week' | 'month' | 'year'>('month');
+
+    // State for actionable attention
+    const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+    const [assetToRenew, setAssetToRenew] = useState<CustomerAsset | null>(null);
+    const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
+    const [renewalPackageId, setRenewalPackageId] = useState<string>("");
+    const [renewalDiscount, setRenewalDiscount] = useState<string>("0");
+
+    const [revenuePeriod, setRevenuePeriod] = useState<'today' | 'week' | 'month' | 'year'>('month');
 
     // --- KPIs ---
     const bookingsToday = bookings.filter(b => isSameDay(new Date(b.scheduledAt), now) && b.status !== 'cancelled');
@@ -212,19 +237,62 @@ export const DashboardOverview = ({
     };
 
     // --- Requires Attention ---
-    const requiresAttention = [
-        ...bookings.filter(b => b.status === 'pending').map(b => ({ type: 'pending_booking', data: b })),
-        ...bookings.filter(b => b.paymentStatus === 'pending_verification').map(b => ({ type: 'pending_payment', data: b })),
+    const allAttentionItems: AttentionItem[] = [
+        ...bookings.filter(b => b.status === 'pending').map(b => ({
+            id: `pending_${b._id}`,
+            type: 'pending_booking' as AttentionType,
+            data: b,
+            status: 'OPEN' as const,
+            client: { name: b.clientName, email: b.clientEmail, phone: b.clientPhone }
+        })),
+        ...bookings.filter(b => b.paymentStatus === 'pending_verification').map(b => ({
+            id: `payment_${b._id}`,
+            type: 'pending_payment' as AttentionType,
+            data: b,
+            status: 'OPEN' as const,
+            client: { name: b.clientName, email: b.clientEmail, phone: b.clientPhone }
+        })),
         ...customerAssets.filter(a => {
             if (!a.expiresAt) return false;
             const expiry = new Date(a.expiresAt);
             const daysToExpiry = (expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-            return daysToExpiry > 0 && daysToExpiry < 7;
-        }).map(a => ({ type: 'expiring_package', data: a }))
-    ].sort((a, b) => {
-        // Simple priority
-        return 0;
-    }).slice(0, 5);
+            return daysToExpiry < 7;
+        }).map(a => {
+            const product = products.find(p => p._id === (typeof a.productId === 'string' ? a.productId : a.productId?._id));
+            return {
+                id: `asset_${a._id}`,
+                type: 'expiring_package' as AttentionType,
+                data: a,
+                status: 'OPEN' as const,
+                expiresAt: a.expiresAt ? new Date(a.expiresAt) : undefined,
+                client: { email: a.clientEmail },
+                revenueAtRisk: product?.price
+            };
+        })
+    ].filter(item => !dismissedIds.has(item.id));
+
+    const requiresAttention = allAttentionItems.sort((a, b) => {
+        // Priority: Payment > Booking > Asset
+        const priority = { pending_payment: 3, pending_booking: 2, expiring_package: 1 };
+        return priority[b.type] - priority[a.type];
+    }).slice(0, 3);
+
+    const handleDismiss = (id: string) => {
+        setDismissedIds(prev => new Set([...Array.from(prev), id]));
+    };
+
+    const handleOpenRenew = (asset: CustomerAsset) => {
+        setAssetToRenew(asset);
+        setRenewalPackageId((typeof asset.productId === 'string' ? asset.productId : asset.productId?._id) || "");
+        setIsRenewModalOpen(true);
+    };
+
+    const handleRenewSubmit = () => {
+        // Mocked renewal logic
+        toast.success(t('common.success'));
+        setIsRenewModalOpen(false);
+        if (assetToRenew) handleDismiss(`asset_${assetToRenew._id}`);
+    };
 
     // --- Active/Relevant Customers ---
     const customerStats = bookings.reduce((acc: any, b) => {
@@ -542,7 +610,11 @@ export const DashboardOverview = ({
                                 )}
                             </div>
                             {recentActivity.length > 0 && (
-                                <Button variant="ghost" className="w-full text-primary hover:text-primary/80 text-sm mt-4">
+                                <Button
+                                    variant="ghost"
+                                    className="w-full text-primary hover:text-primary/80 text-sm mt-4"
+                                    onClick={onViewHistory}
+                                >
                                     {t('dashboard.v2.activity.view_all', 'Ver todo el historial')} <ArrowRight className="h-4 w-4 ml-2" />
                                 </Button>
                             )}
@@ -567,41 +639,101 @@ export const DashboardOverview = ({
 
                             <div className="space-y-4">
                                 {requiresAttention.length > 0 ? (
-                                    requiresAttention.map((item, idx) => (
-                                        <div key={idx} className="bg-white/5 hover:bg-white/10 transition-colors rounded-2xl p-4 cursor-pointer group" onClick={() => {
-                                            if (item.type === 'pending_booking' || item.type === 'pending_payment') {
-                                                onViewBooking(item.data as Booking);
-                                            }
-                                        }}>
-                                            <div className="flex items-start gap-3">
-                                                <div className={cn(
-                                                    "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
-                                                    item.type === 'expiring_package' ? "bg-red-500/20 text-red-400" : "bg-primary/20 text-primary-foreground"
-                                                )}>
-                                                    <AlertCircle className="h-4 w-4" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-xs md:text-sm font-semibold text-white break-words">
-                                                        {item.type === 'pending_booking' ? `Reserva de ${(item.data as Booking).clientName}` :
-                                                            item.type === 'pending_payment' ? `Verificar pago de ${(item.data as Booking).clientName}` :
-                                                                `Paquete de ${(item.data as any).clientEmail} por vencer`}
-                                                    </p>
-                                                    <p className="text-xs text-slate-400 mt-0.5">
-                                                        {item.type === 'pending_booking' ? 'Pendiente de confirmación' :
-                                                            item.type === 'pending_payment' ? 'Transferencia por verificar' :
-                                                                'Vence en menos de una semana'}
-                                                    </p>
-                                                </div>
-                                                <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-white transition-colors opacity-0 group-hover:opacity-100" />
-                                            </div>
-                                        </div>
+                                    requiresAttention.map((item) => (
+                                        <AttentionItemCard
+                                            key={item.id}
+                                            item={item}
+                                            onViewBooking={onViewBooking}
+                                            onViewCustomer={onViewCustomer || (() => { })}
+                                            onHandle={handleDismiss}
+                                            onRenew={handleOpenRenew}
+                                        />
                                     ))
                                 ) : (
-                                    <p className="text-slate-500 text-sm italic text-center py-4">Todo al día ✨</p>
+                                    <div className="flex flex-col items-center justify-center py-10 space-y-2">
+                                        <div className="h-12 w-12 rounded-full bg-white/5 flex items-center justify-center">
+                                            <CheckCircle2 className="h-6 w-6 text-green-400 opacity-50" />
+                                        </div>
+                                        <p className="text-slate-500 text-sm italic font-medium">
+                                            {t('dashboard.bookings.attention.empty', 'Todo al día ✨')}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {allAttentionItems.length > 3 && (
+                                    <Button
+                                        variant="ghost"
+                                        className="w-full text-[10px] font-bold uppercase tracking-widest text-primary hover:text-primary/80"
+                                        onClick={() => setActiveTab?.('history')}
+                                    >
+                                        {t('dashboard.bookings.attention.view_all', 'Ver todos')} ({allAttentionItems.length})
+                                    </Button>
                                 )}
                             </div>
                         </div>
                     </div>
+
+                    {/* Renew Modal */}
+                    <Dialog open={isRenewModalOpen} onOpenChange={setIsRenewModalOpen}>
+                        <DialogContent className="sm:max-w-[425px] bg-slate-950 border-white/10 text-white">
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2">
+                                    <RefreshCw className="h-5 w-5 text-primary" />
+                                    {t('dashboard.bookings.attention.actions.renew')}
+                                </DialogTitle>
+                                <DialogDescription className="text-slate-400">
+                                    {assetToRenew?.clientEmail}
+                                </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-slate-500">{t('dashboard.services.form.name')}</Label>
+                                    <Select value={renewalPackageId} onValueChange={setRenewalPackageId}>
+                                        <SelectTrigger className="bg-white/5 border-white/10 rounded-xl h-11">
+                                            <SelectValue placeholder="Select package" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {products.map(p => (
+                                                <SelectItem key={p._id} value={p._id}>{p.name} - ${p.price}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-slate-500">Descuento ($)</Label>
+                                    <Input
+                                        type="number"
+                                        value={renewalDiscount}
+                                        onChange={(e) => setRenewalDiscount(e.target.value)}
+                                        className="bg-white/5 border-white/10 rounded-xl h-11"
+                                    />
+                                </div>
+
+                                {assetToRenew && (
+                                    <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+                                        <p className="text-[10px] text-primary/70 font-bold uppercase mb-1">Resumen</p>
+                                        <div className="flex justify-between items-end">
+                                            <span className="text-xs text-white/70">Total a pagar</span>
+                                            <span className="text-xl font-black text-white">
+                                                ${(products.find(p => p._id === renewalPackageId)?.price || 0) - Number(renewalDiscount)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <DialogFooter>
+                                <Button
+                                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-11 rounded-xl"
+                                    onClick={handleRenewSubmit}
+                                >
+                                    {t('common.confirm')}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
 
                     {/* Active/Top Customers */}
                     <DashboardSection className="!space-y-0">
