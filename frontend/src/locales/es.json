@@ -1245,6 +1245,21 @@
           "Exportación de datos (próximamente): Podrás exportar tu base de clientes a Excel o CSV para análisis externo, campañas de email marketing, o respaldos."
         ]
       },
+      "reports": {
+        "title": "Reportes y Estadísticas (Business Intelligence)",
+        "desc": "Toma decisiones basadas en datos reales. La sección de reportes de BookPro transforma tu actividad diaria en información estratégica para optimizar tu operación y maximizar tus ingresos.",
+        "kpi_title": "Métricas de Alto Impacto",
+        "kpis": [
+          "Análisis de Ingresos: Visualiza el flujo de caja en tiempo real. Compara ventas entre periodos, identifica tus días más rentables y entiende de dónde viene tu dinero (servicios vs paquetes).",
+          "Comportamiento de Clientes: Descubre quiénes son tus clientes estrella, cuántos son recurrentes y cuál es tu tasa de captación de nuevos clientes.",
+          "Optimización de Horarios (Peak Hours): Identifica tus 'horas pico' para ajustar tu personal o lanzar promociones en horas de baja demanda.",
+          "Rendimiento de Servicios: ¿Qué servicio es el más popular? ¿Cuál genera más margen? Entiende tu catálogo para potenciar lo que mejor funciona.",
+          "Control de No-asistencias: Mide tu tasa de 'no-show' y toma medidas correctivas para reducir el lucro cesante."
+        ],
+        "export_title": "Data Export & Compliance",
+        "export_desc": "Exporta tus datos a formatos estándar como CSV para integrarlos con tu contabilidad, realizar análisis avanzados en Excel o mantener un respaldo físico de tu operación.",
+        "export_tip": "Ideal para entregas mensuales a tu contador o análisis de fin de año."
+      },
       "best_practices": {
         "title": "Buenas Prácticas y Consejos Estratégicos",
         "desc": "Saca el máximo provecho de BookPro aplicando técnicas probadas que aumentan tus ingresos, reducen cancelaciones, y mejoran la experiencia del cliente.",
@@ -1538,6 +1553,74 @@
     "error": {
       "load_failed": "Error al cargar información de facturación"
     }
+  },
+  "reports": {
+    "title": "Reportes",
+    "subtitle": "Analiza el rendimiento y crecimiento de tu negocio.",
+    "filters": {
+      "title": "Filtros",
+      "apply": "Aplicar",
+      "reset": "Restablecer",
+      "date_range": "Rango de Fechas",
+      "branch": "Sucursal",
+      "payment_method": "Método de Pago",
+      "status": "Estado",
+      "presets": {
+        "today": "Hoy",
+        "last_7_days": "Últimos 7 días",
+        "last_30_days": "Últimos 30 días",
+        "month_to_date": "Mes actual",
+        "custom": "Personalizado"
+      }
+    },
+    "tabs": {
+      "overview": "Resumen",
+      "revenue": "Ingresos",
+      "peak_hours": "Horas Pico",
+      "services": "Servicios",
+      "customers": "Clientes",
+      "no_shows": "No-asistencias",
+      "resources": "Recursos",
+      "leads": "Prospectos"
+    },
+    "kpis": {
+      "total_bookings": "Total Reservas",
+      "completed_bookings": "Completadas",
+      "cancelled_bookings": "Canceladas",
+      "revenue": "Ingresos Totales",
+      "average_ticket": "Ticket Promedio",
+      "growth": "Crecimiento",
+      "new_customers": "Clientes Nuevos",
+      "recurring_customers": "Recurrentes",
+      "no_show_rate": "Tasa No-asistencia",
+      "busiest_day": "Día más ocupado",
+      "most_popular": "Más popular",
+      "avg_duration": "Duración Promedio"
+    },
+    "charts": {
+      "booking_activity": "Actividad de Reservas",
+      "daily_performance": "Rendimiento diario",
+      "revenue_trend": "Tendencia de Ingresos",
+      "income_distribution": "Distribución de ingresos por periodo",
+      "popularity_by_service": "Popularidad por Servicio",
+      "bookings_per_service": "Número de reservas por servicio",
+      "service_revenue": "Ingresos por Servicio",
+      "financial_contribution": "Contribución financiera por servicio"
+    },
+    "tables": {
+      "recent_bookings": "Reservas Recientes",
+      "detailed_list": "Lista detallada de actividades"
+    },
+    "dialogs": {
+      "all_bookings_title": "Todas las Reservas",
+      "all_bookings_desc": "Lista completa de reservas para el periodo seleccionado"
+    },
+    "actions": {
+      "export_csv": "Exportar CSV",
+      "view_details": "Ver Detalles"
+    },
+    "empty": "No hay datos disponibles para los filtros seleccionados.",
+    "loading": "Generando reporte..."
   },
   "errors": {
     "stripe_portal_failed": "No se pudo conectar con el portal de pagos. Redirigiendo..."
