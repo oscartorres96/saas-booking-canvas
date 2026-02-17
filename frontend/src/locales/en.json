@@ -1205,6 +1205,21 @@
                     "Data export (coming soon): You will be able to export your client base to Excel or CSV for external analysis, email marketing campaigns, or backups."
                 ]
             },
+            "reports": {
+                "title": "Reports and Statistics (Business Intelligence)",
+                "desc": "Make decisions based on real data. BookPro's reports section transforms your daily activity into strategic information to optimize your operation and maximize your income.",
+                "kpi_title": "High-Impact Metrics",
+                "kpis": [
+                    "Income Analysis: Visualize cash flow in real time. Compare sales between periods, identify your most profitable days, and understand where your money comes from (services vs. packages).",
+                    "Client Behavior: Discover who your star clients are, how many are recurring, and your new client acquisition rate.",
+                    "Schedule Optimization (Peak Hours): Identify your 'peak hours' to adjust staffing or launch promotions during low-demand periods.",
+                    "Service Performance: Which service is the most popular? Which generates the most margin? Understand your catalog to boost what works best.",
+                    "No-show Control: Measure your 'no-show' rate and take corrective measures to reduce lost revenue."
+                ],
+                "export_title": "Data Export & Compliance",
+                "export_desc": "Export your data to standard formats like CSV to integrate it with your accounting, perform advanced analysis in Excel, or maintain a physical backup of your operation.",
+                "export_tip": "Ideal for monthly hand-offs to your accountant or year-end analysis."
+            },
             "best_practices": {
                 "title": "Best Practices and Strategic Tips",
                 "desc": "Get the most out of BookPro by applying proven techniques that increase your income, reduce cancellations, and improve the client experience.",
@@ -1516,6 +1531,74 @@
         "error": {
             "load_failed": "Error loading billing information"
         }
+    },
+    "reports": {
+        "title": "Reports",
+        "subtitle": "Analyze your business performance and growth.",
+        "filters": {
+            "title": "Filters",
+            "apply": "Apply",
+            "reset": "Reset",
+            "date_range": "Date Range",
+            "branch": "Branch",
+            "payment_method": "Payment Method",
+            "status": "Status",
+            "presets": {
+                "today": "Today",
+                "last_7_days": "Last 7 days",
+                "last_30_days": "Last 30 days",
+                "month_to_date": "Month to date",
+                "custom": "Custom"
+            }
+        },
+        "tabs": {
+            "overview": "Overview",
+            "revenue": "Revenue",
+            "peak_hours": "Peak Hours",
+            "services": "Services",
+            "customers": "Customers",
+            "no_shows": "No-shows",
+            "resources": "Resources",
+            "leads": "Leads"
+        },
+        "kpis": {
+            "total_bookings": "Total Bookings",
+            "completed_bookings": "Completed",
+            "cancelled_bookings": "Cancelled",
+            "revenue": "Total Revenue",
+            "average_ticket": "Avg. Ticket",
+            "growth": "Growth",
+            "new_customers": "New Customers",
+            "recurring_customers": "Recurring",
+            "no_show_rate": "No-show Rate",
+            "busiest_day": "Busiest Day",
+            "most_popular": "Most Popular",
+            "avg_duration": "Avg. Duration"
+        },
+        "charts": {
+            "booking_activity": "Booking Activity",
+            "daily_performance": "Daily performance overview",
+            "revenue_trend": "Revenue Trend",
+            "income_distribution": "Income distribution over the selected period",
+            "popularity_by_service": "Popularity by Service",
+            "bookings_per_service": "Number of bookings per service",
+            "service_revenue": "Service Revenue",
+            "financial_contribution": "Financial contribution by service"
+        },
+        "tables": {
+            "recent_bookings": "Recent Bookings",
+            "detailed_list": "Detailed list of activities"
+        },
+        "dialogs": {
+            "all_bookings_title": "All Bookings",
+            "all_bookings_desc": "Full list of bookings for the selected period"
+        },
+        "actions": {
+            "export_csv": "Export CSV",
+            "view_details": "View Details"
+        },
+        "empty": "No data available for the selected filters.",
+        "loading": "Generating report..."
     },
     "errors": {
         "stripe_portal_failed": "Could not connect to payment portal. Redirecting..."

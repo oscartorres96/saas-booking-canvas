@@ -30,7 +30,9 @@ import {
     Store,
     QrCode,
     Layout,
-    Clock
+    Clock,
+    BarChart3,
+    Download
 } from 'lucide-react';
 
 const UserManual = () => {
@@ -94,6 +96,7 @@ const UserManual = () => {
         { id: 'pagos', label: t('manual.sections.payments.title'), icon: CreditCard },
         { id: 'cumplimiento', label: t('manual.sections.compliance.title'), icon: ShieldCheck },
         { id: 'clientes', label: t('manual.sections.clients.title'), icon: Users },
+        { id: 'reportes', label: t('manual.sections.reports.title'), icon: BarChart3 },
         { id: 'practicas', label: t('manual.sections.best_practices.title'), icon: Zap },
         { id: 'faq', label: t('manual.faq.title'), icon: HelpCircle },
     ];
@@ -674,6 +677,58 @@ const UserManual = () => {
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </section>
+
+                        {/* Section: Reports */}
+                        <section id="reportes" className="scroll-mt-32">
+                            <SectionHeader
+                                title={t('manual.sections.reports.title')}
+                                desc={t('manual.sections.reports.desc')}
+                                icon={BarChart3}
+                                color="bg-blue-600"
+                            />
+                            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <Card className="p-8 rounded-[2.5rem] bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden relative">
+                                    <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-blue-600/5 rounded-full blur-3xl" />
+                                    <div className="relative z-10 space-y-6">
+                                        <h3 className="text-xl font-black italic uppercase tracking-tighter mb-6 flex items-center gap-3">
+                                            <BarChart3 className="h-6 w-6 text-blue-600" />
+                                            {t('manual.sections.reports.kpi_title')}
+                                        </h3>
+                                        <ul className="space-y-4">
+                                            {(t('manual.sections.reports.kpis', { returnObjects: true }) as string[]).map((kpi, idx) => (
+                                                <li key={idx} className="flex gap-4">
+                                                    <div className="h-2 w-2 rounded-full bg-blue-600 mt-2 shrink-0" />
+                                                    <span className="text-sm font-medium text-muted-foreground leading-relaxed">{kpi}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </Card>
+
+                                <Card className="p-8 rounded-[2.5rem] bg-blue-600 text-white shadow-2xl overflow-hidden relative group">
+                                    <div className="absolute bottom-0 right-0 -mb-12 -mr-12 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                                        <Download className="h-64 w-64" />
+                                    </div>
+                                    <div className="relative z-10 h-full flex flex-col justify-between">
+                                        <div className="space-y-6">
+                                            <div className="h-14 w-14 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
+                                                <Download className="h-7 w-7" />
+                                            </div>
+                                            <h3 className="text-2xl font-black italic uppercase tracking-tighter">
+                                                {t('manual.sections.reports.export_title')}
+                                            </h3>
+                                            <p className="text-sm text-blue-50 font-medium leading-relaxed">
+                                                {t('manual.sections.reports.export_desc')}
+                                            </p>
+                                        </div>
+                                        <div className="pt-8 flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-blue-200">
+                                            <Zap className="h-4 w-4 fill-blue-200" />
+                                            {t('manual.sections.reports.export_tip')}
+                                        </div>
+                                    </div>
+                                </Card>
                             </div>
                         </section>
 

@@ -12,6 +12,7 @@ import PaymentSuccess from '../pages/PaymentSuccess';
 import PaymentCancel from '../pages/PaymentCancel';
 import GetStarted from '../pages/GetStarted';
 import ActivateAccount from '../pages/ActivateAccount';
+import ReportsPage from '../pages/ReportsPage';
 
 const MyBookingsRedirect = () => {
   const [searchParams] = useSearchParams();
@@ -91,6 +92,14 @@ const AppRouter = () => (
         }
       />
 
+      <Route
+        path="/reports"
+        element={
+          <PrivateRoute roles={['owner', 'business']}>
+            <ReportsPage />
+          </PrivateRoute>
+        }
+      />
       <Route path="*" element={<NotFound />} />
     </Routes>
   </BrowserRouter>

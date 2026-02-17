@@ -73,7 +73,8 @@ import {
     CreditCard,
     CheckCircle2,
     XCircle,
-    CalendarCheck
+    CalendarCheck,
+    BarChart3
 } from "lucide-react";
 import { QRGenerator } from "@/components/QRGenerator";
 import {
@@ -641,6 +642,14 @@ const BusinessDashboard = () => {
                                         Manual
                                     </Button>
                                     <Button
+                                        variant="outline"
+                                        className="h-9 md:h-10 text-[10px] md:text-xs px-2 md:px-3 font-medium order-4 md:order-none"
+                                        onClick={() => navigate('/reports')}
+                                    >
+                                        <BarChart3 className="mr-1.5 h-3.5 w-3.5 text-primary" />
+                                        {t('reports.title', 'Reportes')}
+                                    </Button>
+                                    <Button
                                         variant="default"
                                         className="h-9 md:h-10 text-[10px] md:text-xs px-2 md:px-3 font-semibold col-span-2 md:col-auto order-1 md:order-none shadow-md shadow-primary/20 bg-primary hover:bg-primary/90"
                                         onClick={() => setIsManualBookingDialogOpen(true)}
@@ -659,7 +668,7 @@ const BusinessDashboard = () => {
 
                                     <Button
                                         variant="outline"
-                                        className="h-9 md:h-10 text-[10px] md:text-xs px-2 md:px-3 font-medium order-4 md:order-none"
+                                        className="h-9 md:h-10 text-[10px] md:text-xs px-2 md:px-3 font-medium order-5 md:order-none"
                                         onClick={() => setIsQrDialogOpen(true)}
                                     >
                                         <QrCode className="mr-1.5 h-3.5 w-3.5" />
